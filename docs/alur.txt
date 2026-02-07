@@ -1,0 +1,343 @@
+📌 PROJECT: SISTEM MANAGEMENT BIMBEL TERINTEGRASI
+1️⃣ LANDING PAGE
+
+Halaman publik berisi:
+
+Profil bimbel
+
+Paket belajar
+
+Keunggulan
+
+Testimoni
+
+Kontak
+
+Tombol Login
+
+2️⃣ ROLE & AKSES SISTEM
+
+Terdapat 3 role:
+
+1. Admin
+
+Akses penuh ke seluruh sistem:
+
+Semua CRUD
+
+Validasi presensi
+
+Kirim WhatsApp
+
+Laporan keuangan
+
+Restore data hibernasi
+
+Backup & export
+
+2. Guru
+
+Melihat riwayat les
+
+Melihat proyeksi gaji
+
+Mengisi presensi bulanan (jika dibuka admin)
+
+Melihat tawaran les
+
+3. Murid
+
+Melihat riwayat les
+
+Melihat total tagihan
+
+Melihat status pembayaran
+
+3️⃣ SISTEM AUTENTIKASI & KEAMANAN
+
+Admin membuat akun guru & murid
+
+Default password: 12345678
+
+Saat login pertama → wajib ganti password
+
+Sistem mendeteksi apakah password masih default
+
+Password disimpan dengan hashing (bcrypt)
+
+Session management aman
+
+Soft delete (hibernasi) untuk akun
+
+Restore akun dimungkinkan
+
+4️⃣ CRUD DATA UTAMA
+A. Data Murid Privat
+
+Field:
+
+Nama
+
+Nomor WhatsApp (otomatis dikonversi ke format 62 untuk wa.me)
+
+Alamat
+
+Daftar tentor terkait
+
+Status (aktif / hibernasi)
+
+Password
+
+Created_at / Updated_at
+
+B. Data Guru
+
+Field:
+
+Nama
+
+Nomor WhatsApp (auto format 62)
+
+Jurusan
+
+Mapel yang diajarkan
+
+Alamat
+
+Nama Bank
+
+No Rekening
+
+Nama Pemilik Rekening
+
+Status (aktif / hibernasi)
+
+Password
+
+Created_at / Updated_at
+
+C. Data Les Privat
+
+Field:
+
+ID Les (unik)
+
+Nama Guru
+
+Nama Murid
+
+Biaya Ortu per Pertemuan
+
+Gaji Guru per Pertemuan
+
+Validasi Status:
+
+0 = Belum ada presensi
+
+1 = Sudah diisi
+
+2 = Duplikat (peringatan)
+
+Status (aktif / hibernasi)
+
+Created_at / Updated_at
+
+Soft delete enabled.
+
+5️⃣ SISTEM PRESENSI BULANAN GURU
+
+Guru hanya bisa mengisi jika admin membuka periode presensi.
+
+Field:
+
+Timestamp
+
+ID Les
+
+Nama Murid (dropdown dari data murid)
+
+Bulan
+
+Checklist tanggal 1–31
+
+Keterangan tambahan
+
+Total Les (integer)
+
+Flow:
+
+Guru isi →
+Status: Menunggu Validasi Admin →
+Admin validasi →
+Jika valid → masuk analisis
+Jika salah → ditandai error dan bisa diperbaiki
+
+6️⃣ ANALISIS OTOMATIS
+A. Analisis Ortu
+
+Data diolah menjadi template WhatsApp otomatis:
+
+Format:
+
+Total les sampai akhir [Bulan] adalah:
+
+Tentor [Nama Guru]:
+[Jumlah] x [Harga] = [Total]
+
+Fitur:
+
+Tombol Kirim WA (wa.me/nomor)
+
+Status pembayaran ortu:
+
+Belum bayar
+
+Sudah bayar
+
+Cicil
+
+B. Analisis Guru
+
+Field:
+
+ID Les
+
+Nama Guru
+
+Validasi (Benar / Salah)
+
+Nama Murid
+
+Bulan
+
+Jumlah
+
+Harga (gaji guru)
+
+Total
+
+Status Gaji:
+
+Belum dibayar
+
+Sudah dibayar
+
+Ditahan
+
+Teks WA
+
+Jika validasi salah:
+Admin bisa langsung edit relasi ID les tanpa pindah halaman.
+
+7️⃣ SISTEM KELAS BERSAMA
+Data Murid Kelas
+
+Nama
+
+Nomor WA
+
+Kalender Les
+
+Admin bisa:
+
+Tambah jadwal pada tanggal tertentu
+
+Tentukan:
+
+Guru
+
+Daftar murid
+
+Jam
+
+Mapel
+
+Sistem otomatis menghitung:
+
+Total kehadiran murid per bulan
+
+Total mengajar guru per bulan
+
+Generate template WA
+
+8️⃣ SISTEM KEUANGAN
+Pendapatan Kotor
+
+Total tagihan ortu yang sudah divalidasi.
+
+Biaya Guru
+
+Total gaji guru berdasarkan presensi valid.
+
+Pendapatan Bersih
+
+Pendapatan kotor - total gaji guru.
+
+Dashboard keuangan menampilkan:
+
+Grafik bulanan
+
+Total murid aktif
+
+Total guru aktif
+
+Notifikasi validasi error
+
+9️⃣ RIWAYAT & TRACKING
+
+Setiap data presensi disimpan permanen.
+
+Tersedia:
+
+Riwayat les murid (tanggal, guru, total bayar)
+
+Riwayat mengajar guru
+
+Riwayat pembayaran
+
+Riwayat perubahan data
+
+🔟 AUDIT LOG SYSTEM (WAJIB)
+
+Semua perubahan penting dicatat:
+
+Siapa yang mengubah
+
+Data apa yang diubah
+
+Sebelum dan sesudah perubahan
+
+Timestamp
+
+Tidak bisa dihapus.
+
+1️⃣1️⃣ EXPORT & BACKUP
+
+Fitur:
+
+Export laporan bulanan ke Excel
+
+Export PDF
+
+Backup database penuh
+
+Export per murid / per guru
+
+🎯 STRUKTUR PENGHAPUSAN DATA
+
+Semua fitur hapus menggunakan:
+Soft delete (hibernasi)
+
+Data tetap tersimpan dan bisa dipulihkan.
+
+🔐 VALIDASI & KEAMANAN TAMBAHAN
+
+ID Les harus unik
+
+Total les harus bilangan bulat
+
+Tidak boleh presensi jika ID tidak cocok dengan murid
+
+Validasi duplikasi otomatis
+
+Format nomor WA otomatis disesuaikan
