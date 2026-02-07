@@ -19,6 +19,7 @@ class Teacher extends Model
         'user_id',
         'name',
         'whatsapp',
+        'whatsapp_number',
         'major',
         'subjects',
         'address',
@@ -37,6 +38,11 @@ class Teacher extends Model
         $this->attributes['whatsapp'] = $this->normalizeWhatsapp($value);
     }
 
+    public function setWhatsappNumberAttribute(?string $value): void
+    {
+        $this->attributes['whatsapp_number'] = $this->normalizeWhatsapp($value);
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
@@ -47,9 +53,9 @@ class Teacher extends Model
         return $this->belongsToMany(Student::class)->withTimestamps();
     }
 
-    public function lessons(): HasMany
+    public function enrollments(): HasMany
     {
-        return $this->hasMany(Lesson::class);
+        return $this->hasMany(Enrollment::class);
     }
 
     public function classGroups(): HasMany

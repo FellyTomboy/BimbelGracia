@@ -1,4 +1,7 @@
 📌 PROJECT: SISTEM MANAGEMENT BIMBEL TERINTEGRASI
+
+(Versi Arsitektur Relasional Diperbaiki)
+
 1️⃣ LANDING PAGE
 
 Halaman publik berisi:
@@ -21,7 +24,7 @@ Terdapat 3 role:
 
 1. Admin
 
-Akses penuh ke seluruh sistem:
+Akses penuh:
 
 Semua CRUD
 
@@ -35,13 +38,15 @@ Restore data hibernasi
 
 Backup & export
 
+Monitoring audit log
+
 2. Guru
 
-Melihat riwayat les
+Melihat riwayat mengajar
 
 Melihat proyeksi gaji
 
-Mengisi presensi bulanan (jika dibuka admin)
+Mengisi presensi bulanan (jika periode dibuka admin)
 
 Melihat tawaran les
 
@@ -59,136 +64,215 @@ Admin membuat akun guru & murid
 
 Default password: 12345678
 
-Saat login pertama → wajib ganti password
+Login pertama wajib ganti password
 
-Sistem mendeteksi apakah password masih default
+Password di-hash (bcrypt)
 
-Password disimpan dengan hashing (bcrypt)
-
-Session management aman
-
-Soft delete (hibernasi) untuk akun
+Soft delete (hibernasi)
 
 Restore akun dimungkinkan
 
-4️⃣ CRUD DATA UTAMA
-A. Data Murid Privat
+Audit log semua perubahan penting
+
+4️⃣ STRUKTUR DATA UTAMA (REVISI ARSITEKTUR)
+
+❗ Penting: Murid tidak lagi terikat langsung ke “ID Les”.
+
+Struktur dipisah menjadi 5 entitas utama:
+
+A. Students (Murid)
 
 Field:
 
-Nama
+id
 
-Nomor WhatsApp (otomatis dikonversi ke format 62 untuk wa.me)
+nama
 
-Alamat
+no_wa_primary
 
-Daftar tentor terkait
+no_wa_secondary (opsional)
 
-Status (aktif / hibernasi)
+alamat
 
-Password
+status (aktif/hibernasi)
 
-Created_at / Updated_at
+created_at
 
-B. Data Guru
+updated_at
 
-Field:
+1 murid = 1 record.
+Tidak peduli privat, online, atau kelompok.
 
-Nama
-
-Nomor WhatsApp (auto format 62)
-
-Jurusan
-
-Mapel yang diajarkan
-
-Alamat
-
-Nama Bank
-
-No Rekening
-
-Nama Pemilik Rekening
-
-Status (aktif / hibernasi)
-
-Password
-
-Created_at / Updated_at
-
-C. Data Les Privat
+B. Teachers (Guru)
 
 Field:
 
-ID Les (unik)
+id
 
-Nama Guru
+nama
 
-Nama Murid
+no_wa
 
-Biaya Ortu per Pertemuan
+jurusan
 
-Gaji Guru per Pertemuan
+mapel
 
-Validasi Status:
+alamat
+
+nama_bank
+
+no_rekening
+
+nama_pemilik_rekening
+
+status
+
+created_at
+
+updated_at
+
+C. Programs (Jenis Layanan Les)
+
+Mewakili jenis layanan.
+
+Field:
+
+id
+
+nama_program
+
+tipe (privat / kelompok / online)
+
+mapel
+
+deskripsi
+
+default_harga_ortu
+
+default_gaji_guru
+
+status
+
+Contoh:
+
+Privat Matematika SD
+
+Kelas Bersama SMP
+
+Online Fisika
+
+D. Enrollments (Kontrak Les Aktif)
+
+Inilah pengganti “ID Les”.
+
+Field:
+
+id
+
+program_id
+
+guru_id
+
+harga_ortu_per_pertemuan (boleh override default)
+
+gaji_guru_per_pertemuan (boleh override default)
+
+status (aktif/hibernasi)
+
+validasi_status:
 
 0 = Belum ada presensi
 
-1 = Sudah diisi
+1 = Sudah ada
 
-2 = Duplikat (peringatan)
+2 = Duplikat
 
-Status (aktif / hibernasi)
+Relasi tambahan:
 
-Created_at / Updated_at
+Enrollment_Students
 
-Soft delete enabled.
+enrollment_id
 
-5️⃣ SISTEM PRESENSI BULANAN GURU
+student_id
 
-Guru hanya bisa mengisi jika admin membuka periode presensi.
+Dengan ini:
+
+1 enrollment bisa punya banyak murid (kelas bersama)
+
+1 murid bisa ikut banyak enrollment
+
+Tidak ada lagi duplikasi murid.
+
+E. Presensi Bulanan
 
 Field:
 
-Timestamp
+id
 
-ID Les
+enrollment_id
 
-Nama Murid (dropdown dari data murid)
+bulan
 
-Bulan
+daftar_tanggal (array / json)
 
-Checklist tanggal 1–31
+total_les (integer)
 
-Keterangan tambahan
+keterangan
 
-Total Les (integer)
+status_validasi_admin (pending/valid/revisi)
+
+created_by (guru)
+
+created_at
 
 Flow:
 
 Guru isi →
-Status: Menunggu Validasi Admin →
+Status pending →
 Admin validasi →
-Jika valid → masuk analisis
-Jika salah → ditandai error dan bisa diperbaiki
+Jika valid → masuk analisis keuangan
+
+5️⃣ SISTEM PRESENSI
+
+Guru hanya bisa isi jika periode dibuka admin.
+
+Validasi:
+
+Enrollment harus cocok dengan guru
+
+Murid harus memang terdaftar di enrollment tersebut
+
+Total les harus sesuai jumlah tanggal
+
+Tidak boleh duplikat presensi bulan yang sama
 
 6️⃣ ANALISIS OTOMATIS
 A. Analisis Ortu
 
-Data diolah menjadi template WhatsApp otomatis:
+Proses:
 
-Format:
+Ambil presensi valid
 
-Total les sampai akhir [Bulan] adalah:
+Group by student
 
-Tentor [Nama Guru]:
+Group lagi by no_wa_primary
+
+Hitung total per anak
+
+Gabungkan dalam 1 pesan WA per nomor
+
+Template:
+
+Total les sampai akhir [Bulan]:
+
+[Anak 1]
+Tentor [Nama]:
 [Jumlah] x [Harga] = [Total]
 
-Fitur:
+[Anak 2]
+...
 
-Tombol Kirim WA (wa.me/nomor)
-
-Status pembayaran ortu:
+Status pembayaran:
 
 Belum bayar
 
@@ -200,23 +284,21 @@ B. Analisis Guru
 
 Field:
 
-ID Les
+enrollment_id
 
-Nama Guru
+nama_guru
 
-Validasi (Benar / Salah)
+nama_murid
 
-Nama Murid
+bulan
 
-Bulan
+jumlah
 
-Jumlah
+harga_gaji
 
-Harga (gaji guru)
+total
 
-Total
-
-Status Gaji:
+status_gaji:
 
 Belum dibayar
 
@@ -224,88 +306,65 @@ Sudah dibayar
 
 Ditahan
 
-Teks WA
+validasi (Benar/Salah)
 
-Jika validasi salah:
-Admin bisa langsung edit relasi ID les tanpa pindah halaman.
+Jika ada error relasi:
+Admin bisa edit langsung enrollment tanpa pindah halaman.
 
 7️⃣ SISTEM KELAS BERSAMA
-Data Murid Kelas
 
-Nama
+Tidak lagi buat murid baru.
 
-Nomor WA
+Cukup:
 
-Kalender Les
+Buat enrollment bertipe kelompok
 
-Admin bisa:
+Tambahkan banyak murid ke enrollment tersebut
 
-Tambah jadwal pada tanggal tertentu
+Kalender hanya representasi visual dari presensi.
 
-Tentukan:
-
-Guru
-
-Daftar murid
-
-Jam
-
-Mapel
-
-Sistem otomatis menghitung:
+Sistem otomatis hitung:
 
 Total kehadiran murid per bulan
 
 Total mengajar guru per bulan
 
-Generate template WA
-
 8️⃣ SISTEM KEUANGAN
-Pendapatan Kotor
 
-Total tagihan ortu yang sudah divalidasi.
+Pendapatan Kotor:
+Total tagihan ortu dari presensi valid.
 
-Biaya Guru
+Biaya Guru:
+Total gaji dari presensi valid.
 
-Total gaji guru berdasarkan presensi valid.
+Pendapatan Bersih:
+Pendapatan kotor - biaya guru.
 
-Pendapatan Bersih
-
-Pendapatan kotor - total gaji guru.
-
-Dashboard keuangan menampilkan:
-
-Grafik bulanan
-
-Total murid aktif
-
-Total guru aktif
-
-Notifikasi validasi error
+Semua dihitung berbasis presensi valid.
 
 9️⃣ RIWAYAT & TRACKING
 
-Setiap data presensi disimpan permanen.
-
 Tersedia:
 
-Riwayat les murid (tanggal, guru, total bayar)
+Riwayat per murid (semua enrollment)
 
-Riwayat mengajar guru
+Riwayat per guru
 
 Riwayat pembayaran
 
-Riwayat perubahan data
+Riwayat perubahan (audit log)
 
-🔟 AUDIT LOG SYSTEM (WAJIB)
+Data tidak pernah benar-benar dihapus.
 
-Semua perubahan penting dicatat:
+🔟 AUDIT LOG SYSTEM
 
-Siapa yang mengubah
+Mencatat:
 
-Data apa yang diubah
+User yang melakukan perubahan
 
-Sebelum dan sesudah perubahan
+Data yang diubah
+
+Sebelum dan sesudah
 
 Timestamp
 
@@ -313,31 +372,57 @@ Tidak bisa dihapus.
 
 1️⃣1️⃣ EXPORT & BACKUP
 
-Fitur:
-
-Export laporan bulanan ke Excel
+Export Excel
 
 Export PDF
 
+Export per murid
+
+Export per guru
+
 Backup database penuh
 
-Export per murid / per guru
+🎯 LOG PERUBAHAN (Dari Versi Sebelumnya)
+1. ❌ Menghapus konsep “ID Les sebagai pusat sistem”
 
-🎯 STRUKTUR PENGHAPUSAN DATA
+Diganti dengan:
+✔ Programs
+✔ Enrollments
+✔ Enrollment_Students
 
-Semua fitur hapus menggunakan:
-Soft delete (hibernasi)
+2. ❌ Menghapus relasi langsung Murid ↔ Data Les
 
-Data tetap tersimpan dan bisa dipulihkan.
+Diganti dengan:
+✔ Murid → Enrollment → Presensi
 
-🔐 VALIDASI & KEAMANAN TAMBAHAN
+3. ✔ Mendukung:
 
-ID Les harus unik
+1 guru – banyak murid
 
-Total les harus bilangan bulat
+1 murid – banyak program
 
-Tidak boleh presensi jika ID tidak cocok dengan murid
+2 anak 1 WA
 
-Validasi duplikasi otomatis
+2 murid beda WA tapi les bersama
 
-Format nomor WA otomatis disesuaikan
+Harga berbeda per enrollment
+
+4. ✔ Menghilangkan potensi:
+
+Duplikasi murid
+
+Ledakan ID Les
+
+Anomali relasi
+
+Perhitungan ganda
+
+5. ✔ Sistem jadi scalable
+
+Sekarang bisa:
+
+100 murid
+
+1000 murid
+
+Bahkan dijadikan SaaS

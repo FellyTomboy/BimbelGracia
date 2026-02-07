@@ -31,26 +31,35 @@
                 @foreach ($summaries as $summary)
                     <div class="bg-white shadow-sm sm:rounded-lg p-6 space-y-4">
                         <div>
-                            <h3 class="text-lg font-semibold">{{ $summary['student']?->name ?? 'Murid' }}</h3>
-                            <p class="text-sm text-gray-500">WA: {{ $summary['student']?->whatsapp ?? '-' }}</p>
+                            <h3 class="text-lg font-semibold">Kontak Ortu</h3>
+                            <p class="text-sm text-gray-500">WA: {{ $summary['contact'] !== 'unknown' ? $summary['contact'] : '-' }}</p>
                         </div>
                         <div class="text-sm text-gray-700 space-y-2">
-                            @foreach ($summary['lines'] as $line)
-                                <div class="flex justify-between">
-                                    <span>{{ $line['label'] }}</span>
-                                    <span>{{ $line['count'] }} x {{ number_format($line['rate']) }} = {{ number_format($line['total']) }}</span>
+                            @foreach ($summary['students'] as $studentSummary)
+                                <div class="border rounded-md p-3 space-y-2">
+                                    <p class="font-semibold">{{ $studentSummary['student']?->name ?? 'Murid' }}</p>
+                                    @foreach ($studentSummary['lines'] as $line)
+                                        <div class="flex justify-between">
+                                            <span>{{ $line['label'] }}</span>
+                                            <span>{{ $line['count'] }} x {{ number_format($line['rate']) }} = {{ number_format($line['total']) }}</span>
+                                        </div>
+                                    @endforeach
+                                    <div class="flex justify-between text-sm font-semibold border-t pt-2">
+                                        <span>Total</span>
+                                        <span>{{ number_format($studentSummary['total']) }}</span>
+                                    </div>
                                 </div>
                             @endforeach
                             <div class="flex justify-between font-semibold border-t pt-2">
-                                <span>Total</span>
+                                <span>Total Semua Murid</span>
                                 <span>{{ number_format($summary['total']) }}</span>
                             </div>
                         </div>
                         <div>
                             <label class="block text-xs uppercase tracking-wide text-gray-500">Template WA</label>
                             <textarea class="mt-2 w-full border-gray-300 rounded-md text-sm" rows="6" readonly>{{ $summary['message'] }}</textarea>
-                            @if ($summary['student']?->whatsapp)
-                                <a href="https://wa.me/{{ $summary['student']->whatsapp }}?text={{ urlencode($summary['message']) }}" class="inline-flex mt-3 items-center px-4 py-2 rounded-md bg-emerald-600 text-white text-sm" target="_blank" rel="noopener">Kirim WA</a>
+                            @if ($summary['contact'] !== 'unknown')
+                                <a href="https://wa.me/{{ $summary['contact'] }}?text={{ urlencode($summary['message']) }}" class="inline-flex mt-3 items-center px-4 py-2 rounded-md bg-emerald-600 text-white text-sm" target="_blank" rel="noopener">Kirim WA</a>
                             @endif
                         </div>
                     </div>
@@ -63,8 +72,10 @@
                     <table class="min-w-full text-sm">
                         <thead>
                             <tr class="text-left text-gray-500">
+                                <th class="py-2">Program</th>
+                                <th class="py-2">Guru</th>
                                 <th class="py-2">Murid</th>
-                                <th class="py-2">ID Les</th>
+                                <th class="py-2">Enrollment</th>
                                 <th class="py-2">Total</th>
                                 <th class="py-2">Status</th>
                                 <th class="py-2">Aksi</th>
@@ -73,9 +84,15 @@
                         <tbody class="divide-y">
                             @foreach ($attendances as $attendance)
                                 <tr>
-                                    <td class="py-2">{{ $attendance->student?->name ?? '-' }}</td>
-                                    <td class="py-2">{{ $attendance->lesson?->code ?? '-' }}</td>
-                                    <td class="py-2">{{ $attendance->total_lessons }}</td>
+                                    @php
+                                        $rate = $attendance->enrollment?->parent_rate ?? 0;
+                                        $total = $attendance->students->sum(fn ($student) => (int) ($student->pivot?->total_present ?? 0) * $rate);
+                                    @endphp
+                                    <td class="py-2">{{ $attendance->enrollment?->program?->name ?? '-' }}</td>
+                                    <td class="py-2">{{ $attendance->enrollment?->teacher?->name ?? '-' }}</td>
+                                    <td class="py-2">{{ $attendance->students->pluck('name')->implode(', ') ?: '-' }}</td>
+                                    <td class="py-2">#{{ $attendance->enrollment_id }}</td>
+                                    <td class="py-2">Rp {{ number_format($total) }}</td>
                                     <td class="py-2">{{ $attendance->parent_payment_status }}</td>
                                     <td class="py-2">
                                         <form method="POST" action="{{ route('admin.analysis.ortu.payment', $attendance) }}" class="flex items-center gap-2">

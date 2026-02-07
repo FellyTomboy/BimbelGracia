@@ -33,7 +33,8 @@
                                 <th class="py-2">Periode</th>
                                 <th class="py-2">Murid</th>
                                 <th class="py-2">Guru</th>
-                                <th class="py-2">ID Les</th>
+                                <th class="py-2">Program</th>
+                                <th class="py-2">Enrollment</th>
                                 <th class="py-2">Total Les</th>
                                 <th class="py-2">Total Bayar</th>
                                 <th class="py-2">Status</th>
@@ -42,15 +43,22 @@
                         <tbody class="divide-y">
                             @foreach ($attendances as $attendance)
                                 @php
-                                    $rate = $attendance->lesson?->parent_rate ?? 0;
-                                    $total = $attendance->total_lessons * $rate;
+                                    $rate = $attendance->enrollment?->parent_rate ?? 0;
+                                    if ($studentId) {
+                                        $student = $attendance->students->firstWhere('id', (int) $studentId);
+                                        $present = (int) ($student?->pivot?->total_present ?? 0);
+                                    } else {
+                                        $present = $attendance->students->sum(fn ($student) => (int) ($student->pivot?->total_present ?? 0));
+                                    }
+                                    $total = $present * $rate;
                                 @endphp
                                 <tr>
                                     <td class="py-2">{{ sprintf('%02d', $attendance->month) }}/{{ $attendance->year }}</td>
-                                    <td class="py-2">{{ $attendance->student?->name ?? '-' }}</td>
-                                    <td class="py-2">{{ $attendance->lesson?->teacher?->name ?? '-' }}</td>
-                                    <td class="py-2">{{ $attendance->lesson?->code ?? '-' }}</td>
-                                    <td class="py-2">{{ $attendance->total_lessons }}</td>
+                                    <td class="py-2">{{ $attendance->students->pluck('name')->implode(', ') ?: '-' }}</td>
+                                    <td class="py-2">{{ $attendance->enrollment?->teacher?->name ?? '-' }}</td>
+                                    <td class="py-2">{{ $attendance->enrollment?->program?->name ?? '-' }}</td>
+                                    <td class="py-2">#{{ $attendance->enrollment_id }}</td>
+                                    <td class="py-2">{{ $present }}</td>
                                     <td class="py-2">Rp {{ number_format($total) }}</td>
                                     <td class="py-2">{{ $attendance->parent_payment_status }}</td>
                                 </tr>

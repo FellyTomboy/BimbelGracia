@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Enrollment;
 use App\Models\MonthlyAttendance;
+use App\Models\Student;
+use Illuminate\Support\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -16,46 +19,66 @@ class AnalysisController extends Controller
     {
         [$month, $year] = $this->resolvePeriod($request);
 
-        $attendances = $this->baseAttendanceQuery($month, $year)
-            ->get();
+        $attendances = $this->baseAttendanceQuery($month, $year)->get();
+        $rows = $this->attendanceRows($attendances);
 
-        $grouped = $attendances
-            ->groupBy('student_id')
-            ->map(function ($items) use ($month, $year) {
-                $student = $items->first()?->student;
-                $lines = $items
-                    ->groupBy('lesson_id')
-                    ->map(function ($lessonItems) {
-                        $attendance = $lessonItems->first();
-                        $lesson = $attendance?->lesson;
-                        $teacherName = $lesson?->teacher?->name ?? '-';
-                        $rate = $lesson?->parent_rate ?? 0;
-                        $totalLessons = $lessonItems->sum('total_lessons');
-                        $total = $totalLessons * $rate;
+        $grouped = $rows
+            ->groupBy(function (array $row) {
+                return $row['student']->whatsapp_primary
+                    ?? $row['student']->whatsapp
+                    ?? 'unknown';
+            })
+            ->map(function (Collection $items, string $contact) use ($month, $year) {
+                $students = $items
+                    ->groupBy(fn (array $row) => $row['student']->id)
+                    ->map(function (Collection $studentItems) {
+                        $student = $studentItems->first()['student'];
+                        $lines = $studentItems
+                            ->groupBy(fn (array $row) => $row['enrollment']->id)
+                            ->map(function (Collection $enrollmentItems) {
+                                $row = $enrollmentItems->first();
+                                $teacherName = $row['teacher']?->name ?? '-';
+                                $programName = $row['program']?->name ?? '-';
+                                $rate = $row['parent_rate'];
+                                $count = $enrollmentItems->sum('total_present');
+                                $total = $count * $rate;
+
+                                return [
+                                    'label' => sprintf('%s (%s)', $teacherName, $programName),
+                                    'count' => $count,
+                                    'rate' => $rate,
+                                    'total' => $total,
+                                ];
+                            })
+                            ->values();
 
                         return [
-                            'label' => sprintf('%s (%s)', $teacherName, $lesson?->code ?? '-'),
-                            'count' => $totalLessons,
-                            'rate' => $rate,
-                            'total' => $total,
+                            'student' => $student,
+                            'lines' => $lines,
+                            'total' => $lines->sum('total'),
                         ];
                     })
                     ->values();
 
-                $grandTotal = $lines->sum('total');
+                $grandTotal = $students->sum('total');
                 $messageLines = collect([
                     sprintf('Total les sampai akhir %s %s adalah:', $this->monthName($month), $year),
-                ])
-                    ->merge($lines->map(function (array $line): string {
-                        return sprintf('Tentor %s: %d x %s = %s', $line['label'], $line['count'], number_format($line['rate']), number_format($line['total'])));
-                    }))
-                    ->merge([
-                        sprintf('Total: %s', number_format($grandTotal)),
-                    ]);
+                ]);
+
+                foreach ($students as $studentSummary) {
+                    $messageLines->push(sprintf('[%s]', $studentSummary['student']?->name ?? 'Murid'));
+                    foreach ($studentSummary['lines'] as $line) {
+                        $messageLines->push(
+                            sprintf('Tentor %s: %d x %s = %s', $line['label'], $line['count'], number_format($line['rate']), number_format($line['total']))
+                        );
+                    }
+                }
+
+                $messageLines->push(sprintf('Total: %s', number_format($grandTotal)));
 
                 return [
-                    'student' => $student,
-                    'lines' => $lines,
+                    'contact' => $contact,
+                    'students' => $students,
                     'total' => $grandTotal,
                     'message' => $messageLines->implode("\n"),
                 ];
@@ -74,25 +97,33 @@ class AnalysisController extends Controller
     {
         [$month, $year] = $this->resolvePeriod($request);
 
-        $attendances = $this->baseAttendanceQuery($month, $year)
+        $attendances = $this->baseAttendanceQuery($month, $year)->get();
+        $enrollments = Enrollment::with(['program', 'teacher', 'students'])
+            ->orderBy('id')
             ->get();
+        $rows = $this->attendanceRows($attendances);
 
-        $grouped = $attendances
-            ->groupBy('teacher_id')
-            ->map(function ($items) use ($month, $year) {
-                $teacher = $items->first()?->teacher;
+        $grouped = $rows
+            ->groupBy(fn (array $row) => $row['teacher']?->id)
+            ->map(function (Collection $items) use ($month, $year) {
+                $teacher = $items->first()['teacher'];
                 $lines = $items
-                    ->groupBy('lesson_id')
-                    ->map(function ($lessonItems) {
-                        $attendance = $lessonItems->first();
-                        $lesson = $attendance?->lesson;
-                        $studentName = $lesson?->student?->name ?? '-';
-                        $rate = $lesson?->teacher_rate ?? 0;
-                        $totalLessons = $lessonItems->sum('total_lessons');
+                    ->groupBy(fn (array $row) => $row['enrollment']->id)
+                    ->map(function (Collection $enrollmentItems) {
+                        $row = $enrollmentItems->first();
+                        $studentNames = $enrollmentItems
+                            ->pluck('student')
+                            ->filter()
+                            ->pluck('name')
+                            ->unique()
+                            ->implode(', ');
+                        $programName = $row['program']?->name ?? '-';
+                        $rate = $row['teacher_rate'];
+                        $totalLessons = $row['attendance']->total_lessons;
                         $total = $totalLessons * $rate;
 
                         return [
-                            'label' => sprintf('%s (%s)', $studentName, $lesson?->code ?? '-'),
+                            'label' => sprintf('%s (%s)', $studentNames ?: '-', $programName),
                             'count' => $totalLessons,
                             'rate' => $rate,
                             'total' => $total,
@@ -105,7 +136,7 @@ class AnalysisController extends Controller
                     sprintf('Rekap gaji sampai akhir %s %s:', $this->monthName($month), $year),
                 ])
                     ->merge($lines->map(function (array $line): string {
-                        return sprintf('Murid %s: %d x %s = %s', $line['label'], $line['count'], number_format($line['rate']), number_format($line['total'])));
+                        return sprintf('Murid %s: %d x %s = %s', $line['label'], $line['count'], number_format($line['rate']), number_format($line['total']));
                     }))
                     ->merge([
                         sprintf('Total: %s', number_format($grandTotal)),
@@ -125,6 +156,7 @@ class AnalysisController extends Controller
             'year' => $year,
             'attendances' => $attendances,
             'summaries' => $grouped,
+            'enrollments' => $enrollments,
         ]);
     }
 
@@ -153,11 +185,33 @@ class AnalysisController extends Controller
     private function baseAttendanceQuery(int $month, int $year)
     {
         return MonthlyAttendance::query()
-            ->with(['lesson.teacher', 'lesson.student', 'teacher', 'student'])
-            ->where('status', 'validated')
+            ->with(['enrollment.program', 'enrollment.teacher', 'students'])
+            ->where('status_validation', 'valid')
             ->where('month', $month)
             ->where('year', $year)
-            ->orderBy('teacher_id');
+            ->orderBy('enrollment_id');
+    }
+
+    private function attendanceRows(Collection $attendances): Collection
+    {
+        return $attendances->flatMap(function (MonthlyAttendance $attendance) {
+            $enrollment = $attendance->enrollment;
+            $program = $enrollment?->program;
+            $teacher = $enrollment?->teacher;
+
+            return $attendance->students->map(function (Student $student) use ($attendance, $enrollment, $program, $teacher) {
+                return [
+                    'attendance' => $attendance,
+                    'enrollment' => $enrollment,
+                    'program' => $program,
+                    'teacher' => $teacher,
+                    'student' => $student,
+                    'total_present' => (int) ($student->pivot?->total_present ?? 0),
+                    'parent_rate' => (int) ($enrollment?->parent_rate ?? 0),
+                    'teacher_rate' => (int) ($enrollment?->teacher_rate ?? 0),
+                ];
+            });
+        });
     }
 
     private function resolvePeriod(Request $request): array

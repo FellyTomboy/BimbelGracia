@@ -30,7 +30,7 @@
                                 <tr>
                                     <td class="py-2 font-medium">{{ $teacher->name }}</td>
                                     <td class="py-2">{{ $teacher->user?->email ?? '-' }}</td>
-                                    <td class="py-2">{{ $teacher->whatsapp ?? '-' }}</td>
+                                    <td class="py-2">{{ $teacher->whatsapp_number ?? '-' }}</td>
                                     <td class="py-2">
                                         {{ $teacher->deleted_at ? 'hibernasi' : $teacher->status }}
                                     </td>

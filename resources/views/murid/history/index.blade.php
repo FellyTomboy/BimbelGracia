@@ -1,12 +1,12 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Riwayat Pembayaran</h2>
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Riwayat Les Murid</h2>
     </x-slot>
 
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
             <div class="bg-white shadow-sm sm:rounded-lg">
-                <form method="GET" action="{{ route('admin.history.payments') }}" class="p-6 grid md:grid-cols-3 gap-4">
+                <form method="GET" action="{{ route('murid.history.index') }}" class="p-6 grid md:grid-cols-3 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Bulan</label>
                         <input type="number" name="month" value="{{ $month }}" min="1" max="12" class="mt-1 w-full border-gray-300 rounded-md" required />
@@ -29,38 +29,36 @@
                                 <th class="py-2">Periode</th>
                                 <th class="py-2">Program</th>
                                 <th class="py-2">Guru</th>
-                                <th class="py-2">Murid</th>
-                                <th class="py-2">Enrollment</th>
                                 <th class="py-2">Total Pertemuan</th>
+                                <th class="py-2">Biaya / Pertemuan</th>
                                 <th class="py-2">Total Tagihan</th>
-                                <th class="py-2">Status Ortu</th>
-                                <th class="py-2">Status Guru</th>
+                                <th class="py-2">Status Pembayaran</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y">
-                            @foreach ($attendances as $attendance)
+                            @forelse ($attendances as $attendance)
                                 @php
-                                    $rateParent = $attendance->enrollment?->parent_rate ?? 0;
-                                    $totalParent = $attendance->students->sum(fn ($student) => (int) ($student->pivot?->total_present ?? 0) * $rateParent);
+                                    $student = $attendance->students->firstWhere('id', $student?->id ?? 0);
+                                    $present = (int) ($student?->pivot?->total_present ?? 0);
+                                    $rate = $attendance->enrollment?->parent_rate ?? 0;
+                                    $total = $present * $rate;
                                 @endphp
                                 <tr>
                                     <td class="py-2">{{ sprintf('%02d', $attendance->month) }}/{{ $attendance->year }}</td>
                                     <td class="py-2">{{ $attendance->enrollment?->program?->name ?? '-' }}</td>
                                     <td class="py-2">{{ $attendance->enrollment?->teacher?->name ?? '-' }}</td>
-                                    <td class="py-2">{{ $attendance->students->pluck('name')->implode(', ') ?: '-' }}</td>
-                                    <td class="py-2">#{{ $attendance->enrollment_id }}</td>
-                                    <td class="py-2">{{ $attendance->total_lessons }}</td>
-                                    <td class="py-2">Rp {{ number_format($totalParent) }}</td>
-                                    <td class="py-2">{{ $attendance->parent_payment_status }}</td>
-                                    <td class="py-2">{{ $attendance->teacher_payment_status }}</td>
+                                    <td class="py-2">{{ $present }}</td>
+                                    <td class="py-2">Rp {{ number_format($rate) }}</td>
+                                    <td class="py-2">Rp {{ number_format($total) }}</td>
+                                    <td class="py-2">{{ $attendance->parent_payment_status ?? '-' }}</td>
                                 </tr>
-                            @endforeach
+                            @empty
+                                <tr>
+                                    <td colspan="6" class="py-4 text-center text-gray-500">Belum ada riwayat.</td>
+                                </tr>
+                            @endforelse
                         </tbody>
                     </table>
-
-                    <div class="mt-4">
-                        {{ $attendances->links() }}
-                    </div>
                 </div>
             </div>
         </div>

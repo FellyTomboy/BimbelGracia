@@ -31,8 +31,11 @@
                         <x-nav-link :href="route('admin.teachers.index')" :active="request()->routeIs('admin.teachers.*')">
                             {{ __('Guru') }}
                         </x-nav-link>
-                        <x-nav-link :href="route('admin.lessons.index')" :active="request()->routeIs('admin.lessons.*')">
-                            {{ __('Les') }}
+                        <x-nav-link :href="route('admin.programs.index')" :active="request()->routeIs('admin.programs.*')">
+                            {{ __('Program') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('admin.enrollments.index')" :active="request()->routeIs('admin.enrollments.*')">
+                            {{ __('Enrollment') }}
                         </x-nav-link>
                         <x-nav-link :href="route('admin.lesson-offers.index')" :active="request()->routeIs('admin.lesson-offers.*')">
                             {{ __('Tawaran Les') }}
@@ -74,6 +77,14 @@
                         </x-nav-link>
                         <x-nav-link :href="route('guru.tawaran.index')" :active="request()->routeIs('guru.tawaran.*')">
                             {{ __('Tawaran Les') }}
+                        </x-nav-link>
+                    @endif
+                    @if (auth()->user()?->role?->value === 'murid')
+                        <x-nav-link :href="route('murid.history.index')" :active="request()->routeIs('murid.history.*')">
+                            {{ __('Riwayat Les') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('murid.billing.index')" :active="request()->routeIs('murid.billing.*')">
+                            {{ __('Tagihan') }}
                         </x-nav-link>
                     @endif
                 </div>
@@ -147,8 +158,11 @@
                 <x-responsive-nav-link :href="route('admin.teachers.index')" :active="request()->routeIs('admin.teachers.*')">
                     {{ __('Guru') }}
                 </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('admin.lessons.index')" :active="request()->routeIs('admin.lessons.*')">
-                    {{ __('Les') }}
+                <x-responsive-nav-link :href="route('admin.programs.index')" :active="request()->routeIs('admin.programs.*')">
+                    {{ __('Program') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('admin.enrollments.index')" :active="request()->routeIs('admin.enrollments.*')">
+                    {{ __('Enrollment') }}
                 </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('admin.lesson-offers.index')" :active="request()->routeIs('admin.lesson-offers.*')">
                     {{ __('Tawaran Les') }}
@@ -190,6 +204,14 @@
                 </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('guru.tawaran.index')" :active="request()->routeIs('guru.tawaran.*')">
                     {{ __('Tawaran Les') }}
+                </x-responsive-nav-link>
+            @endif
+            @if (auth()->user()?->role?->value === 'murid')
+                <x-responsive-nav-link :href="route('murid.history.index')" :active="request()->routeIs('murid.history.*')">
+                    {{ __('Riwayat Les') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('murid.billing.index')" :active="request()->routeIs('murid.billing.*')">
+                    {{ __('Tagihan') }}
                 </x-responsive-nav-link>
             @endif
         </div>

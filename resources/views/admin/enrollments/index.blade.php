@@ -1,11 +1,8 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="flex items-center justify-between">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Jadwal Kelas</h2>
-            <div class="flex items-center gap-3">
-                <a href="{{ route('admin.class-sessions.calendar') }}" class="px-4 py-2 rounded-md border text-sm">Kalender</a>
-                <a href="{{ route('admin.class-sessions.create') }}" class="px-4 py-2 rounded-md bg-slate-900 text-white text-sm">Tambah Jadwal</a>
-            </div>
+            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Enrollments</h2>
+            <a href="{{ route('admin.enrollments.create') }}" class="px-4 py-2 rounded-md bg-slate-900 text-white text-sm">Tambah Enrollment</a>
         </div>
     </x-slot>
 
@@ -21,34 +18,35 @@
                     <table class="min-w-full text-sm">
                         <thead>
                             <tr class="text-left text-gray-500">
-                                <th class="py-2">Tanggal</th>
-                                <th class="py-2">Jam</th>
-                                <th class="py-2">Kelas</th>
+                                <th class="py-2">Program</th>
                                 <th class="py-2">Guru</th>
-                                <th class="py-2">Mapel</th>
                                 <th class="py-2">Murid</th>
+                                <th class="py-2">Harga Ortu</th>
+                                <th class="py-2">Gaji Guru</th>
+                                <th class="py-2">Validasi</th>
+                                <th class="py-2">Status</th>
                                 <th class="py-2">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y">
-                            @foreach ($sessions as $session)
+                            @foreach ($enrollments as $enrollment)
                                 <tr>
-                                    <td class="py-2">{{ $session->session_date->format('d M Y') }}</td>
-                                    <td class="py-2">{{ $session->session_time?->format('H:i') ?? '-' }}</td>
-                                    <td class="py-2">{{ $session->classGroup?->name ?? '-' }}</td>
-                                    <td class="py-2">{{ $session->teacher?->name ?? '-' }}</td>
-                                    <td class="py-2">{{ $session->subject ?? '-' }}</td>
-                                    <td class="py-2">{{ $session->students_count }}</td>
+                                    <td class="py-2 font-medium">{{ $enrollment->program?->name ?? '-' }}</td>
+                                    <td class="py-2">{{ $enrollment->teacher?->name ?? '-' }}</td>
+                                    <td class="py-2">{{ $enrollment->students->pluck('name')->implode(', ') ?: '-' }}</td>
+                                    <td class="py-2">Rp {{ number_format($enrollment->parent_rate) }}</td>
+                                    <td class="py-2">Rp {{ number_format($enrollment->teacher_rate) }}</td>
+                                    <td class="py-2">{{ $enrollment->validation_status }}</td>
+                                    <td class="py-2">{{ $enrollment->deleted_at ? 'hibernasi' : $enrollment->status }}</td>
                                     <td class="py-2 flex gap-2">
-                                        <a href="{{ route('admin.class-sessions.show', $session) }}" class="text-indigo-600">Detail</a>
-                                        <a href="{{ route('admin.class-sessions.edit', $session) }}" class="text-indigo-600">Edit</a>
-                                        @if ($session->deleted_at)
-                                            <form method="POST" action="{{ route('admin.class-sessions.restore', $session->id) }}">
+                                        <a href="{{ route('admin.enrollments.edit', $enrollment) }}" class="text-indigo-600">Edit</a>
+                                        @if ($enrollment->deleted_at)
+                                            <form method="POST" action="{{ route('admin.enrollments.restore', $enrollment->id) }}">
                                                 @csrf
                                                 <button type="submit" class="text-emerald-600">Restore</button>
                                             </form>
                                         @else
-                                            <form method="POST" action="{{ route('admin.class-sessions.destroy', $session) }}">
+                                            <form method="POST" action="{{ route('admin.enrollments.destroy', $enrollment) }}">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="text-rose-600">Hibernasi</button>

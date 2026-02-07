@@ -19,6 +19,8 @@ class Student extends Model
         'user_id',
         'name',
         'whatsapp',
+        'whatsapp_primary',
+        'whatsapp_secondary',
         'address',
         'status',
     ];
@@ -32,6 +34,16 @@ class Student extends Model
         $this->attributes['whatsapp'] = $this->normalizeWhatsapp($value);
     }
 
+    public function setWhatsappPrimaryAttribute(?string $value): void
+    {
+        $this->attributes['whatsapp_primary'] = $this->normalizeWhatsapp($value);
+    }
+
+    public function setWhatsappSecondaryAttribute(?string $value): void
+    {
+        $this->attributes['whatsapp_secondary'] = $this->normalizeWhatsapp($value);
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
@@ -42,14 +54,15 @@ class Student extends Model
         return $this->belongsToMany(Teacher::class)->withTimestamps();
     }
 
-    public function lessons(): HasMany
+    public function enrollments(): BelongsToMany
     {
-        return $this->hasMany(Lesson::class);
+        return $this->belongsToMany(Enrollment::class, 'enrollment_student')
+            ->withTimestamps();
     }
 
     public function monthlyAttendances(): HasMany
     {
-        return $this->hasMany(MonthlyAttendance::class);
+        return $this->hasMany(MonthlyAttendance::class, 'student_id');
     }
 
     public function classSessions(): BelongsToMany

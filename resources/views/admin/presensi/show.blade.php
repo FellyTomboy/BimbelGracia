@@ -16,32 +16,43 @@
 
             <div class="bg-white shadow-sm sm:rounded-lg p-6 space-y-3">
                 <p><span class="font-semibold">Periode:</span> {{ sprintf('%02d', $attendance->month) }}/{{ $attendance->year }}</p>
-                <p><span class="font-semibold">Guru:</span> {{ $attendance->teacher?->name ?? '-' }}</p>
-                <p><span class="font-semibold">Murid:</span> {{ $attendance->student?->name ?? '-' }}</p>
-                <p><span class="font-semibold">ID Les:</span> {{ $attendance->lesson?->code ?? '-' }}</p>
+                <p><span class="font-semibold">Program:</span> {{ $attendance->enrollment?->program?->name ?? '-' }}</p>
+                <p><span class="font-semibold">Guru:</span> {{ $attendance->enrollment?->teacher?->name ?? '-' }}</p>
+                <p><span class="font-semibold">Murid:</span> {{ $attendance->students->pluck('name')->implode(', ') ?: '-' }}</p>
+                <p><span class="font-semibold">Enrollment:</span> #{{ $attendance->enrollment_id }}</p>
                 <p><span class="font-semibold">Tanggal:</span> {{ $attendance->dates ? implode(', ', $attendance->dates) : '-' }}</p>
                 <p><span class="font-semibold">Total:</span> {{ $attendance->total_lessons }}</p>
                 <p><span class="font-semibold">Catatan:</span> {{ $attendance->notes ?? '-' }}</p>
-                <p><span class="font-semibold">Status:</span> {{ $attendance->status }}</p>
+                <p><span class="font-semibold">Status:</span> {{ $attendance->status_validation }}</p>
+                <div>
+                    <p class="font-semibold">Total Hadir per Murid:</p>
+                    <ul class="mt-2 list-disc pl-5 text-sm text-gray-700">
+                        @forelse ($attendance->students as $student)
+                            <li>{{ $student->name }}: {{ $student->pivot->total_present }}</li>
+                        @empty
+                            <li>-</li>
+                        @endforelse
+                    </ul>
+                </div>
             </div>
 
             <div class="bg-white shadow-sm sm:rounded-lg p-6">
-                <form method="POST" action="{{ route('admin.presensi.lesson', $attendance) }}" class="flex flex-col gap-4">
+                <form method="POST" action="{{ route('admin.presensi.enrollment', $attendance) }}" class="flex flex-col gap-4">
                     @csrf
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Perbaiki ID Les</label>
-                        <select name="lesson_id" class="mt-1 w-full border-gray-300 rounded-md" required>
-                            <option value="">Pilih les</option>
-                            @foreach ($lessons as $lesson)
-                                <option value="{{ $lesson->id }}" @selected(old('lesson_id', $attendance->lesson_id) == $lesson->id)>
-                                    {{ $lesson->code }} - {{ $lesson->teacher?->name ?? '-' }} - {{ $lesson->student?->name ?? '-' }}
+                        <label class="block text-sm font-medium text-gray-700">Perbaiki Enrollment</label>
+                        <select name="enrollment_id" class="mt-1 w-full border-gray-300 rounded-md" required>
+                            <option value="">Pilih enrollment</option>
+                            @foreach ($enrollments as $enrollment)
+                                <option value="{{ $enrollment->id }}" @selected(old('enrollment_id', $attendance->enrollment_id) == $enrollment->id)>
+                                    #{{ $enrollment->id }} - {{ $enrollment->program?->name ?? '-' }} - {{ $enrollment->teacher?->name ?? '-' }} - {{ $enrollment->students->pluck('name')->implode(', ') }}
                                 </option>
                             @endforeach
                         </select>
-                        @error('lesson_id')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
-                        <p class="mt-2 text-xs text-gray-500">Mengubah ID les akan menyamakan guru & murid dari les terpilih dan mengembalikan status ke pending.</p>
+                        @error('enrollment_id')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                        <p class="mt-2 text-xs text-gray-500">Mengubah enrollment akan mengganti data murid dan mengembalikan status ke pending.</p>
                     </div>
-                    <button type="submit" class="px-4 py-2 rounded-md bg-slate-900 text-white">Simpan ID Les</button>
+                    <button type="submit" class="px-4 py-2 rounded-md bg-slate-900 text-white">Simpan Enrollment</button>
                 </form>
             </div>
 
@@ -51,8 +62,8 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Validasi</label>
                         <select name="status" class="mt-1 w-full border-gray-300 rounded-md" required>
-                            <option value="validated" @selected(old('status', $attendance->status) === 'validated')>Valid</option>
-                            <option value="needs_fix" @selected(old('status', $attendance->status) === 'needs_fix')>Perlu Perbaikan</option>
+                            <option value="valid" @selected(old('status', $attendance->status_validation) === 'valid')>Valid</option>
+                            <option value="revisi" @selected(old('status', $attendance->status_validation) === 'revisi')>Perlu Perbaikan</option>
                         </select>
                         @error('status')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
                     </div>

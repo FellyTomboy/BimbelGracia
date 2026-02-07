@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\ClassGroup;
 use App\Models\ClassSession;
 use App\Models\Student;
+use App\Models\Teacher;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -21,6 +23,48 @@ class ClassSessionController extends Controller
             ->get();
 
         return view('admin.class-sessions.index', compact('sessions'));
+    }
+
+    public function calendar(Request $request): View
+    {
+        [$month, $year] = $this->resolvePeriod($request);
+        $teacherId = $request->input('teacher_id');
+        $classGroupId = $request->input('class_group_id');
+
+        $start = Carbon::create($year, $month, 1)->startOfMonth();
+        $end = Carbon::create($year, $month, 1)->endOfMonth();
+
+        $sessions = ClassSession::with(['classGroup', 'teacher'])
+            ->withCount(['students as total_students_count'])
+            ->withCount(['students as present_students_count' => function ($query) {
+                $query->wherePivot('is_present', true);
+            }])
+            ->whereBetween('session_date', [$start, $end])
+            ->when($teacherId, fn ($query) => $query->where('teacher_id', $teacherId))
+            ->when($classGroupId, fn ($query) => $query->where('class_group_id', $classGroupId))
+            ->orderBy('session_date')
+            ->orderBy('session_time')
+            ->get();
+
+        $sessionsByDate = $sessions->groupBy(function (ClassSession $session) {
+            return $session->session_date->format('Y-m-d');
+        });
+
+        $teachers = Teacher::orderBy('name')->get();
+        $classGroups = ClassGroup::orderBy('name')->get();
+
+        return view('admin.class-sessions.calendar', [
+            'month' => $month,
+            'year' => $year,
+            'teacherId' => $teacherId,
+            'classGroupId' => $classGroupId,
+            'start' => $start,
+            'daysInMonth' => $start->daysInMonth,
+            'firstDayOfWeek' => $start->dayOfWeekIso,
+            'sessionsByDate' => $sessionsByDate,
+            'teachers' => $teachers,
+            'classGroups' => $classGroups,
+        ]);
     }
 
     public function create(Request $request): View
@@ -164,5 +208,16 @@ class ClassSessionController extends Controller
         return redirect()
             ->route('admin.class-sessions.index')
             ->with('status', 'Jadwal kelas dipulihkan.');
+    }
+
+    private function resolvePeriod(Request $request): array
+    {
+        $month = (int) $request->input('month', now()->month);
+        $year = (int) $request->input('year', now()->year);
+
+        $month = max(1, min(12, $month));
+        $year = max(2020, min(2100, $year));
+
+        return [$month, $year];
     }
 }

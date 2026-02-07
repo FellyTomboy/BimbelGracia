@@ -19,8 +19,8 @@ class HistoryController extends Controller
         $students = Student::orderBy('name')->get();
         $studentId = $request->input('student_id');
 
-        $attendances = MonthlyAttendance::with(['lesson.teacher', 'student'])
-            ->when($studentId, fn ($query) => $query->where('student_id', $studentId))
+        $attendances = MonthlyAttendance::with(['enrollment.teacher', 'enrollment.program', 'students'])
+            ->when($studentId, fn ($query) => $query->whereHas('students', fn ($sub) => $sub->where('students.id', $studentId)))
             ->orderByDesc('year')
             ->orderByDesc('month')
             ->paginate(50)
@@ -34,8 +34,8 @@ class HistoryController extends Controller
         $teachers = Teacher::orderBy('name')->get();
         $teacherId = $request->input('teacher_id');
 
-        $attendances = MonthlyAttendance::with(['lesson.student', 'teacher'])
-            ->when($teacherId, fn ($query) => $query->where('teacher_id', $teacherId))
+        $attendances = MonthlyAttendance::with(['enrollment.teacher', 'enrollment.program', 'students'])
+            ->when($teacherId, fn ($query) => $query->whereHas('enrollment', fn ($sub) => $sub->where('teacher_id', $teacherId)))
             ->orderByDesc('year')
             ->orderByDesc('month')
             ->paginate(50)
@@ -52,10 +52,10 @@ class HistoryController extends Controller
         $month = max(1, min(12, $month));
         $year = max(2020, min(2100, $year));
 
-        $attendances = MonthlyAttendance::with(['lesson.teacher', 'lesson.student', 'student', 'teacher'])
+        $attendances = MonthlyAttendance::with(['enrollment.teacher', 'enrollment.program', 'students'])
             ->where('month', $month)
             ->where('year', $year)
-            ->orderBy('student_id')
+            ->orderBy('enrollment_id')
             ->paginate(50)
             ->withQueryString();
 

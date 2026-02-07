@@ -19,10 +19,17 @@
                         <input type="email" name="email" value="{{ old('email') }}" class="mt-1 w-full border-gray-300 rounded-md" required />
                         @error('email')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">WhatsApp</label>
-                        <input name="whatsapp" value="{{ old('whatsapp') }}" class="mt-1 w-full border-gray-300 rounded-md" />
-                        @error('whatsapp')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">WhatsApp Utama</label>
+                            <input name="whatsapp_primary" value="{{ old('whatsapp_primary') }}" class="mt-1 w-full border-gray-300 rounded-md" required />
+                            @error('whatsapp_primary')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">WhatsApp Cadangan</label>
+                            <input name="whatsapp_secondary" value="{{ old('whatsapp_secondary') }}" class="mt-1 w-full border-gray-300 rounded-md" />
+                            @error('whatsapp_secondary')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                        </div>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Alamat</label>

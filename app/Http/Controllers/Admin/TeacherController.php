@@ -33,7 +33,7 @@ class TeacherController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'whatsapp' => ['nullable', 'string', 'max:32'],
+            'whatsapp_number' => ['required', 'string', 'max:32'],
             'major' => ['nullable', 'string', 'max:255'],
             'subjects' => ['nullable', 'string'],
             'address' => ['nullable', 'string'],
@@ -56,7 +56,7 @@ class TeacherController extends Controller
         Teacher::create([
             'user_id' => $user->id,
             'name' => $validated['name'],
-            'whatsapp' => $validated['whatsapp'] ?? null,
+            'whatsapp_number' => $validated['whatsapp_number'],
             'major' => $validated['major'] ?? null,
             'subjects' => $validated['subjects'] ?? null,
             'address' => $validated['address'] ?? null,
@@ -81,7 +81,7 @@ class TeacherController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email,'.$teacher->user_id],
-            'whatsapp' => ['nullable', 'string', 'max:32'],
+            'whatsapp_number' => ['required', 'string', 'max:32'],
             'major' => ['nullable', 'string', 'max:255'],
             'subjects' => ['nullable', 'string'],
             'address' => ['nullable', 'string'],
@@ -93,7 +93,7 @@ class TeacherController extends Controller
 
         $teacher->update([
             'name' => $validated['name'],
-            'whatsapp' => $validated['whatsapp'] ?? null,
+            'whatsapp_number' => $validated['whatsapp_number'],
             'major' => $validated['major'] ?? null,
             'subjects' => $validated['subjects'] ?? null,
             'address' => $validated['address'] ?? null,

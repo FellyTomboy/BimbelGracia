@@ -23,8 +23,8 @@
                     <div class="grid md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700">WhatsApp</label>
-                            <input name="whatsapp" value="{{ old('whatsapp', $teacher->whatsapp) }}" class="mt-1 w-full border-gray-300 rounded-md" />
-                            @error('whatsapp')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                            <input name="whatsapp_number" value="{{ old('whatsapp_number', $teacher->whatsapp_number) }}" class="mt-1 w-full border-gray-300 rounded-md" required />
+                            @error('whatsapp_number')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Jurusan</label>

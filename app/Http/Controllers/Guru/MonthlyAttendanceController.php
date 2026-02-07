@@ -6,7 +6,7 @@ namespace App\Http\Controllers\Guru;
 
 use App\Http\Controllers\Controller;
 use App\Models\AttendanceWindow;
-use App\Models\Lesson;
+use App\Models\Enrollment;
 use App\Models\MonthlyAttendance;
 use App\Models\Teacher;
 use Illuminate\Http\RedirectResponse;
@@ -20,8 +20,11 @@ class MonthlyAttendanceController extends Controller
         $teacher = $this->resolveTeacher($request);
         $openWindow = $this->currentWindow();
 
-        $attendances = MonthlyAttendance::with(['lesson', 'student'])
-            ->where('teacher_id', $teacher->id)
+        $attendances = MonthlyAttendance::with([
+            'enrollment.program',
+            'students',
+        ])
+            ->whereHas('enrollment', fn ($query) => $query->where('teacher_id', $teacher->id))
             ->latest()
             ->get();
 
@@ -37,13 +40,13 @@ class MonthlyAttendanceController extends Controller
             return view('guru.presensi.closed');
         }
 
-        $lessons = Lesson::with('student')
+        $enrollments = Enrollment::with(['program', 'students'])
             ->where('teacher_id', $teacher->id)
             ->where('status', 'active')
-            ->orderBy('code')
+            ->orderBy('id')
             ->get();
 
-        return view('guru.presensi.create', compact('openWindow', 'lessons'));
+        return view('guru.presensi.create', compact('openWindow', 'enrollments'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -58,30 +61,32 @@ class MonthlyAttendanceController extends Controller
         }
 
         $validated = $request->validate([
-            'lesson_id' => ['required', 'exists:lessons,id'],
+            'enrollment_id' => ['required', 'exists:enrollments,id'],
             'dates' => ['nullable', 'array'],
             'dates.*' => ['integer', 'min:1', 'max:31'],
             'notes' => ['nullable', 'string'],
             'total_lessons' => ['required', 'integer', 'min:0'],
+            'student_totals' => ['required', 'array'],
+            'student_totals.*' => ['required', 'integer', 'min:0'],
         ]);
 
-        $lesson = Lesson::query()
-            ->where('id', $validated['lesson_id'])
+        $enrollment = Enrollment::with('students')
+            ->where('id', $validated['enrollment_id'])
             ->where('teacher_id', $teacher->id)
             ->firstOrFail();
 
         $exists = MonthlyAttendance::query()
-            ->where('lesson_id', $lesson->id)
+            ->where('enrollment_id', $enrollment->id)
             ->where('month', $openWindow->month)
             ->where('year', $openWindow->year)
             ->exists();
 
         if ($exists) {
-            $lesson->update(['validation_status' => 2]);
+            $enrollment->update(['validation_status' => 2]);
 
             return back()
                 ->withInput()
-                ->withErrors(['lesson_id' => 'Presensi untuk periode ini sudah ada.']);
+                ->withErrors(['enrollment_id' => 'Presensi untuk periode ini sudah ada.']);
         }
 
         $dates = collect($validated['dates'] ?? [])
@@ -89,20 +94,45 @@ class MonthlyAttendanceController extends Controller
             ->values()
             ->all();
 
-        MonthlyAttendance::create([
-            'lesson_id' => $lesson->id,
-            'teacher_id' => $teacher->id,
-            'student_id' => $lesson->student_id,
+        if (count($dates) !== (int) $validated['total_lessons']) {
+            return back()
+                ->withInput()
+                ->withErrors(['total_lessons' => 'Total pertemuan harus sama dengan jumlah tanggal.']);
+        }
+
+        $studentTotals = collect($validated['student_totals']);
+        $studentIds = $enrollment->students->pluck('id')->map(fn ($id) => (string) $id);
+
+        if ($studentTotals->keys()->diff($studentIds)->isNotEmpty()) {
+            return back()
+                ->withInput()
+                ->withErrors(['student_totals' => 'Murid tidak sesuai dengan enrollment yang dipilih.']);
+        }
+
+        if ($studentTotals->contains(fn ($total) => (int) $total > (int) $validated['total_lessons'])) {
+            return back()
+                ->withInput()
+                ->withErrors(['student_totals' => 'Total hadir murid tidak boleh melebihi total pertemuan.']);
+        }
+
+        $attendance = MonthlyAttendance::create([
+            'enrollment_id' => $enrollment->id,
             'month' => $openWindow->month,
             'year' => $openWindow->year,
             'dates' => $dates,
             'notes' => $validated['notes'] ?? null,
             'total_lessons' => $validated['total_lessons'],
-            'status' => 'pending',
-            'submitted_at' => now(),
+            'status_validation' => 'pending',
+            'created_by' => $request->user()->id,
         ]);
 
-        $lesson->update(['validation_status' => 1]);
+        $attendance->students()->sync(
+            $studentTotals
+                ->mapWithKeys(fn ($total, $studentId) => [(int) $studentId => ['total_present' => (int) $total]])
+                ->all()
+        );
+
+        $enrollment->update(['validation_status' => 1]);
 
         return redirect()
             ->route('guru.presensi.index')
@@ -113,11 +143,13 @@ class MonthlyAttendanceController extends Controller
     {
         $teacher = $this->resolveTeacher($request);
 
-        abort_unless($attendance->teacher_id === $teacher->id, 403);
+        abort_unless($attendance->enrollment?->teacher_id === $teacher->id, 403);
 
-        if ($attendance->status === 'validated') {
+        if ($attendance->status_validation === 'valid') {
             abort(403);
         }
+
+        $attendance->load(['enrollment.students', 'students']);
 
         return view('guru.presensi.edit', compact('attendance'));
     }
@@ -126,9 +158,9 @@ class MonthlyAttendanceController extends Controller
     {
         $teacher = $this->resolveTeacher($request);
 
-        abort_unless($attendance->teacher_id === $teacher->id, 403);
+        abort_unless($attendance->enrollment?->teacher_id === $teacher->id, 403);
 
-        if ($attendance->status === 'validated') {
+        if ($attendance->status_validation === 'valid') {
             abort(403);
         }
 
@@ -137,6 +169,8 @@ class MonthlyAttendanceController extends Controller
             'dates.*' => ['integer', 'min:1', 'max:31'],
             'notes' => ['nullable', 'string'],
             'total_lessons' => ['required', 'integer', 'min:0'],
+            'student_totals' => ['required', 'array'],
+            'student_totals.*' => ['required', 'integer', 'min:0'],
         ]);
 
         $dates = collect($validated['dates'] ?? [])
@@ -144,13 +178,40 @@ class MonthlyAttendanceController extends Controller
             ->values()
             ->all();
 
+        if (count($dates) !== (int) $validated['total_lessons']) {
+            return back()
+                ->withInput()
+                ->withErrors(['total_lessons' => 'Total pertemuan harus sama dengan jumlah tanggal.']);
+        }
+
+        $attendance->load('enrollment.students');
+        $studentTotals = collect($validated['student_totals']);
+        $studentIds = $attendance->enrollment->students->pluck('id')->map(fn ($id) => (string) $id);
+
+        if ($studentTotals->keys()->diff($studentIds)->isNotEmpty()) {
+            return back()
+                ->withInput()
+                ->withErrors(['student_totals' => 'Murid tidak sesuai dengan enrollment.']);
+        }
+
+        if ($studentTotals->contains(fn ($total) => (int) $total > (int) $validated['total_lessons'])) {
+            return back()
+                ->withInput()
+                ->withErrors(['student_totals' => 'Total hadir murid tidak boleh melebihi total pertemuan.']);
+        }
+
         $attendance->update([
             'dates' => $dates,
             'notes' => $validated['notes'] ?? null,
             'total_lessons' => $validated['total_lessons'],
-            'status' => 'pending',
-            'submitted_at' => now(),
+            'status_validation' => 'pending',
         ]);
+
+        $attendance->students()->sync(
+            $studentTotals
+                ->mapWithKeys(fn ($total, $studentId) => [(int) $studentId => ['total_present' => (int) $total]])
+                ->all()
+        );
 
         return redirect()
             ->route('guru.presensi.index')

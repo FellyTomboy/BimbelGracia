@@ -22,8 +22,8 @@ class SalaryProjectionController extends Controller
             ->where('user_id', $request->user()?->id)
             ->first();
 
-        $attendances = MonthlyAttendance::with(['lesson.student'])
-            ->when($teacher, fn ($query) => $query->where('teacher_id', $teacher->id))
+        $attendances = MonthlyAttendance::with(['enrollment.program', 'enrollment.teacher', 'students'])
+            ->when($teacher, fn ($query) => $query->whereHas('enrollment', fn ($sub) => $sub->where('teacher_id', $teacher->id)))
             ->where('month', $month)
             ->where('year', $year)
             ->orderByDesc('year')
@@ -57,11 +57,17 @@ class SalaryProjectionController extends Controller
     private function buildTotals($attendances): array
     {
         $rows = $attendances->map(function (MonthlyAttendance $attendance) {
-            $rate = $attendance->lesson?->teacher_rate ?? 0;
+            $rate = $attendance->enrollment?->teacher_rate ?? 0;
             $total = $attendance->total_lessons * $rate;
 
+            $status = match ($attendance->status_validation) {
+                'valid' => 'validated',
+                'revisi' => 'needs_fix',
+                default => 'pending',
+            };
+
             return [
-                'status' => $attendance->status,
+                'status' => $status,
                 'total' => $total,
             ];
         });
@@ -91,19 +97,19 @@ class SalaryProjectionController extends Controller
         $conditions = $periods
             ->map(fn (Carbon $date) => ['month' => $date->month, 'year' => $date->year]);
 
-        $query = DB::table('monthly_attendances')
-            ->join('lessons', 'monthly_attendances.lesson_id', '=', 'lessons.id')
-            ->selectRaw('monthly_attendances.year, monthly_attendances.month, SUM(monthly_attendances.total_lessons * lessons.teacher_rate) as total')
-            ->where('monthly_attendances.teacher_id', $teacherId)
+        $query = DB::table('enrollment_attendances')
+            ->join('enrollments', 'enrollment_attendances.enrollment_id', '=', 'enrollments.id')
+            ->selectRaw('enrollment_attendances.year, enrollment_attendances.month, SUM(enrollment_attendances.total_lessons * enrollments.teacher_rate) as total')
+            ->where('enrollments.teacher_id', $teacherId)
             ->where(function ($builder) use ($conditions) {
                 foreach ($conditions as $condition) {
                     $builder->orWhere(function ($sub) use ($condition) {
-                        $sub->where('monthly_attendances.month', $condition['month'])
-                            ->where('monthly_attendances.year', $condition['year']);
+                        $sub->where('enrollment_attendances.month', $condition['month'])
+                            ->where('enrollment_attendances.year', $condition['year']);
                     });
                 }
             })
-            ->groupBy('monthly_attendances.year', 'monthly_attendances.month')
+            ->groupBy('enrollment_attendances.year', 'enrollment_attendances.month')
             ->get();
 
         $byPeriod = $query->keyBy(function ($row) {

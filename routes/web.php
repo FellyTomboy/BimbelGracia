@@ -8,15 +8,18 @@ use App\Http\Controllers\Admin\ClassSessionController;
 use App\Http\Controllers\Admin\ExportController;
 use App\Http\Controllers\Admin\FinanceController;
 use App\Http\Controllers\Admin\HistoryController;
+use App\Http\Controllers\Admin\EnrollmentController;
 use App\Http\Controllers\Admin\LessonOfferController as AdminLessonOfferController;
-use App\Http\Controllers\Admin\LessonController;
 use App\Http\Controllers\Admin\MonthlyAttendanceController as AdminAttendanceController;
+use App\Http\Controllers\Admin\ProgramController;
 use App\Http\Controllers\Admin\StudentController;
 use App\Http\Controllers\Admin\TeacherController;
 use App\Http\Controllers\Guru\LessonOfferController as GuruLessonOfferController;
 use App\Http\Controllers\Guru\MonthlyAttendanceController as GuruAttendanceController;
 use App\Http\Controllers\Guru\HistoryController as GuruHistoryController;
 use App\Http\Controllers\Guru\SalaryProjectionController as GuruSalaryProjectionController;
+use App\Http\Controllers\Murid\BillingController as MuridBillingController;
+use App\Http\Controllers\Murid\HistoryController as MuridHistoryController;
 use App\Http\Controllers\PasswordForceController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
@@ -46,9 +49,13 @@ Route::middleware(['auth', 'password.force'])->group(function () {
             Route::post('teachers/{teacher}/restore', [TeacherController::class, 'restore'])
                 ->name('teachers.restore');
 
-            Route::resource('lessons', LessonController::class)->except(['show']);
-            Route::post('lessons/{lesson}/restore', [LessonController::class, 'restore'])
-                ->name('lessons.restore');
+            Route::resource('programs', ProgramController::class)->except(['show']);
+            Route::post('programs/{program}/restore', [ProgramController::class, 'restore'])
+                ->name('programs.restore');
+
+            Route::resource('enrollments', EnrollmentController::class)->except(['show']);
+            Route::post('enrollments/{enrollment}/restore', [EnrollmentController::class, 'restore'])
+                ->name('enrollments.restore');
 
             Route::resource('lesson-offers', AdminLessonOfferController::class)->except(['show']);
             Route::post('lesson-offers/{lessonOffer}/restore', [AdminLessonOfferController::class, 'restore'])
@@ -59,6 +66,8 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('class-groups.restore');
 
             Route::resource('class-sessions', ClassSessionController::class)->except(['show']);
+            Route::get('class-sessions/calendar', [ClassSessionController::class, 'calendar'])
+                ->name('class-sessions.calendar');
             Route::get('class-sessions/{classSession}', [ClassSessionController::class, 'show'])
                 ->name('class-sessions.show');
             Route::post('class-sessions/{classSession}/attendance', [ClassSessionController::class, 'updateAttendance'])
@@ -77,8 +86,8 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('presensi.index');
             Route::get('presensi/{attendance}', [AdminAttendanceController::class, 'show'])
                 ->name('presensi.show');
-            Route::post('presensi/{attendance}/lesson', [AdminAttendanceController::class, 'updateLesson'])
-                ->name('presensi.lesson');
+            Route::post('presensi/{attendance}/enrollment', [AdminAttendanceController::class, 'updateEnrollment'])
+                ->name('presensi.enrollment');
             Route::post('presensi/{attendance}/validate', [AdminAttendanceController::class, 'validateAttendance'])
                 ->name('presensi.validate');
 
@@ -132,6 +141,10 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('export.attendances.excel');
             Route::get('export/attendances/pdf', [ExportController::class, 'attendancesPdf'])
                 ->name('export.attendances.pdf');
+            Route::get('export/attendances/monthly/excel', [ExportController::class, 'attendancesMonthlyExcel'])
+                ->name('export.attendances.monthly.excel');
+            Route::get('export/attendances/monthly/pdf', [ExportController::class, 'attendancesMonthlyPdf'])
+                ->name('export.attendances.monthly.pdf');
             Route::get('export/class-groups', [ExportController::class, 'classGroups'])
                 ->name('export.class-groups');
             Route::get('export/class-groups/excel', [ExportController::class, 'classGroupsExcel'])
@@ -144,6 +157,10 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('export.class-sessions.excel');
             Route::get('export/class-sessions/pdf', [ExportController::class, 'classSessionsPdf'])
                 ->name('export.class-sessions.pdf');
+            Route::get('export/class-sessions/monthly/excel', [ExportController::class, 'classSessionsMonthlyExcel'])
+                ->name('export.class-sessions.monthly.excel');
+            Route::get('export/class-sessions/monthly/pdf', [ExportController::class, 'classSessionsMonthlyPdf'])
+                ->name('export.class-sessions.monthly.pdf');
             Route::get('export/audit', [ExportController::class, 'auditLogs'])
                 ->name('export.audit');
             Route::get('export/audit/excel', [ExportController::class, 'auditLogsExcel'])
@@ -172,6 +189,11 @@ Route::middleware(['auth', 'password.force'])->group(function () {
     Route::get('/murid', function () {
         return view('murid.dashboard');
     })->middleware('role:murid')->name('murid.dashboard');
+
+    Route::middleware('role:murid')->prefix('murid')->name('murid.')->group(function () {
+        Route::get('riwayat', [MuridHistoryController::class, 'index'])->name('history.index');
+        Route::get('tagihan', [MuridBillingController::class, 'index'])->name('billing.index');
+    });
 
     Route::get('/password/force', [PasswordForceController::class, 'edit'])
         ->name('password.force.edit');

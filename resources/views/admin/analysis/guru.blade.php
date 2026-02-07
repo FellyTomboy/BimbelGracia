@@ -32,7 +32,7 @@
                     <div class="bg-white shadow-sm sm:rounded-lg p-6 space-y-4">
                         <div>
                             <h3 class="text-lg font-semibold">{{ $summary['teacher']?->name ?? 'Guru' }}</h3>
-                            <p class="text-sm text-gray-500">WA: {{ $summary['teacher']?->whatsapp ?? '-' }}</p>
+                            <p class="text-sm text-gray-500">WA: {{ $summary['teacher']?->whatsapp_number ?? '-' }}</p>
                         </div>
                         <div class="text-sm text-gray-700 space-y-2">
                             @foreach ($summary['lines'] as $line)
@@ -49,8 +49,8 @@
                         <div>
                             <label class="block text-xs uppercase tracking-wide text-gray-500">Template WA</label>
                             <textarea class="mt-2 w-full border-gray-300 rounded-md text-sm" rows="6" readonly>{{ $summary['message'] }}</textarea>
-                            @if ($summary['teacher']?->whatsapp)
-                                <a href="https://wa.me/{{ $summary['teacher']->whatsapp }}?text={{ urlencode($summary['message']) }}" class="inline-flex mt-3 items-center px-4 py-2 rounded-md bg-emerald-600 text-white text-sm" target="_blank" rel="noopener">Kirim WA</a>
+                            @if ($summary['teacher']?->whatsapp_number)
+                                <a href="https://wa.me/{{ $summary['teacher']->whatsapp_number }}?text={{ urlencode($summary['message']) }}" class="inline-flex mt-3 items-center px-4 py-2 rounded-md bg-emerald-600 text-white text-sm" target="_blank" rel="noopener">Kirim WA</a>
                             @endif
                         </div>
                     </div>
@@ -64,7 +64,9 @@
                         <thead>
                             <tr class="text-left text-gray-500">
                                 <th class="py-2">Guru</th>
-                                <th class="py-2">ID Les</th>
+                                <th class="py-2">Program</th>
+                                <th class="py-2">Murid</th>
+                                <th class="py-2">Enrollment</th>
                                 <th class="py-2">Total</th>
                                 <th class="py-2">Status</th>
                                 <th class="py-2">Aksi</th>
@@ -73,9 +75,15 @@
                         <tbody class="divide-y">
                             @foreach ($attendances as $attendance)
                                 <tr>
-                                    <td class="py-2">{{ $attendance->teacher?->name ?? '-' }}</td>
-                                    <td class="py-2">{{ $attendance->lesson?->code ?? '-' }}</td>
-                                    <td class="py-2">{{ $attendance->total_lessons }}</td>
+                                    @php
+                                        $rate = $attendance->enrollment?->teacher_rate ?? 0;
+                                        $total = $attendance->total_lessons * $rate;
+                                    @endphp
+                                    <td class="py-2">{{ $attendance->enrollment?->teacher?->name ?? '-' }}</td>
+                                    <td class="py-2">{{ $attendance->enrollment?->program?->name ?? '-' }}</td>
+                                    <td class="py-2">{{ $attendance->students->pluck('name')->implode(', ') ?: '-' }}</td>
+                                    <td class="py-2">#{{ $attendance->enrollment_id }}</td>
+                                    <td class="py-2">Rp {{ number_format($total) }}</td>
                                     <td class="py-2">{{ $attendance->teacher_payment_status }}</td>
                                     <td class="py-2">
                                         <form method="POST" action="{{ route('admin.analysis.guru.payment', $attendance) }}" class="flex items-center gap-2">
@@ -86,6 +94,17 @@
                                                 <option value="held" @selected($attendance->teacher_payment_status === 'held')>Ditahan</option>
                                             </select>
                                             <button type="submit" class="text-indigo-600">Simpan</button>
+                                        </form>
+                                        <form method="POST" action="{{ route('admin.presensi.enrollment', $attendance) }}" class="mt-2 flex items-center gap-2">
+                                            @csrf
+                                            <select name="enrollment_id" class="border-gray-300 rounded-md text-sm" required>
+                                                @foreach ($enrollments as $enrollment)
+                                                    <option value="{{ $enrollment->id }}" @selected($attendance->enrollment_id == $enrollment->id)>
+                                                        #{{ $enrollment->id }} - {{ $enrollment->program?->name ?? '-' }} - {{ $enrollment->teacher?->name ?? '-' }} - {{ $enrollment->students->pluck('name')->implode(', ') }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                            <button type="submit" class="text-indigo-600">Ubah Enrollment</button>
                                         </form>
                                     </td>
                                 </tr>

@@ -27,8 +27,9 @@
                         <thead>
                             <tr class="text-left text-gray-500">
                                 <th class="py-2">Periode</th>
+                                <th class="py-2">Program</th>
                                 <th class="py-2">Murid</th>
-                                <th class="py-2">ID Les</th>
+                                <th class="py-2">Enrollment</th>
                                 <th class="py-2">Total Pertemuan</th>
                                 <th class="py-2">Gaji / Pertemuan</th>
                                 <th class="py-2">Total Gaji</th>
@@ -38,13 +39,14 @@
                         <tbody class="divide-y">
                             @forelse ($attendances as $attendance)
                                 @php
-                                    $rate = $attendance->lesson?->teacher_rate ?? 0;
+                                    $rate = $attendance->enrollment?->teacher_rate ?? 0;
                                     $total = $attendance->total_lessons * $rate;
                                 @endphp
                                 <tr>
                                     <td class="py-2">{{ sprintf('%02d', $attendance->month) }}/{{ $attendance->year }}</td>
-                                    <td class="py-2">{{ $attendance->lesson?->student?->name ?? '-' }}</td>
-                                    <td class="py-2">{{ $attendance->lesson?->code ?? '-' }}</td>
+                                    <td class="py-2">{{ $attendance->enrollment?->program?->name ?? '-' }}</td>
+                                    <td class="py-2">{{ $attendance->students->pluck('name')->implode(', ') ?: '-' }}</td>
+                                    <td class="py-2">#{{ $attendance->enrollment_id }}</td>
                                     <td class="py-2">{{ $attendance->total_lessons }}</td>
                                     <td class="py-2">Rp {{ number_format($rate) }}</td>
                                     <td class="py-2">Rp {{ number_format($total) }}</td>

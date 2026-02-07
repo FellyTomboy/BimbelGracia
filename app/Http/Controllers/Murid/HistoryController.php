@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Http\Controllers\Guru;
+namespace App\Http\Controllers\Murid;
 
 use App\Http\Controllers\Controller;
 use App\Models\MonthlyAttendance;
-use App\Models\Teacher;
+use App\Models\Student;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -16,23 +16,22 @@ class HistoryController extends Controller
     {
         [$month, $year] = $this->resolvePeriod($request);
 
-        $teacher = Teacher::query()
+        $student = Student::query()
             ->where('user_id', $request->user()?->id)
             ->first();
 
-        $attendances = MonthlyAttendance::with(['enrollment.program', 'enrollment.teacher', 'students'])
-            ->when($teacher, fn ($query) => $query->whereHas('enrollment', fn ($sub) => $sub->where('teacher_id', $teacher->id)))
+        $attendances = MonthlyAttendance::with(['enrollment.teacher', 'enrollment.program', 'students'])
+            ->when($student, fn ($query) => $query->whereHas('students', fn ($sub) => $sub->where('students.id', $student->id)))
             ->where('month', $month)
             ->where('year', $year)
             ->orderByDesc('year')
             ->orderByDesc('month')
-            ->paginate(50)
-            ->withQueryString();
+            ->get();
 
-        return view('guru.history.index', [
+        return view('murid.history.index', [
             'month' => $month,
             'year' => $year,
-            'teacher' => $teacher,
+            'student' => $student,
             'attendances' => $attendances,
         ]);
     }

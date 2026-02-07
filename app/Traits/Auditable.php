@@ -9,8 +9,6 @@ use Illuminate\Database\Eloquent\Model;
 
 trait Auditable
 {
-    protected array $auditExclude = [];
-
     public static function bootAuditable(): void
     {
         static::created(function (Model $model): void {
@@ -36,7 +34,10 @@ trait Auditable
             return;
         }
 
-        $exclude = $this->auditExclude ?? [];
+        $exclude = [];
+        if (property_exists($this, 'auditExclude') && is_array($this->auditExclude)) {
+            $exclude = $this->auditExclude;
+        }
         $beforeFiltered = collect($before)->except($exclude)->toArray();
         $afterFiltered = collect($after)->except($exclude)->toArray();
 

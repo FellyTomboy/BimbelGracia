@@ -31,6 +31,31 @@
                         <label class="block text-sm font-medium text-gray-700">Total Les</label>
                         <input type="number" name="total_lessons" value="{{ old('total_lessons', $attendance->total_lessons) }}" class="mt-1 w-full border-gray-300 rounded-md" required />
                         @error('total_lessons')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                        <p class="mt-2 text-xs text-gray-500">Total pertemuan harus sama dengan jumlah tanggal.</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Total Hadir per Murid</label>
+                        @php
+                            $attendanceStudents = $attendance->students->keyBy('id');
+                        @endphp
+                        <div class="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            @foreach ($attendance->enrollment->students as $student)
+                                <label class="flex items-center justify-between gap-3 text-sm">
+                                    <span>{{ $student->name }}</span>
+                                    <input
+                                        type="number"
+                                        name="student_totals[{{ $student->id }}]"
+                                        value="{{ old('student_totals.'.$student->id, $attendanceStudents->get($student->id)?->pivot?->total_present ?? 0) }}"
+                                        class="w-24 border-gray-300 rounded-md"
+                                        min="0"
+                                        required
+                                    />
+                                </label>
+                            @endforeach
+                        </div>
+                        @error('student_totals')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                        <p class="mt-2 text-xs text-gray-500">Gunakan 0 jika murid tidak hadir.</p>
                     </div>
 
                     <div>
