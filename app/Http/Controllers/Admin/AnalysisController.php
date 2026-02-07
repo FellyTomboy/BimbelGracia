@@ -47,7 +47,7 @@ class AnalysisController extends Controller
                     sprintf('Total les sampai akhir %s %s adalah:', $this->monthName($month), $year),
                 ])
                     ->merge($lines->map(function (array $line): string {
-                        return sprintf('Tentor %s: %d x %s = %s', $line['label'], $line['count'], number_format($line['rate']), number_format($line['total']));
+                        return sprintf('Tentor %s: %d x %s = %s', $line['label'], $line['count'], number_format($line['rate']), number_format($line['total'])));
                     }))
                     ->merge([
                         sprintf('Total: %s', number_format($grandTotal)),
@@ -105,7 +105,7 @@ class AnalysisController extends Controller
                     sprintf('Rekap gaji sampai akhir %s %s:', $this->monthName($month), $year),
                 ])
                     ->merge($lines->map(function (array $line): string {
-                        return sprintf('Murid %s: %d x %s = %s', $line['label'], $line['count'], number_format($line['rate']), number_format($line['total']));
+                        return sprintf('Murid %s: %d x %s = %s', $line['label'], $line['count'], number_format($line['rate']), number_format($line['total'])));
                     }))
                     ->merge([
                         sprintf('Total: %s', number_format($grandTotal)),

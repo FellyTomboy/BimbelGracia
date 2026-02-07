@@ -11,18 +11,47 @@
                 </div>
             @endif
 
-            <div class="bg-white shadow-sm sm:rounded-lg p-6 space-y-4">
-                <h3 class="text-lg font-semibold">Export CSV</h3>
-                <div class="grid md:grid-cols-2 gap-4">
-                    <a href="{{ route('admin.export.students') }}" class="px-4 py-2 rounded-md border">Export Murid</a>
-                    <a href="{{ route('admin.export.teachers') }}" class="px-4 py-2 rounded-md border">Export Guru</a>
-                    <a href="{{ route('admin.export.lessons') }}" class="px-4 py-2 rounded-md border">Export Les Privat</a>
-                    <a href="{{ route('admin.export.attendances') }}" class="px-4 py-2 rounded-md border">Export Presensi</a>
-                    <a href="{{ route('admin.export.class-groups') }}" class="px-4 py-2 rounded-md border">Export Kelas Bersama</a>
-                    <a href="{{ route('admin.export.class-sessions') }}" class="px-4 py-2 rounded-md border">Export Jadwal Kelas</a>
-                    <a href="{{ route('admin.export.audit') }}" class="px-4 py-2 rounded-md border">Export Audit Log</a>
+            <div class="bg-white shadow-sm sm:rounded-lg p-6 space-y-6">
+                <div class="space-y-4">
+                    <h3 class="text-lg font-semibold">Export CSV</h3>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <a href="{{ route('admin.export.students') }}" class="px-4 py-2 rounded-md border">Export Murid</a>
+                        <a href="{{ route('admin.export.teachers') }}" class="px-4 py-2 rounded-md border">Export Guru</a>
+                        <a href="{{ route('admin.export.lessons') }}" class="px-4 py-2 rounded-md border">Export Les Privat</a>
+                        <a href="{{ route('admin.export.attendances') }}" class="px-4 py-2 rounded-md border">Export Presensi</a>
+                        <a href="{{ route('admin.export.class-groups') }}" class="px-4 py-2 rounded-md border">Export Kelas Bersama</a>
+                        <a href="{{ route('admin.export.class-sessions') }}" class="px-4 py-2 rounded-md border">Export Jadwal Kelas</a>
+                        <a href="{{ route('admin.export.audit') }}" class="px-4 py-2 rounded-md border">Export Audit Log</a>
+                    </div>
                 </div>
-                <p class="text-sm text-gray-500">Gunakan query string student_id atau teacher_id untuk export presensi per murid/guru.</p>
+
+                <div class="space-y-4">
+                    <h3 class="text-lg font-semibold">Export Excel</h3>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <a href="{{ route('admin.export.students.excel') }}" class="px-4 py-2 rounded-md border">Export Murid</a>
+                        <a href="{{ route('admin.export.teachers.excel') }}" class="px-4 py-2 rounded-md border">Export Guru</a>
+                        <a href="{{ route('admin.export.lessons.excel') }}" class="px-4 py-2 rounded-md border">Export Les Privat</a>
+                        <a href="{{ route('admin.export.attendances.excel') }}" class="px-4 py-2 rounded-md border">Export Presensi</a>
+                        <a href="{{ route('admin.export.class-groups.excel') }}" class="px-4 py-2 rounded-md border">Export Kelas Bersama</a>
+                        <a href="{{ route('admin.export.class-sessions.excel') }}" class="px-4 py-2 rounded-md border">Export Jadwal Kelas</a>
+                        <a href="{{ route('admin.export.audit.excel') }}" class="px-4 py-2 rounded-md border">Export Audit Log</a>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <h3 class="text-lg font-semibold">Export PDF</h3>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <a href="{{ route('admin.export.students.pdf') }}" class="px-4 py-2 rounded-md border">Export Murid</a>
+                        <a href="{{ route('admin.export.teachers.pdf') }}" class="px-4 py-2 rounded-md border">Export Guru</a>
+                        <a href="{{ route('admin.export.lessons.pdf') }}" class="px-4 py-2 rounded-md border">Export Les Privat</a>
+                        <a href="{{ route('admin.export.attendances.pdf') }}" class="px-4 py-2 rounded-md border">Export Presensi</a>
+                        <a href="{{ route('admin.export.class-groups.pdf') }}" class="px-4 py-2 rounded-md border">Export Kelas Bersama</a>
+                        <a href="{{ route('admin.export.class-sessions.pdf') }}" class="px-4 py-2 rounded-md border">Export Jadwal Kelas</a>
+                        <a href="{{ route('admin.export.audit.pdf') }}" class="px-4 py-2 rounded-md border">Export Audit Log</a>
+                    </div>
+                </div>
+
+                <p class="text-sm text-gray-500">Gunakan query string student_id atau teacher_id untuk export presensi per murid/guru di semua format.</p>
             </div>
 
             <div class="bg-white shadow-sm sm:rounded-lg p-6 space-y-4">

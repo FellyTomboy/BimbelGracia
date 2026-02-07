@@ -17,6 +17,11 @@
                 <div class="p-6 text-gray-900">
                     <h3 class="text-lg font-semibold">Riwayat & Proyeksi</h3>
                     <p class="mt-2 text-sm text-gray-600">Cek riwayat les dan proyeksi gaji setiap bulan.</p>
+                    <div class="mt-4 flex gap-3">
+                        <a href="{{ route('guru.history.index') }}" class="px-4 py-2 rounded-md bg-slate-900 text-white text-sm">Riwayat Les</a>
+                        <a href="{{ route('guru.salary-projection.index') }}" class="px-4 py-2 rounded-md border text-sm">Proyeksi Gaji</a>
+                        <a href="{{ route('guru.tawaran.index') }}" class="px-4 py-2 rounded-md border text-sm">Tawaran Les</a>
+                    </div>
                 </div>
             </div>
         </div>

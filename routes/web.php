@@ -8,11 +8,15 @@ use App\Http\Controllers\Admin\ClassSessionController;
 use App\Http\Controllers\Admin\ExportController;
 use App\Http\Controllers\Admin\FinanceController;
 use App\Http\Controllers\Admin\HistoryController;
+use App\Http\Controllers\Admin\LessonOfferController as AdminLessonOfferController;
 use App\Http\Controllers\Admin\LessonController;
 use App\Http\Controllers\Admin\MonthlyAttendanceController as AdminAttendanceController;
 use App\Http\Controllers\Admin\StudentController;
 use App\Http\Controllers\Admin\TeacherController;
+use App\Http\Controllers\Guru\LessonOfferController as GuruLessonOfferController;
 use App\Http\Controllers\Guru\MonthlyAttendanceController as GuruAttendanceController;
+use App\Http\Controllers\Guru\HistoryController as GuruHistoryController;
+use App\Http\Controllers\Guru\SalaryProjectionController as GuruSalaryProjectionController;
 use App\Http\Controllers\PasswordForceController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
@@ -45,6 +49,10 @@ Route::middleware(['auth', 'password.force'])->group(function () {
             Route::resource('lessons', LessonController::class)->except(['show']);
             Route::post('lessons/{lesson}/restore', [LessonController::class, 'restore'])
                 ->name('lessons.restore');
+
+            Route::resource('lesson-offers', AdminLessonOfferController::class)->except(['show']);
+            Route::post('lesson-offers/{lessonOffer}/restore', [AdminLessonOfferController::class, 'restore'])
+                ->name('lesson-offers.restore');
 
             Route::resource('class-groups', ClassGroupController::class)->except(['show']);
             Route::post('class-groups/{classGroup}/restore', [ClassGroupController::class, 'restore'])
@@ -102,18 +110,46 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('export.index');
             Route::get('export/students', [ExportController::class, 'students'])
                 ->name('export.students');
+            Route::get('export/students/excel', [ExportController::class, 'studentsExcel'])
+                ->name('export.students.excel');
+            Route::get('export/students/pdf', [ExportController::class, 'studentsPdf'])
+                ->name('export.students.pdf');
             Route::get('export/teachers', [ExportController::class, 'teachers'])
                 ->name('export.teachers');
+            Route::get('export/teachers/excel', [ExportController::class, 'teachersExcel'])
+                ->name('export.teachers.excel');
+            Route::get('export/teachers/pdf', [ExportController::class, 'teachersPdf'])
+                ->name('export.teachers.pdf');
             Route::get('export/lessons', [ExportController::class, 'lessons'])
                 ->name('export.lessons');
+            Route::get('export/lessons/excel', [ExportController::class, 'lessonsExcel'])
+                ->name('export.lessons.excel');
+            Route::get('export/lessons/pdf', [ExportController::class, 'lessonsPdf'])
+                ->name('export.lessons.pdf');
             Route::get('export/attendances', [ExportController::class, 'attendances'])
                 ->name('export.attendances');
+            Route::get('export/attendances/excel', [ExportController::class, 'attendancesExcel'])
+                ->name('export.attendances.excel');
+            Route::get('export/attendances/pdf', [ExportController::class, 'attendancesPdf'])
+                ->name('export.attendances.pdf');
             Route::get('export/class-groups', [ExportController::class, 'classGroups'])
                 ->name('export.class-groups');
+            Route::get('export/class-groups/excel', [ExportController::class, 'classGroupsExcel'])
+                ->name('export.class-groups.excel');
+            Route::get('export/class-groups/pdf', [ExportController::class, 'classGroupsPdf'])
+                ->name('export.class-groups.pdf');
             Route::get('export/class-sessions', [ExportController::class, 'classSessions'])
                 ->name('export.class-sessions');
+            Route::get('export/class-sessions/excel', [ExportController::class, 'classSessionsExcel'])
+                ->name('export.class-sessions.excel');
+            Route::get('export/class-sessions/pdf', [ExportController::class, 'classSessionsPdf'])
+                ->name('export.class-sessions.pdf');
             Route::get('export/audit', [ExportController::class, 'auditLogs'])
                 ->name('export.audit');
+            Route::get('export/audit/excel', [ExportController::class, 'auditLogsExcel'])
+                ->name('export.audit.excel');
+            Route::get('export/audit/pdf', [ExportController::class, 'auditLogsPdf'])
+                ->name('export.audit.pdf');
             Route::post('export/backup', [ExportController::class, 'backupDatabase'])
                 ->name('export.backup');
         });
@@ -128,6 +164,9 @@ Route::middleware(['auth', 'password.force'])->group(function () {
         Route::post('presensi', [GuruAttendanceController::class, 'store'])->name('presensi.store');
         Route::get('presensi/{attendance}/edit', [GuruAttendanceController::class, 'edit'])->name('presensi.edit');
         Route::put('presensi/{attendance}', [GuruAttendanceController::class, 'update'])->name('presensi.update');
+        Route::get('tawaran', [GuruLessonOfferController::class, 'index'])->name('tawaran.index');
+        Route::get('riwayat', [GuruHistoryController::class, 'index'])->name('history.index');
+        Route::get('proyeksi-gaji', [GuruSalaryProjectionController::class, 'index'])->name('salary-projection.index');
     });
 
     Route::get('/murid', function () {

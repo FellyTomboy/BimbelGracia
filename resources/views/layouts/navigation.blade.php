@@ -34,6 +34,9 @@
                         <x-nav-link :href="route('admin.lessons.index')" :active="request()->routeIs('admin.lessons.*')">
                             {{ __('Les') }}
                         </x-nav-link>
+                        <x-nav-link :href="route('admin.lesson-offers.index')" :active="request()->routeIs('admin.lesson-offers.*')">
+                            {{ __('Tawaran Les') }}
+                        </x-nav-link>
                         <x-nav-link :href="route('admin.class-groups.index')" :active="request()->routeIs('admin.class-groups.*')">
                             {{ __('Kelas Bersama') }}
                         </x-nav-link>
@@ -62,6 +65,15 @@
                     @if (auth()->user()?->role?->value === 'guru')
                         <x-nav-link :href="route('guru.presensi.index')" :active="request()->routeIs('guru.presensi.*')">
                             {{ __('Presensi') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('guru.history.index')" :active="request()->routeIs('guru.history.*')">
+                            {{ __('Riwayat Les') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('guru.salary-projection.index')" :active="request()->routeIs('guru.salary-projection.*')">
+                            {{ __('Proyeksi Gaji') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('guru.tawaran.index')" :active="request()->routeIs('guru.tawaran.*')">
+                            {{ __('Tawaran Les') }}
                         </x-nav-link>
                     @endif
                 </div>
@@ -138,6 +150,9 @@
                 <x-responsive-nav-link :href="route('admin.lessons.index')" :active="request()->routeIs('admin.lessons.*')">
                     {{ __('Les') }}
                 </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('admin.lesson-offers.index')" :active="request()->routeIs('admin.lesson-offers.*')">
+                    {{ __('Tawaran Les') }}
+                </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('admin.class-groups.index')" :active="request()->routeIs('admin.class-groups.*')">
                     {{ __('Kelas Bersama') }}
                 </x-responsive-nav-link>
@@ -166,6 +181,15 @@
             @if (auth()->user()?->role?->value === 'guru')
                 <x-responsive-nav-link :href="route('guru.presensi.index')" :active="request()->routeIs('guru.presensi.*')">
                     {{ __('Presensi') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('guru.history.index')" :active="request()->routeIs('guru.history.*')">
+                    {{ __('Riwayat Les') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('guru.salary-projection.index')" :active="request()->routeIs('guru.salary-projection.*')">
+                    {{ __('Proyeksi Gaji') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('guru.tawaran.index')" :active="request()->routeIs('guru.tawaran.*')">
+                    {{ __('Tawaran Les') }}
                 </x-responsive-nav-link>
             @endif
         </div>
