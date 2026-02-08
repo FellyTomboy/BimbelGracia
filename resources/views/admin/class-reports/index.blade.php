@@ -29,26 +29,16 @@
                             <tr class="text-left text-gray-500">
                                 <th class="py-2">Murid</th>
                                 <th class="py-2">Total Hadir</th>
-                                <th class="py-2">Template WA</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y">
                             @foreach ($students as $student)
                                 @php
                                     $total = (int) ($studentTotals[$student->id] ?? 0);
-                                    $message = sprintf('Total kehadiran kelas bersama bulan %02d/%d adalah %d pertemuan.', $month, $year, $total);
                                 @endphp
                                 <tr>
                                     <td class="py-2">{{ $student->name }}</td>
                                     <td class="py-2">{{ $total }}</td>
-                                    <td class="py-2">
-                                        <div class="flex items-center gap-2">
-                                            <textarea class="w-full border-gray-300 rounded-md text-sm" rows="2" readonly>{{ $message }}</textarea>
-                                            @if ($student->whatsapp_primary)
-                                                <a href="https://wa.me/{{ $student->whatsapp_primary }}?text={{ urlencode($message) }}" class="text-emerald-600" target="_blank" rel="noopener">Kirim</a>
-                                            @endif
-                                        </div>
-                                    </td>
                                 </tr>
                             @endforeach
                         </tbody>
@@ -64,26 +54,16 @@
                             <tr class="text-left text-gray-500">
                                 <th class="py-2">Guru</th>
                                 <th class="py-2">Total Mengajar</th>
-                                <th class="py-2">Template WA</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y">
                             @foreach ($teachers as $teacher)
                                 @php
                                     $total = (int) ($teacherTotals[$teacher->id] ?? 0);
-                                    $message = sprintf('Total mengajar kelas bersama bulan %02d/%d adalah %d pertemuan.', $month, $year, $total);
                                 @endphp
                                 <tr>
                                     <td class="py-2">{{ $teacher->name }}</td>
                                     <td class="py-2">{{ $total }}</td>
-                                    <td class="py-2">
-                                        <div class="flex items-center gap-2">
-                                            <textarea class="w-full border-gray-300 rounded-md text-sm" rows="2" readonly>{{ $message }}</textarea>
-                                            @if ($teacher->whatsapp_number)
-                                                <a href="https://wa.me/{{ $teacher->whatsapp_number }}?text={{ urlencode($message) }}" class="text-emerald-600" target="_blank" rel="noopener">Kirim</a>
-                                            @endif
-                                        </div>
-                                    </td>
                                 </tr>
                             @endforeach
                         </tbody>

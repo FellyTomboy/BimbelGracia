@@ -2,9 +2,11 @@
 
 use App\Http\Controllers\Admin\AnalysisController;
 use App\Http\Controllers\Admin\AttendanceWindowController;
+use App\Http\Controllers\Admin\BankAccountController;
 use App\Http\Controllers\Admin\ClassReportController;
 use App\Http\Controllers\Admin\ClassStudentController;
 use App\Http\Controllers\Admin\ClassStudentSessionController;
+use App\Http\Controllers\Admin\DiscountController;
 use App\Http\Controllers\Admin\ExportController;
 use App\Http\Controllers\Admin\FinanceController;
 use App\Http\Controllers\Admin\HistoryController;
@@ -71,6 +73,12 @@ Route::middleware(['auth', 'password.force'])->group(function () {
             Route::post('lesson-offers/{lessonOffer}/restore', [AdminLessonOfferController::class, 'restore'])
                 ->name('lesson-offers.restore');
 
+            Route::resource('bank-accounts', BankAccountController::class)->except(['show']);
+            Route::get('bank-accounts/inactive', [BankAccountController::class, 'inactive'])
+                ->name('bank-accounts.inactive');
+            Route::post('bank-accounts/{bankAccount}/restore', [BankAccountController::class, 'restore'])
+                ->name('bank-accounts.restore');
+
             Route::resource('class-students', ClassStudentController::class)->except(['show']);
             Route::get('class-students/inactive', [ClassStudentController::class, 'inactive'])
                 ->name('class-students.inactive');
@@ -103,6 +111,12 @@ Route::middleware(['auth', 'password.force'])->group(function () {
 
             Route::get('analysis/ortu', [AnalysisController::class, 'ortu'])
                 ->name('analysis.ortu');
+            Route::post('analysis/ortu/discount', [AnalysisController::class, 'updateEnrollmentDiscount'])
+                ->name('analysis.ortu-discount');
+            Route::get('analysis/ortu-kelas', [AnalysisController::class, 'ortuKelas'])
+                ->name('analysis.ortu-kelas');
+            Route::post('analysis/ortu-kelas/discount', [AnalysisController::class, 'updateClassDiscount'])
+                ->name('analysis.ortu-class-discount');
             Route::get('analysis/guru', [AnalysisController::class, 'guru'])
                 ->name('analysis.guru');
             Route::get('payments/ortu', [AnalysisController::class, 'paymentsOrtu'])
@@ -113,6 +127,11 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('payments.ortu.payment');
             Route::post('payments/guru/{attendance}/payment', [AnalysisController::class, 'updateTeacherPayment'])
                 ->name('payments.guru.payment');
+
+            Route::get('discounts', [DiscountController::class, 'index'])
+                ->name('discounts.index');
+            Route::post('discounts', [DiscountController::class, 'store'])
+                ->name('discounts.store');
 
             Route::get('finance', [FinanceController::class, 'index'])
                 ->name('finance.index');

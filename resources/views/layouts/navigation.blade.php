@@ -20,7 +20,7 @@
                             $adminPresensiActive = request()->routeIs('admin.attendance-windows.*', 'admin.presensi.*');
                             $adminMasterActive = request()->routeIs('admin.students.*', 'admin.teachers.*', 'admin.programs.*', 'admin.enrollments.*', 'admin.lesson-offers.*');
                             $adminKelasActive = request()->routeIs('admin.class-students.*', 'admin.class-student-sessions.*');
-                            $adminAnalisisActive = request()->routeIs('admin.analysis.ortu', 'admin.analysis.guru', 'admin.payments.*');
+                            $adminAnalisisActive = request()->routeIs('admin.analysis.ortu', 'admin.analysis.ortu-kelas', 'admin.analysis.guru', 'admin.payments.*', 'admin.discounts.*');
                             $adminLaporanActive = request()->routeIs('admin.class-reports.*', 'admin.history.*', 'admin.finance.*', 'admin.export.*');
                             $dropdownBase = 'inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 focus:outline-none transition duration-150 ease-in-out';
                         @endphp
@@ -101,10 +101,16 @@
                             </x-slot>
                             <x-slot name="content">
                                 <x-dropdown-link :href="route('admin.analysis.ortu')">
-                                    {{ __('WA Ortu') }}
+                                    {{ __('WA Ortu Privat') }}
+                                </x-dropdown-link>
+                                <x-dropdown-link :href="route('admin.analysis.ortu-kelas')">
+                                    {{ __('WA Ortu Kelas') }}
                                 </x-dropdown-link>
                                 <x-dropdown-link :href="route('admin.analysis.guru')">
                                     {{ __('WA Guru') }}
+                                </x-dropdown-link>
+                                <x-dropdown-link :href="route('admin.discounts.index')">
+                                    {{ __('Diskon/Promo') }}
                                 </x-dropdown-link>
                                 <x-dropdown-link :href="route('admin.payments.ortu')">
                                     {{ __('Pembayaran Ortu') }}
@@ -275,6 +281,9 @@
                 <x-responsive-nav-link :href="route('admin.lesson-offers.index')" :active="request()->routeIs('admin.lesson-offers.*')">
                     {{ __('Tawaran Les') }}
                 </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('admin.bank-accounts.index')" :active="request()->routeIs('admin.bank-accounts.*')">
+                    {{ __('Rekening Bimbel') }}
+                </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('admin.class-students.index')" :active="request()->routeIs('admin.class-students.*')">
                     {{ __('Murid Kelas') }}
                 </x-responsive-nav-link>
@@ -282,10 +291,16 @@
                     {{ __('Jadwal Murid') }}
                 </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('admin.analysis.ortu')" :active="request()->routeIs('admin.analysis.ortu')">
-                    {{ __('WA Ortu') }}
+                    {{ __('WA Ortu Privat') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('admin.analysis.ortu-kelas')" :active="request()->routeIs('admin.analysis.ortu-kelas')">
+                    {{ __('WA Ortu Kelas') }}
                 </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('admin.analysis.guru')" :active="request()->routeIs('admin.analysis.guru')">
                     {{ __('WA Guru') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('admin.discounts.index')" :active="request()->routeIs('admin.discounts.*')">
+                    {{ __('Diskon/Promo') }}
                 </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('admin.payments.ortu')" :active="request()->routeIs('admin.payments.ortu')">
                     {{ __('Pembayaran Ortu') }}
