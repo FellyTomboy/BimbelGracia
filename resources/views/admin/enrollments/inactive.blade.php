@@ -1,11 +1,8 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="flex items-center justify-between">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Enrollments</h2>
-            <div class="flex items-center gap-3">
-                <a href="{{ route('admin.enrollments.inactive') }}" class="px-4 py-2 rounded-md border text-sm">Data tidak aktif</a>
-                <a href="{{ route('admin.enrollments.create') }}" class="px-4 py-2 rounded-md bg-slate-900 text-white text-sm">Tambah Enrollment</a>
-            </div>
+            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Enrollments (Hibernasi)</h2>
+            <a href="{{ route('admin.enrollments.index') }}" class="px-4 py-2 rounded-md border text-sm">Kembali ke Aktif</a>
         </div>
     </x-slot>
 
@@ -40,13 +37,11 @@
                                     <td class="py-2">Rp {{ number_format($enrollment->parent_rate) }}</td>
                                     <td class="py-2">Rp {{ number_format($enrollment->teacher_rate) }}</td>
                                     <td class="py-2">{{ $enrollment->validation_status }}</td>
-                                    <td class="py-2">{{ $enrollment->status }}</td>
-                                    <td class="py-2 flex gap-2">
-                                        <a href="{{ route('admin.enrollments.edit', $enrollment) }}" class="text-indigo-600">Edit</a>
-                                        <form method="POST" action="{{ route('admin.enrollments.destroy', $enrollment) }}">
+                                    <td class="py-2">hibernasi</td>
+                                    <td class="py-2">
+                                        <form method="POST" action="{{ route('admin.enrollments.restore', $enrollment->id) }}">
                                             @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="text-rose-600">Hibernasi</button>
+                                            <button type="submit" class="text-emerald-600">Restore</button>
                                         </form>
                                     </td>
                                 </tr>

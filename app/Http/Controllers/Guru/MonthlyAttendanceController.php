@@ -9,6 +9,7 @@ use App\Models\AttendanceWindow;
 use App\Models\Enrollment;
 use App\Models\MonthlyAttendance;
 use App\Models\Teacher;
+use App\Models\Student;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -70,10 +71,16 @@ class MonthlyAttendanceController extends Controller
             'student_totals.*' => ['required', 'integer', 'min:0'],
         ]);
 
-        $enrollment = Enrollment::with('students')
+        $enrollment = Enrollment::with(['students', 'program'])
             ->where('id', $validated['enrollment_id'])
             ->where('teacher_id', $teacher->id)
             ->firstOrFail();
+
+        if ($this->hasClassPlaceholderStudent($enrollment->students) && $enrollment->program?->type !== 'kelas') {
+            return back()
+                ->withInput()
+                ->withErrors(['enrollment_id' => 'Murid kelas bersama harus memakai program bertipe kelas.']);
+        }
 
         $exists = MonthlyAttendance::query()
             ->where('enrollment_id', $enrollment->id)
@@ -216,6 +223,21 @@ class MonthlyAttendanceController extends Controller
         return redirect()
             ->route('guru.presensi.index')
             ->with('status', 'Presensi diperbarui dan dikirim ulang.');
+    }
+
+    private function hasClassPlaceholderStudent($students): bool
+    {
+        $placeholder = (string) config('bimbel.class_student_placeholder', 'Murid Kelas Bersama');
+        $placeholder = trim($placeholder);
+        if ($placeholder === '') {
+            return false;
+        }
+
+        $needle = strtolower($placeholder);
+
+        return $students->contains(function (Student $student) use ($needle): bool {
+            return strtolower($student->name) === $needle;
+        });
     }
 
     private function resolveTeacher(Request $request): Teacher

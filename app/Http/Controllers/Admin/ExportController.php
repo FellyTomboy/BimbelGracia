@@ -21,6 +21,7 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ExportController extends Controller
@@ -43,7 +44,7 @@ class ExportController extends Controller
         return $this->csv('students', $headers, $rows);
     }
 
-    public function studentsExcel(): Response
+    public function studentsExcel(): BinaryFileResponse
     {
         [$headers, $rows] = $this->studentsData();
 
@@ -64,7 +65,7 @@ class ExportController extends Controller
         return $this->csv('teachers', $headers, $rows);
     }
 
-    public function teachersExcel(): Response
+    public function teachersExcel(): BinaryFileResponse
     {
         [$headers, $rows] = $this->teachersData();
 
@@ -85,7 +86,7 @@ class ExportController extends Controller
         return $this->csv('lessons', $headers, $rows);
     }
 
-    public function lessonsExcel(): Response
+    public function lessonsExcel(): BinaryFileResponse
     {
         [$headers, $rows] = $this->lessonsData();
 
@@ -106,7 +107,7 @@ class ExportController extends Controller
         return $this->csv('attendances', $headers, $rows);
     }
 
-    public function attendancesExcel(Request $request): Response
+    public function attendancesExcel(Request $request): BinaryFileResponse
     {
         [$headers, $rows] = $this->attendancesData($request);
 
@@ -127,7 +128,7 @@ class ExportController extends Controller
         return $this->csv('class_groups', $headers, $rows);
     }
 
-    public function classGroupsExcel(): Response
+    public function classGroupsExcel(): BinaryFileResponse
     {
         [$headers, $rows] = $this->classGroupsData();
 
@@ -148,7 +149,7 @@ class ExportController extends Controller
         return $this->csv('class_sessions', $headers, $rows);
     }
 
-    public function classSessionsExcel(): Response
+    public function classSessionsExcel(): BinaryFileResponse
     {
         [$headers, $rows] = $this->classSessionsData();
 
@@ -169,7 +170,7 @@ class ExportController extends Controller
         return $this->csv('audit_logs', $headers, $rows);
     }
 
-    public function auditLogsExcel(): Response
+    public function auditLogsExcel(): BinaryFileResponse
     {
         [$headers, $rows] = $this->auditLogsData();
 
@@ -183,7 +184,7 @@ class ExportController extends Controller
         return $this->pdf('Audit Log', $headers, $rows, 'audit_logs');
     }
 
-    public function attendancesMonthlyExcel(Request $request): Response
+    public function attendancesMonthlyExcel(Request $request): BinaryFileResponse
     {
         [$month, $year] = $this->resolvePeriod($request);
         [$headers, $rows] = $this->monthlyAttendancesData($month, $year);
@@ -207,7 +208,7 @@ class ExportController extends Controller
         );
     }
 
-    public function classSessionsMonthlyExcel(Request $request): Response
+    public function classSessionsMonthlyExcel(Request $request): BinaryFileResponse
     {
         [$month, $year] = $this->resolvePeriod($request);
         [$headers, $rows] = $this->monthlyClassSessionsData($month, $year);

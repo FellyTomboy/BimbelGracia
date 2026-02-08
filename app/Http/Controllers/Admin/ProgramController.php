@@ -14,11 +14,20 @@ class ProgramController extends Controller
 {
     public function index(): View
     {
-        $programs = Program::withTrashed()
+        $programs = Program::query()
             ->latest()
             ->get();
 
         return view('admin.programs.index', compact('programs'));
+    }
+
+    public function inactive(): View
+    {
+        $programs = Program::onlyTrashed()
+            ->latest('deleted_at')
+            ->get();
+
+        return view('admin.programs.inactive', compact('programs'));
     }
 
     public function create(): View

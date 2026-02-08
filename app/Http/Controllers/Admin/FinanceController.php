@@ -8,9 +8,9 @@ use App\Http\Controllers\Controller;
 use App\Models\MonthlyAttendance;
 use App\Models\Student;
 use App\Models\Teacher;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class FinanceController extends Controller
@@ -19,7 +19,7 @@ class FinanceController extends Controller
     {
         [$month, $year] = $this->resolvePeriod($request);
 
-        $gross = DB::table('enrollment_attendances')
+        $privatGross = DB::table('enrollment_attendances')
             ->join('enrollments', 'enrollment_attendances.enrollment_id', '=', 'enrollments.id')
             ->join('attendance_student', 'enrollment_attendances.id', '=', 'attendance_student.attendance_id')
             ->where('enrollment_attendances.status_validation', 'valid')
@@ -27,16 +27,30 @@ class FinanceController extends Controller
             ->where('enrollment_attendances.year', $year)
             ->sum(DB::raw('attendance_student.total_present * enrollments.parent_rate'));
 
-        $teacherCost = DB::table('enrollment_attendances')
+        $privatTeacherCost = DB::table('enrollment_attendances')
             ->join('enrollments', 'enrollment_attendances.enrollment_id', '=', 'enrollments.id')
             ->where('enrollment_attendances.status_validation', 'valid')
             ->where('enrollment_attendances.month', $month)
             ->where('enrollment_attendances.year', $year)
             ->sum(DB::raw('enrollment_attendances.total_lessons * enrollments.teacher_rate'));
 
+        $classGross = DB::table('class_student_sessions')
+            ->join('class_students', 'class_student_sessions.class_student_id', '=', 'class_students.id')
+            ->whereMonth('class_student_sessions.session_date', $month)
+            ->whereYear('class_student_sessions.session_date', $year)
+            ->sum(DB::raw('class_students.rate_per_meeting'));
+
+        $gross = $privatGross + $classGross;
+        $teacherCost = $privatTeacherCost;
+
         $net = $gross - $teacherCost;
 
         $activeStudents = Student::query()
+            ->where('status', 'active')
+            ->count();
+
+        $activeClassStudents = DB::table('class_students')
+            ->whereNull('deleted_at')
             ->where('status', 'active')
             ->count();
 
@@ -59,6 +73,7 @@ class FinanceController extends Controller
             'teacherCost' => $teacherCost,
             'net' => $net,
             'activeStudents' => $activeStudents,
+            'activeClassStudents' => $activeClassStudents,
             'activeTeachers' => $activeTeachers,
             'needsFix' => $needsFix,
             'chart' => $chart,
@@ -103,6 +118,23 @@ class FinanceController extends Controller
                 return sprintf('%04d-%02d', $row->year, $row->month);
             });
 
+        $classGrossQuery = DB::table('class_student_sessions')
+            ->join('class_students', 'class_student_sessions.class_student_id', '=', 'class_students.id')
+            ->selectRaw('strftime("%Y", class_student_sessions.session_date) as year, strftime("%m", class_student_sessions.session_date) as month, SUM(class_students.rate_per_meeting) as gross')
+            ->where(function ($builder) use ($conditions) {
+                foreach ($conditions as $condition) {
+                    $builder->orWhere(function ($sub) use ($condition) {
+                        $sub->whereMonth('class_student_sessions.session_date', $condition['month'])
+                            ->whereYear('class_student_sessions.session_date', $condition['year']);
+                    });
+                }
+            })
+            ->groupBy('year', 'month')
+            ->get()
+            ->keyBy(function ($row) {
+                return sprintf('%04d-%02d', (int) $row->year, (int) $row->month);
+            });
+
         $costQuery = DB::table('enrollment_attendances')
             ->join('enrollments', 'enrollment_attendances.enrollment_id', '=', 'enrollments.id')
             ->selectRaw('enrollment_attendances.year, enrollment_attendances.month, SUM(enrollment_attendances.total_lessons * enrollments.teacher_rate) as cost')
@@ -132,7 +164,7 @@ class FinanceController extends Controller
         foreach ($periods as $period) {
             $key = $period->format('Y-m');
             $labels[] = $period->format('M Y');
-            $grossValue = (float) ($byPeriod[$key]->gross ?? 0);
+            $grossValue = (float) ($byPeriod[$key]->gross ?? 0) + (float) ($classGrossQuery[$key]->gross ?? 0);
             $costValue = (float) ($costByPeriod[$key]->cost ?? 0);
             $grossSeries[] = $grossValue;
             $costSeries[] = $costValue;

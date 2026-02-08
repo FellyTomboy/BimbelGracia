@@ -26,11 +26,13 @@ class Teacher extends Model
         'bank_name',
         'bank_account',
         'bank_owner',
+        'class_rate',
         'status',
     ];
 
     protected $casts = [
         'status' => 'string',
+        'class_rate' => 'integer',
     ];
 
     public function setWhatsappAttribute(?string $value): void
@@ -71,5 +73,10 @@ class Teacher extends Model
     public function monthlyAttendances(): HasMany
     {
         return $this->hasMany(MonthlyAttendance::class);
+    }
+
+    public function classTeacherSessions(): HasMany
+    {
+        return $this->hasMany(ClassTeacherSession::class);
     }
 }

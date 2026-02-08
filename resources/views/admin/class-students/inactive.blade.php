@@ -1,11 +1,8 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="flex items-center justify-between">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Murid</h2>
-            <div class="flex items-center gap-3">
-                <a href="{{ route('admin.students.inactive') }}" class="px-4 py-2 rounded-md border text-sm">Data tidak aktif</a>
-                <a href="{{ route('admin.students.create') }}" class="px-4 py-2 rounded-md bg-slate-900 text-white text-sm">Tambah Murid</a>
-            </div>
+            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Murid Kelas Bersama (Hibernasi)</h2>
+            <a href="{{ route('admin.class-students.index') }}" class="px-4 py-2 rounded-md border text-sm">Kembali ke Aktif</a>
         </div>
     </x-slot>
 
@@ -22,9 +19,9 @@
                         <thead>
                             <tr class="text-left text-gray-500">
                                 <th class="py-2">Nama</th>
-                                <th class="py-2">Email</th>
                                 <th class="py-2">WA Utama</th>
                                 <th class="py-2">WA Cadangan</th>
+                                <th class="py-2">Tarif / Pertemuan</th>
                                 <th class="py-2">Status</th>
                                 <th class="py-2">Aksi</th>
                             </tr>
@@ -33,16 +30,14 @@
                             @foreach ($students as $student)
                                 <tr>
                                     <td class="py-2 font-medium">{{ $student->name }}</td>
-                                    <td class="py-2">{{ $student->user?->email ?? '-' }}</td>
                                     <td class="py-2">{{ $student->whatsapp_primary ?? '-' }}</td>
                                     <td class="py-2">{{ $student->whatsapp_secondary ?? '-' }}</td>
-                                    <td class="py-2">{{ $student->status }}</td>
-                                    <td class="py-2 flex gap-2">
-                                        <a href="{{ route('admin.students.edit', $student) }}" class="text-indigo-600">Edit</a>
-                                        <form method="POST" action="{{ route('admin.students.destroy', $student) }}">
+                                    <td class="py-2">Rp {{ number_format($student->rate_per_meeting) }}</td>
+                                    <td class="py-2">hibernasi</td>
+                                    <td class="py-2">
+                                        <form method="POST" action="{{ route('admin.class-students.restore', $student->id) }}">
                                             @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="text-rose-600">Hibernasi</button>
+                                            <button type="submit" class="text-emerald-600">Restore</button>
                                         </form>
                                     </td>
                                 </tr>

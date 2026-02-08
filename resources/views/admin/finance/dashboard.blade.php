@@ -36,10 +36,14 @@
                 </div>
             </div>
 
-            <div class="grid md:grid-cols-3 gap-6">
+            <div class="grid md:grid-cols-4 gap-6">
                 <div class="bg-white shadow-sm sm:rounded-lg p-6">
                     <p class="text-sm text-gray-500">Murid Aktif</p>
                     <p class="text-2xl font-semibold">{{ $activeStudents }}</p>
+                </div>
+                <div class="bg-white shadow-sm sm:rounded-lg p-6">
+                    <p class="text-sm text-gray-500">Murid Kelas Aktif</p>
+                    <p class="text-2xl font-semibold">{{ $activeClassStudents }}</p>
                 </div>
                 <div class="bg-white shadow-sm sm:rounded-lg p-6">
                     <p class="text-sm text-gray-500">Guru Aktif</p>

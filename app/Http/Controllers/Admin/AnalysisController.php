@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\ClassStudentSession;
 use App\Models\Enrollment;
 use App\Models\MonthlyAttendance;
 use App\Models\Student;
@@ -22,7 +23,7 @@ class AnalysisController extends Controller
         $attendances = $this->baseAttendanceQuery($month, $year)->get();
         $rows = $this->attendanceRows($attendances);
 
-        $grouped = $rows
+        $privatSummaries = $rows
             ->groupBy(function (array $row) {
                 return $row['student']->whatsapp_primary
                     ?? $row['student']->whatsapp
@@ -61,26 +62,56 @@ class AnalysisController extends Controller
                     ->values();
 
                 $grandTotal = $students->sum('total');
-                $messageLines = collect([
-                    sprintf('Total les sampai akhir %s %s adalah:', $this->monthName($month), $year),
-                ]);
-
-                foreach ($students as $studentSummary) {
-                    $messageLines->push(sprintf('[%s]', $studentSummary['student']?->name ?? 'Murid'));
-                    foreach ($studentSummary['lines'] as $line) {
-                        $messageLines->push(
-                            sprintf('Tentor %s: %d x %s = %s', $line['label'], $line['count'], number_format($line['rate']), number_format($line['total']))
-                        );
-                    }
-                }
-
-                $messageLines->push(sprintf('Total: %s', number_format($grandTotal)));
+                $message = $this->buildPrivateParentMessage($students, $month, $year, $grandTotal);
 
                 return [
                     'contact' => $contact,
                     'students' => $students,
                     'total' => $grandTotal,
-                    'message' => $messageLines->implode("\n"),
+                    'message' => $message,
+                ];
+            })
+            ->values();
+
+        $classSessions = ClassStudentSession::with('student')
+            ->whereMonth('session_date', $month)
+            ->whereYear('session_date', $year)
+            ->get();
+
+        $classSummaries = $classSessions
+            ->groupBy(function (ClassStudentSession $session) {
+                $student = $session->student;
+
+                return $student?->whatsapp_primary
+                    ?? $student?->whatsapp_secondary
+                    ?? 'unknown';
+            })
+            ->map(function (Collection $sessions, string $contact) use ($month, $year) {
+                $students = $sessions
+                    ->groupBy(fn (ClassStudentSession $session) => $session->class_student_id)
+                    ->map(function (Collection $studentSessions) {
+                        $student = $studentSessions->first()?->student;
+                        $count = $studentSessions->count();
+                        $rate = (int) ($student?->rate_per_meeting ?? 0);
+                        $total = $count * $rate;
+
+                        return [
+                            'student' => $student,
+                            'count' => $count,
+                            'rate' => $rate,
+                            'total' => $total,
+                        ];
+                    })
+                    ->values();
+
+                $grandTotal = $students->sum('total');
+                $message = $this->buildClassParentMessage($students, $month, $year, $grandTotal);
+
+                return [
+                    'contact' => $contact,
+                    'students' => $students,
+                    'total' => $grandTotal,
+                    'message' => $message,
                 ];
             })
             ->values();
@@ -88,8 +119,8 @@ class AnalysisController extends Controller
         return view('admin.analysis.ortu', [
             'month' => $month,
             'year' => $year,
-            'attendances' => $attendances,
-            'summaries' => $grouped,
+            'privatSummaries' => $privatSummaries,
+            'classSummaries' => $classSummaries,
         ]);
     }
 
@@ -98,9 +129,6 @@ class AnalysisController extends Controller
         [$month, $year] = $this->resolvePeriod($request);
 
         $attendances = $this->baseAttendanceQuery($month, $year)->get();
-        $enrollments = Enrollment::with(['program', 'teacher', 'students'])
-            ->orderBy('id')
-            ->get();
         $rows = $this->attendanceRows($attendances);
 
         $grouped = $rows
@@ -132,21 +160,13 @@ class AnalysisController extends Controller
                     ->values();
 
                 $grandTotal = $lines->sum('total');
-                $messageLines = collect([
-                    sprintf('Rekap gaji sampai akhir %s %s:', $this->monthName($month), $year),
-                ])
-                    ->merge($lines->map(function (array $line): string {
-                        return sprintf('Murid %s: %d x %s = %s', $line['label'], $line['count'], number_format($line['rate']), number_format($line['total']));
-                    }))
-                    ->merge([
-                        sprintf('Total: %s', number_format($grandTotal)),
-                    ]);
+                $message = $this->buildTeacherMessage($teacher, $lines, $month, $year, $grandTotal);
 
                 return [
                     'teacher' => $teacher,
                     'lines' => $lines,
                     'total' => $grandTotal,
-                    'message' => $messageLines->implode("\n"),
+                    'message' => $message,
                 ];
             })
             ->values();
@@ -154,8 +174,36 @@ class AnalysisController extends Controller
         return view('admin.analysis.guru', [
             'month' => $month,
             'year' => $year,
-            'attendances' => $attendances,
             'summaries' => $grouped,
+        ]);
+    }
+
+    public function paymentsOrtu(Request $request): View
+    {
+        [$month, $year] = $this->resolvePeriod($request);
+
+        $attendances = $this->baseAttendanceQuery($month, $year)->get();
+
+        return view('admin.payments.ortu', [
+            'month' => $month,
+            'year' => $year,
+            'attendances' => $attendances,
+        ]);
+    }
+
+    public function paymentsGuru(Request $request): View
+    {
+        [$month, $year] = $this->resolvePeriod($request);
+
+        $attendances = $this->baseAttendanceQuery($month, $year)->get();
+        $enrollments = Enrollment::with(['program', 'teacher', 'students'])
+            ->orderBy('id')
+            ->get();
+
+        return view('admin.payments.guru', [
+            'month' => $month,
+            'year' => $year,
+            'attendances' => $attendances,
             'enrollments' => $enrollments,
         ]);
     }
@@ -243,5 +291,112 @@ class AnalysisController extends Controller
         ];
 
         return $names[$month] ?? 'Bulan';
+    }
+
+    private function buildPrivateParentMessage(Collection $students, int $month, int $year, int $grandTotal): string
+    {
+        $lines = collect([
+            'Selamat pagi Bapak/Ibu. Maaf menganggu waktunya.',
+            sprintf('Total les sampai akhir %s %s adalah:', $this->monthName($month), $year),
+        ]);
+
+        foreach ($students as $studentSummary) {
+            $lines->push(sprintf('[%s]', $studentSummary['student']?->name ?? 'Murid'));
+            foreach ($studentSummary['lines'] as $line) {
+                $lines->push(
+                    sprintf(
+                        'Tentor %s: %d x Rp %s = Rp %s',
+                        $line['label'],
+                        $line['count'],
+                        number_format($line['rate']),
+                        number_format($line['total'])
+                    )
+                );
+            }
+        }
+
+        $lines->push(sprintf('Total pembayaran sebesar: Rp %s', number_format($grandTotal)));
+        $lines->push('Mohon dicek kembali.');
+
+        $lines = $lines->merge($this->paymentAccountLines());
+        $lines->push('Mohon konfirmasi jika sudah transfer.');
+        $lines->push('Jika ada kritik/saran untuk tentor/bimbel, atau ingin mengetahui perkembangan siswa, kami terbuka untuk berdiskusi lewat WhatsApp.');
+        $lines->push('Terima kasih atas perhatiannya.');
+
+        return $lines->implode("\n");
+    }
+
+    private function buildClassParentMessage(Collection $students, int $month, int $year, int $grandTotal): string
+    {
+        $studentNames = $students
+            ->pluck('student')
+            ->filter()
+            ->pluck('name')
+            ->implode(', ');
+
+        $lines = collect([
+            sprintf('Selamat pagi Bapak/Ibu dari siswa %s.', $studentNames ?: 'Murid'),
+            sprintf('Total biaya les pada Bulan %s sejumlah:', $this->monthName($month)),
+        ]);
+
+        foreach ($students as $studentSummary) {
+            $studentName = $studentSummary['student']?->name ?? 'Murid';
+            $lines->push(sprintf('%s: Rp %s x %d = Rp %s',
+                $studentName,
+                number_format($studentSummary['rate']),
+                $studentSummary['count'],
+                number_format($studentSummary['total'])
+            ));
+        }
+
+        $lines->push(sprintf('Total: Rp %s', number_format($grandTotal)));
+        $lines->push('Mohon dicek kembali.');
+        $lines = $lines->merge($this->paymentAccountLines());
+        $lines->push('Mohon konfirmasi jika sudah transfer.');
+        $lines->push('Jika ada kritik/saran untuk tentor/bimbel, atau ingin mengetahui perkembangan siswa, kami terbuka untuk berdiskusi lewat WhatsApp.');
+        $lines->push('Terima kasih atas perhatiannya.');
+
+        return $lines->implode("\n");
+    }
+
+    private function buildTeacherMessage(?\App\Models\Teacher $teacher, Collection $lines, int $month, int $year, int $grandTotal): string
+    {
+        $linesText = $lines->map(function (array $line): string {
+            return sprintf('%s: %d x Rp %s = Rp %s', $line['label'], $line['count'], number_format($line['rate']), number_format($line['total']));
+        });
+
+        $messageLines = collect([
+            'Selamat pagi. Minta tolong dicek total les berikut ini dan segera konfirmasi jika sudah sesuai agar dapat diproses.',
+            sprintf('Total les sampai akhir %s %s:', $this->monthName($month), $year),
+        ])
+            ->merge($linesText)
+            ->merge([
+                sprintf('Total gaji Anda sebesar: Rp %s', number_format($grandTotal)),
+                'Apakah nomor rekening tetap? Mohon info jika ada perubahan, dan mohon info perkembangan setiap siswa yang diajar.',
+                'Terima kasih sudah mengajar dengan penuh rasa tanggung jawab dan dedikasi.',
+            ]);
+
+        return $messageLines->implode("\n");
+    }
+
+    private function paymentAccountLines(): Collection
+    {
+        $accounts = config('bimbel.payment_accounts', []);
+        if (empty($accounts)) {
+            return collect();
+        }
+
+        $lines = collect(['Pembayaran bisa via transfer:']);
+        $index = 1;
+        foreach ($accounts as $account) {
+            $bank = $account['bank'] ?? '';
+            $name = $account['name'] ?? '';
+            $number = $account['number'] ?? '';
+
+            $lines->push(sprintf('%d. %s: a/n %s %s', $index, $bank, $name, $number));
+            $index++;
+        }
+
+        return $lines;
     }
 }

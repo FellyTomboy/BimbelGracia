@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Enrollment;
 use App\Models\MonthlyAttendance;
+use App\Models\Student;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -33,11 +34,16 @@ class MonthlyAttendanceController extends Controller
             'enrollment.teacher',
             'students',
         ]);
+        $isClassPlaceholder = $this->hasClassPlaceholderStudent($attendance->students);
+
         $enrollments = Enrollment::with(['program', 'teacher', 'students'])
+            ->when($isClassPlaceholder, function ($query) {
+                $query->whereHas('program', fn ($sub) => $sub->where('type', 'kelas'));
+            })
             ->orderBy('id')
             ->get();
 
-        return view('admin.presensi.show', compact('attendance', 'enrollments'));
+        return view('admin.presensi.show', compact('attendance', 'enrollments', 'isClassPlaceholder'));
     }
 
     public function updateEnrollment(Request $request, MonthlyAttendance $attendance): RedirectResponse
@@ -46,7 +52,14 @@ class MonthlyAttendanceController extends Controller
             'enrollment_id' => ['required', 'exists:enrollments,id'],
         ]);
 
-        $enrollment = Enrollment::with('students')->findOrFail($validated['enrollment_id']);
+        $attendance->load('students');
+        $enrollment = Enrollment::with(['students', 'program'])->findOrFail($validated['enrollment_id']);
+
+        if ($this->hasClassPlaceholderStudent($attendance->students) && $enrollment->program?->type !== 'kelas') {
+            return back()->withErrors([
+                'enrollment_id' => 'Presensi murid kelas bersama harus memakai program bertipe kelas.',
+            ]);
+        }
 
         $attendance->update([
             'enrollment_id' => $enrollment->id,
@@ -62,6 +75,21 @@ class MonthlyAttendanceController extends Controller
         );
 
         return back()->with('status', 'Enrollment diperbarui.');
+    }
+
+    private function hasClassPlaceholderStudent($students): bool
+    {
+        $placeholder = (string) config('bimbel.class_student_placeholder', 'Murid Kelas Bersama');
+        $placeholder = trim($placeholder);
+        if ($placeholder === '') {
+            return false;
+        }
+
+        $needle = strtolower($placeholder);
+
+        return $students->contains(function (Student $student) use ($needle): bool {
+            return strtolower($student->name) === $needle;
+        });
     }
 
     public function validateAttendance(Request $request, MonthlyAttendance $attendance): RedirectResponse

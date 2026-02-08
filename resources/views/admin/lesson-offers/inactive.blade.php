@@ -1,11 +1,8 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="flex items-center justify-between">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Tawaran Les</h2>
-            <div class="flex items-center gap-3">
-                <a href="{{ route('admin.lesson-offers.inactive') }}" class="px-4 py-2 rounded-md border text-sm">Data tidak aktif</a>
-                <a href="{{ route('admin.lesson-offers.create') }}" class="px-4 py-2 rounded-md bg-slate-900 text-white text-sm">Tambah Tawaran</a>
-            </div>
+            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Tawaran Les (Hibernasi)</h2>
+            <a href="{{ route('admin.lesson-offers.index') }}" class="px-4 py-2 rounded-md border text-sm">Kembali ke Aktif</a>
         </div>
     </x-slot>
 
@@ -38,15 +35,13 @@
                                     <td class="py-2">{{ $offer->student?->name ?? '-' }}</td>
                                     <td class="py-2">{{ $offer->subject }}</td>
                                     <td class="py-2">{{ $offer->schedule_day }} {{ $offer->schedule_time }}</td>
-                                    <td class="py-2">{{ $offer->status }}</td>
+                                    <td class="py-2">hibernasi</td>
                                     <td class="py-2">{{ $offer->contact_whatsapp ?? '-' }}</td>
                                     <td class="py-2">{{ $offer->note ?? '-' }}</td>
-                                    <td class="py-2 flex gap-2">
-                                        <a href="{{ route('admin.lesson-offers.edit', $offer) }}" class="text-indigo-600">Edit</a>
-                                        <form method="POST" action="{{ route('admin.lesson-offers.destroy', $offer) }}">
+                                    <td class="py-2">
+                                        <form method="POST" action="{{ route('admin.lesson-offers.restore', $offer->id) }}">
                                             @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="text-rose-600">Hibernasi</button>
+                                            <button type="submit" class="text-emerald-600">Restore</button>
                                         </form>
                                     </td>
                                 </tr>

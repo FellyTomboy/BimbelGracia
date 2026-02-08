@@ -6,6 +6,7 @@ namespace App\Traits;
 
 use App\Models\AuditLog;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 trait Auditable
 {
@@ -23,9 +24,11 @@ trait Auditable
             $model->writeAudit('deleted', $model->getOriginal(), []);
         });
 
-        static::restored(function (Model $model): void {
-            $model->writeAudit('restored', $model->getOriginal(), $model->getAttributes());
-        });
+        if (in_array(SoftDeletes::class, class_uses_recursive(static::class), true)) {
+            static::restored(function (Model $model): void {
+                $model->writeAudit('restored', $model->getOriginal(), $model->getAttributes());
+            });
+        }
     }
 
     protected function writeAudit(string $action, array $before, array $after): void

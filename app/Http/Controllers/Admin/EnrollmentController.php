@@ -18,11 +18,20 @@ class EnrollmentController extends Controller
     public function index(): View
     {
         $enrollments = Enrollment::with(['program', 'teacher', 'students'])
-            ->withTrashed()
             ->latest()
             ->get();
 
         return view('admin.enrollments.index', compact('enrollments'));
+    }
+
+    public function inactive(): View
+    {
+        $enrollments = Enrollment::onlyTrashed()
+            ->with(['program', 'teacher', 'students'])
+            ->latest('deleted_at')
+            ->get();
+
+        return view('admin.enrollments.inactive', compact('enrollments'));
     }
 
     public function create(): View

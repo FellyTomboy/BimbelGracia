@@ -16,11 +16,20 @@ class TeacherController extends Controller
     public function index(): View
     {
         $teachers = Teacher::with('user')
-            ->withTrashed()
             ->latest()
             ->get();
 
         return view('admin.teachers.index', compact('teachers'));
+    }
+
+    public function inactive(): View
+    {
+        $teachers = Teacher::onlyTrashed()
+            ->with('user')
+            ->latest('deleted_at')
+            ->get();
+
+        return view('admin.teachers.inactive', compact('teachers'));
     }
 
     public function create(): View
@@ -40,6 +49,7 @@ class TeacherController extends Controller
             'bank_name' => ['nullable', 'string', 'max:255'],
             'bank_account' => ['nullable', 'string', 'max:255'],
             'bank_owner' => ['nullable', 'string', 'max:255'],
+            'class_rate' => ['required', 'integer', 'min:0'],
             'status' => ['required', 'in:active,hibernasi'],
         ]);
 
@@ -63,6 +73,7 @@ class TeacherController extends Controller
             'bank_name' => $validated['bank_name'] ?? null,
             'bank_account' => $validated['bank_account'] ?? null,
             'bank_owner' => $validated['bank_owner'] ?? null,
+            'class_rate' => $validated['class_rate'],
             'status' => $validated['status'],
         ]);
 
@@ -88,6 +99,7 @@ class TeacherController extends Controller
             'bank_name' => ['nullable', 'string', 'max:255'],
             'bank_account' => ['nullable', 'string', 'max:255'],
             'bank_owner' => ['nullable', 'string', 'max:255'],
+            'class_rate' => ['required', 'integer', 'min:0'],
             'status' => ['required', 'in:active,hibernasi'],
         ]);
 
@@ -100,6 +112,7 @@ class TeacherController extends Controller
             'bank_name' => $validated['bank_name'] ?? null,
             'bank_account' => $validated['bank_account'] ?? null,
             'bank_owner' => $validated['bank_owner'] ?? null,
+            'class_rate' => $validated['class_rate'],
             'status' => $validated['status'],
         ]);
 

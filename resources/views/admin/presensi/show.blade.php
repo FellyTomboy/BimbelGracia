@@ -50,6 +50,9 @@
                             @endforeach
                         </select>
                         @error('enrollment_id')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                        @if ($isClassPlaceholder)
+                            <p class="mt-2 text-xs text-amber-600">Presensi ini terkait murid kelas bersama, jadi hanya program bertipe kelas yang bisa dipilih.</p>
+                        @endif
                         <p class="mt-2 text-xs text-gray-500">Mengubah enrollment akan mengganti data murid dan mengembalikan status ke pending.</p>
                     </div>
                     <button type="submit" class="px-4 py-2 rounded-md bg-slate-900 text-white">Simpan Enrollment</button>

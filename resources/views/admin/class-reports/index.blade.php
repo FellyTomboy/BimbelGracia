@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Laporan Kelas Bersama</h2>
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">WA Kelas</h2>
     </x-slot>
 
     <div class="py-12">
@@ -44,8 +44,8 @@
                                     <td class="py-2">
                                         <div class="flex items-center gap-2">
                                             <textarea class="w-full border-gray-300 rounded-md text-sm" rows="2" readonly>{{ $message }}</textarea>
-                                            @if ($student->whatsapp)
-                                                <a href="https://wa.me/{{ $student->whatsapp }}?text={{ urlencode($message) }}" class="text-emerald-600" target="_blank" rel="noopener">Kirim</a>
+                                            @if ($student->whatsapp_primary)
+                                                <a href="https://wa.me/{{ $student->whatsapp_primary }}?text={{ urlencode($message) }}" class="text-emerald-600" target="_blank" rel="noopener">Kirim</a>
                                             @endif
                                         </div>
                                     </td>
@@ -79,8 +79,8 @@
                                     <td class="py-2">
                                         <div class="flex items-center gap-2">
                                             <textarea class="w-full border-gray-300 rounded-md text-sm" rows="2" readonly>{{ $message }}</textarea>
-                                            @if ($teacher->whatsapp)
-                                                <a href="https://wa.me/{{ $teacher->whatsapp }}?text={{ urlencode($message) }}" class="text-emerald-600" target="_blank" rel="noopener">Kirim</a>
+                                            @if ($teacher->whatsapp_number)
+                                                <a href="https://wa.me/{{ $teacher->whatsapp_number }}?text={{ urlencode($message) }}" class="text-emerald-600" target="_blank" rel="noopener">Kirim</a>
                                             @endif
                                         </div>
                                     </td>

@@ -1,10 +1,11 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="flex items-center justify-between">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Tawaran Les</h2>
+            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Jadwal Murid Kelas Bersama</h2>
             <div class="flex items-center gap-3">
-                <a href="{{ route('admin.lesson-offers.inactive') }}" class="px-4 py-2 rounded-md border text-sm">Data tidak aktif</a>
-                <a href="{{ route('admin.lesson-offers.create') }}" class="px-4 py-2 rounded-md bg-slate-900 text-white text-sm">Tambah Tawaran</a>
+                <a href="{{ route('admin.class-student-sessions.inactive') }}" class="px-4 py-2 rounded-md border text-sm">Data tidak aktif</a>
+                <a href="{{ route('admin.class-student-sessions.calendar') }}" class="px-4 py-2 rounded-md border text-sm">Kalender</a>
+                <a href="{{ route('admin.class-student-sessions.create') }}" class="px-4 py-2 rounded-md bg-slate-900 text-white text-sm">Tambah Jadwal</a>
             </div>
         </div>
     </x-slot>
@@ -21,29 +22,27 @@
                     <table class="min-w-full text-sm">
                         <thead>
                             <tr class="text-left text-gray-500">
-                                <th class="py-2">ID</th>
+                                <th class="py-2">Tanggal</th>
+                                <th class="py-2">Jam</th>
                                 <th class="py-2">Murid</th>
-                                <th class="py-2">Mapel</th>
-                                <th class="py-2">Jadwal</th>
-                                <th class="py-2">Status</th>
-                                <th class="py-2">Kontak WA</th>
                                 <th class="py-2">Catatan</th>
+                                <th class="py-2">Status</th>
                                 <th class="py-2">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y">
-                            @foreach ($offers as $offer)
+                            @foreach ($sessions as $session)
                                 <tr>
-                                    <td class="py-2 font-medium">{{ $offer->code }}</td>
-                                    <td class="py-2">{{ $offer->student?->name ?? '-' }}</td>
-                                    <td class="py-2">{{ $offer->subject }}</td>
-                                    <td class="py-2">{{ $offer->schedule_day }} {{ $offer->schedule_time }}</td>
-                                    <td class="py-2">{{ $offer->status }}</td>
-                                    <td class="py-2">{{ $offer->contact_whatsapp ?? '-' }}</td>
-                                    <td class="py-2">{{ $offer->note ?? '-' }}</td>
+                                    <td class="py-2">{{ $session->session_date->format('d M Y') }}</td>
+                                    <td class="py-2">
+                                        {{ $session->start_time?->format('H:i') ?? '-' }} - {{ $session->end_time?->format('H:i') ?? '-' }}
+                                    </td>
+                                    <td class="py-2">{{ $session->student?->name ?? '-' }}</td>
+                                    <td class="py-2">{{ $session->notes ?? '-' }}</td>
+                                    <td class="py-2">active</td>
                                     <td class="py-2 flex gap-2">
-                                        <a href="{{ route('admin.lesson-offers.edit', $offer) }}" class="text-indigo-600">Edit</a>
-                                        <form method="POST" action="{{ route('admin.lesson-offers.destroy', $offer) }}">
+                                        <a href="{{ route('admin.class-student-sessions.edit', $session) }}" class="text-indigo-600">Edit</a>
+                                        <form method="POST" action="{{ route('admin.class-student-sessions.destroy', $session) }}">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="text-rose-600">Hibernasi</button>

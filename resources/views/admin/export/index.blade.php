@@ -19,8 +19,6 @@
                         <a href="{{ route('admin.export.teachers') }}" class="px-4 py-2 rounded-md border">Export Guru</a>
                         <a href="{{ route('admin.export.lessons') }}" class="px-4 py-2 rounded-md border">Export Enrollment</a>
                         <a href="{{ route('admin.export.attendances') }}" class="px-4 py-2 rounded-md border">Export Presensi</a>
-                        <a href="{{ route('admin.export.class-groups') }}" class="px-4 py-2 rounded-md border">Export Kelas Bersama</a>
-                        <a href="{{ route('admin.export.class-sessions') }}" class="px-4 py-2 rounded-md border">Export Jadwal Kelas</a>
                         <a href="{{ route('admin.export.audit') }}" class="px-4 py-2 rounded-md border">Export Audit Log</a>
                     </div>
                 </div>
@@ -32,8 +30,6 @@
                         <a href="{{ route('admin.export.teachers.excel') }}" class="px-4 py-2 rounded-md border">Export Guru</a>
                         <a href="{{ route('admin.export.lessons.excel') }}" class="px-4 py-2 rounded-md border">Export Enrollment</a>
                         <a href="{{ route('admin.export.attendances.excel') }}" class="px-4 py-2 rounded-md border">Export Presensi</a>
-                        <a href="{{ route('admin.export.class-groups.excel') }}" class="px-4 py-2 rounded-md border">Export Kelas Bersama</a>
-                        <a href="{{ route('admin.export.class-sessions.excel') }}" class="px-4 py-2 rounded-md border">Export Jadwal Kelas</a>
                         <a href="{{ route('admin.export.audit.excel') }}" class="px-4 py-2 rounded-md border">Export Audit Log</a>
                     </div>
                 </div>
@@ -45,8 +41,6 @@
                         <a href="{{ route('admin.export.teachers.pdf') }}" class="px-4 py-2 rounded-md border">Export Guru</a>
                         <a href="{{ route('admin.export.lessons.pdf') }}" class="px-4 py-2 rounded-md border">Export Enrollment</a>
                         <a href="{{ route('admin.export.attendances.pdf') }}" class="px-4 py-2 rounded-md border">Export Presensi</a>
-                        <a href="{{ route('admin.export.class-groups.pdf') }}" class="px-4 py-2 rounded-md border">Export Kelas Bersama</a>
-                        <a href="{{ route('admin.export.class-sessions.pdf') }}" class="px-4 py-2 rounded-md border">Export Jadwal Kelas</a>
                         <a href="{{ route('admin.export.audit.pdf') }}" class="px-4 py-2 rounded-md border">Export Audit Log</a>
                     </div>
                 </div>
@@ -83,8 +77,6 @@
                                     <input type="number" name="year" value="{{ request('year', now()->year) }}" min="2020" max="2100" class="mt-1 w-full border-gray-300 rounded-md" required />
                                 </div>
                                 <div class="flex items-end gap-2">
-                                    <button type="submit" formaction="{{ route('admin.export.class-sessions.monthly.excel') }}" class="px-3 py-2 rounded-md border">Excel</button>
-                                    <button type="submit" formaction="{{ route('admin.export.class-sessions.monthly.pdf') }}" class="px-3 py-2 rounded-md border">PDF</button>
                                 </div>
                             </form>
                         </div>

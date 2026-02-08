@@ -16,11 +16,20 @@ class LessonOfferController extends Controller
     public function index(): View
     {
         $offers = LessonOffer::with(['student', 'creator'])
-            ->withTrashed()
             ->latest()
             ->get();
 
         return view('admin.lesson-offers.index', compact('offers'));
+    }
+
+    public function inactive(): View
+    {
+        $offers = LessonOffer::onlyTrashed()
+            ->with(['student', 'creator'])
+            ->latest('deleted_at')
+            ->get();
+
+        return view('admin.lesson-offers.inactive', compact('offers'));
     }
 
     public function create(): View

@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Student;
+use App\Models\ClassStudent;
 use App\Models\Teacher;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -16,26 +16,28 @@ class ClassReportController extends Controller
     {
         [$month, $year] = $this->resolvePeriod($request);
 
-        $studentRows = DB::table('class_session_student')
-            ->join('class_sessions', 'class_session_student.class_session_id', '=', 'class_sessions.id')
-            ->where('class_sessions.session_date', '>=', Carbon::create($year, $month, 1)->startOfMonth())
-            ->where('class_sessions.session_date', '<=', Carbon::create($year, $month, 1)->endOfMonth())
-            ->where('class_session_student.is_present', true)
-            ->selectRaw('class_session_student.student_id, COUNT(*) as total')
-            ->groupBy('class_session_student.student_id')
+        $studentRows = DB::table('class_student_sessions')
+            ->where('session_date', '>=', Carbon::create($year, $month, 1)->startOfMonth())
+            ->where('session_date', '<=', Carbon::create($year, $month, 1)->endOfMonth())
+            ->selectRaw('class_student_id, COUNT(*) as total')
+            ->groupBy('class_student_id')
             ->get();
 
-        $studentTotals = $studentRows->pluck('total', 'student_id');
-        $students = Student::query()
+        $studentTotals = $studentRows->pluck('total', 'class_student_id');
+        $students = ClassStudent::query()
             ->whereIn('id', $studentTotals->keys())
             ->orderBy('name')
             ->get();
 
-        $teacherRows = DB::table('class_sessions')
-            ->where('session_date', '>=', Carbon::create($year, $month, 1)->startOfMonth())
-            ->where('session_date', '<=', Carbon::create($year, $month, 1)->endOfMonth())
-            ->selectRaw('teacher_id, COUNT(*) as total')
-            ->groupBy('teacher_id')
+        $teacherRows = DB::table('enrollment_attendances')
+            ->join('enrollments', 'enrollment_attendances.enrollment_id', '=', 'enrollments.id')
+            ->join('programs', 'enrollments.program_id', '=', 'programs.id')
+            ->where('enrollment_attendances.status_validation', 'valid')
+            ->where('enrollment_attendances.month', $month)
+            ->where('enrollment_attendances.year', $year)
+            ->where('programs.type', 'kelas')
+            ->selectRaw('enrollments.teacher_id, SUM(enrollment_attendances.total_lessons) as total')
+            ->groupBy('enrollments.teacher_id')
             ->get();
 
         $teacherTotals = $teacherRows->pluck('total', 'teacher_id');

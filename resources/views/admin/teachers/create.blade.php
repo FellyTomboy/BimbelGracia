@@ -56,6 +56,11 @@
                         </div>
                     </div>
                     <div>
+                        <label class="block text-sm font-medium text-gray-700">Tarif Kelas Bersama</label>
+                        <input type="number" name="class_rate" value="{{ old('class_rate', 0) }}" min="0" class="mt-1 w-full border-gray-300 rounded-md" required />
+                        @error('class_rate')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                    </div>
+                    <div>
                         <label class="block text-sm font-medium text-gray-700">Status</label>
                         <select name="status" class="mt-1 w-full border-gray-300 rounded-md" required>
                             <option value="active" @selected(old('status') === 'active')>active</option>

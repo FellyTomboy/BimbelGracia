@@ -18,8 +18,8 @@
                     <h3 class="text-lg font-semibold">Kelas Bersama</h3>
                     <p class="mt-2 text-sm text-gray-600">Kelola kelas bersama, jadwal, dan laporan kehadiran bulanan.</p>
                     <div class="mt-4 flex gap-3">
-                        <a href="{{ route('admin.class-groups.index') }}" class="px-4 py-2 rounded-md bg-slate-900 text-white text-sm">Kelas</a>
-                        <a href="{{ route('admin.class-sessions.index') }}" class="px-4 py-2 rounded-md border text-sm">Jadwal</a>
+                        <a href="{{ route('admin.class-students.index') }}" class="px-4 py-2 rounded-md bg-slate-900 text-white text-sm">Murid Kelas</a>
+                        <a href="{{ route('admin.class-student-sessions.index') }}" class="px-4 py-2 rounded-md border text-sm">Jadwal Murid</a>
                     </div>
                 </div>
             </div>

@@ -2,9 +2,9 @@
 
 use App\Http\Controllers\Admin\AnalysisController;
 use App\Http\Controllers\Admin\AttendanceWindowController;
-use App\Http\Controllers\Admin\ClassGroupController;
 use App\Http\Controllers\Admin\ClassReportController;
-use App\Http\Controllers\Admin\ClassSessionController;
+use App\Http\Controllers\Admin\ClassStudentController;
+use App\Http\Controllers\Admin\ClassStudentSessionController;
 use App\Http\Controllers\Admin\ExportController;
 use App\Http\Controllers\Admin\FinanceController;
 use App\Http\Controllers\Admin\HistoryController;
@@ -42,38 +42,48 @@ Route::middleware(['auth', 'password.force'])->group(function () {
             })->name('dashboard');
 
             Route::resource('students', StudentController::class)->except(['show']);
+            Route::get('students/inactive', [StudentController::class, 'inactive'])
+                ->name('students.inactive');
             Route::post('students/{student}/restore', [StudentController::class, 'restore'])
                 ->name('students.restore');
 
             Route::resource('teachers', TeacherController::class)->except(['show']);
+            Route::get('teachers/inactive', [TeacherController::class, 'inactive'])
+                ->name('teachers.inactive');
             Route::post('teachers/{teacher}/restore', [TeacherController::class, 'restore'])
                 ->name('teachers.restore');
 
             Route::resource('programs', ProgramController::class)->except(['show']);
+            Route::get('programs/inactive', [ProgramController::class, 'inactive'])
+                ->name('programs.inactive');
             Route::post('programs/{program}/restore', [ProgramController::class, 'restore'])
                 ->name('programs.restore');
 
             Route::resource('enrollments', EnrollmentController::class)->except(['show']);
+            Route::get('enrollments/inactive', [EnrollmentController::class, 'inactive'])
+                ->name('enrollments.inactive');
             Route::post('enrollments/{enrollment}/restore', [EnrollmentController::class, 'restore'])
                 ->name('enrollments.restore');
 
             Route::resource('lesson-offers', AdminLessonOfferController::class)->except(['show']);
+            Route::get('lesson-offers/inactive', [AdminLessonOfferController::class, 'inactive'])
+                ->name('lesson-offers.inactive');
             Route::post('lesson-offers/{lessonOffer}/restore', [AdminLessonOfferController::class, 'restore'])
                 ->name('lesson-offers.restore');
 
-            Route::resource('class-groups', ClassGroupController::class)->except(['show']);
-            Route::post('class-groups/{classGroup}/restore', [ClassGroupController::class, 'restore'])
-                ->name('class-groups.restore');
+            Route::resource('class-students', ClassStudentController::class)->except(['show']);
+            Route::get('class-students/inactive', [ClassStudentController::class, 'inactive'])
+                ->name('class-students.inactive');
+            Route::post('class-students/{classStudent}/restore', [ClassStudentController::class, 'restore'])
+                ->name('class-students.restore');
 
-            Route::resource('class-sessions', ClassSessionController::class)->except(['show']);
-            Route::get('class-sessions/calendar', [ClassSessionController::class, 'calendar'])
-                ->name('class-sessions.calendar');
-            Route::get('class-sessions/{classSession}', [ClassSessionController::class, 'show'])
-                ->name('class-sessions.show');
-            Route::post('class-sessions/{classSession}/attendance', [ClassSessionController::class, 'updateAttendance'])
-                ->name('class-sessions.attendance');
-            Route::post('class-sessions/{classSession}/restore', [ClassSessionController::class, 'restore'])
-                ->name('class-sessions.restore');
+            Route::resource('class-student-sessions', ClassStudentSessionController::class)->except(['show']);
+            Route::get('class-student-sessions/calendar', [ClassStudentSessionController::class, 'calendar'])
+                ->name('class-student-sessions.calendar');
+            Route::get('class-student-sessions/inactive', [ClassStudentSessionController::class, 'inactive'])
+                ->name('class-student-sessions.inactive');
+            Route::post('class-student-sessions/{classStudentSession}/restore', [ClassStudentSessionController::class, 'restore'])
+                ->name('class-student-sessions.restore');
 
             Route::get('attendance-windows', [AttendanceWindowController::class, 'index'])
                 ->name('attendance-windows.index');
@@ -95,10 +105,14 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('analysis.ortu');
             Route::get('analysis/guru', [AnalysisController::class, 'guru'])
                 ->name('analysis.guru');
-            Route::post('analysis/ortu/{attendance}/payment', [AnalysisController::class, 'updateParentPayment'])
-                ->name('analysis.ortu.payment');
-            Route::post('analysis/guru/{attendance}/payment', [AnalysisController::class, 'updateTeacherPayment'])
-                ->name('analysis.guru.payment');
+            Route::get('payments/ortu', [AnalysisController::class, 'paymentsOrtu'])
+                ->name('payments.ortu');
+            Route::get('payments/guru', [AnalysisController::class, 'paymentsGuru'])
+                ->name('payments.guru');
+            Route::post('payments/ortu/{attendance}/payment', [AnalysisController::class, 'updateParentPayment'])
+                ->name('payments.ortu.payment');
+            Route::post('payments/guru/{attendance}/payment', [AnalysisController::class, 'updateTeacherPayment'])
+                ->name('payments.guru.payment');
 
             Route::get('finance', [FinanceController::class, 'index'])
                 ->name('finance.index');

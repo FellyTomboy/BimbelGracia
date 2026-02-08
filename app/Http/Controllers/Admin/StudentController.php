@@ -16,11 +16,20 @@ class StudentController extends Controller
     public function index(): View
     {
         $students = Student::with(['user', 'teachers'])
-            ->withTrashed()
             ->latest()
             ->get();
 
         return view('admin.students.index', compact('students'));
+    }
+
+    public function inactive(): View
+    {
+        $students = Student::onlyTrashed()
+            ->with(['user', 'teachers'])
+            ->latest('deleted_at')
+            ->get();
+
+        return view('admin.students.inactive', compact('students'));
     }
 
     public function create(): View
