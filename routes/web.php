@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\Admin\AnalysisController;
-use App\Http\Controllers\Admin\AttendanceWindowController;
 use App\Http\Controllers\Admin\BankAccountController;
 use App\Http\Controllers\Admin\ClassReportController;
 use App\Http\Controllers\Admin\ClassStudentController;
@@ -86,19 +85,8 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('class-students.restore');
 
             Route::resource('class-student-sessions', ClassStudentSessionController::class)->except(['show']);
-            Route::get('class-student-sessions/calendar', [ClassStudentSessionController::class, 'calendar'])
-                ->name('class-student-sessions.calendar');
-            Route::get('class-student-sessions/inactive', [ClassStudentSessionController::class, 'inactive'])
-                ->name('class-student-sessions.inactive');
-            Route::post('class-student-sessions/{classStudentSession}/restore', [ClassStudentSessionController::class, 'restore'])
-                ->name('class-student-sessions.restore');
-
-            Route::get('attendance-windows', [AttendanceWindowController::class, 'index'])
-                ->name('attendance-windows.index');
-            Route::post('attendance-windows', [AttendanceWindowController::class, 'store'])
-                ->name('attendance-windows.store');
-            Route::post('attendance-windows/{attendanceWindow}/close', [AttendanceWindowController::class, 'close'])
-                ->name('attendance-windows.close');
+            Route::get('class-student-sessions/table', [ClassStudentSessionController::class, 'table'])
+                ->name('class-student-sessions.table');
 
             Route::get('presensi', [AdminAttendanceController::class, 'index'])
                 ->name('presensi.index');

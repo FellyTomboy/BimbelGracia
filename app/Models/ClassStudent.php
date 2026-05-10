@@ -48,4 +48,17 @@ class ClassStudent extends Model
             'class_student_session_id'
         )->withTimestamps();
     }
+
+    protected static function booted()
+    {
+        static::saved(function () {
+            app(\App\Services\MonthlySnapshotSyncService::class)->syncAll();
+        });
+        static::deleted(function () {
+            app(\App\Services\MonthlySnapshotSyncService::class)->syncAll();
+        });
+        static::restored(function () {
+            app(\App\Services\MonthlySnapshotSyncService::class)->syncAll();
+        });
+    }
 }

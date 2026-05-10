@@ -15,7 +15,7 @@
             @endif
 
             <div class="bg-white shadow-sm sm:rounded-lg p-6 space-y-3">
-                <p><span class="font-semibold">Periode:</span> {{ sprintf('%02d', $attendance->month) }}/{{ $attendance->year }}</p>
+                <p><span class="font-semibold">Tanggal Les:</span> {{ $attendance->lesson_date?->format('d M Y') ?? '-' }}</p>
                 <p><span class="font-semibold">Program:</span> <x-hibernated-label :model="$attendance->enrollment?->program" :label="$attendance->enrollment?->program?->name ?? '-'" type="program" /></p>
                 <p><span class="font-semibold">Guru:</span> <x-hibernated-label :model="$attendance->enrollment?->teacher" :label="$attendance->enrollment?->teacher?->name ?? '-'" type="guru" /></p>
                 <p><span class="font-semibold">Murid:</span>
@@ -28,15 +28,34 @@
                     @endif
                 </p>
                 <p><span class="font-semibold">Enrollment:</span> #{{ $attendance->enrollment_id }}</p>
-                <p><span class="font-semibold">Tanggal:</span> {{ $attendance->dates ? implode(', ', $attendance->dates) : '-' }}</p>
-                <p><span class="font-semibold">Total:</span> {{ $attendance->total_lessons }}</p>
                 <p><span class="font-semibold">Catatan:</span> {{ $attendance->notes ?? '-' }}</p>
-                <p><span class="font-semibold">Status:</span> {{ $attendance->status_validation }}</p>
+                <p><span class="font-semibold">Status:</span>
+                    @if ($attendance->status_validation === 'terima')
+                        <span class="text-emerald-600 font-semibold">Diterima</span>
+                    @elseif ($attendance->status_validation === 'terlambat')
+                        <span class="text-amber-600 font-semibold">Terlambat (potongan 10%)</span>
+                    @elseif ($attendance->status_validation === 'ditolak')
+                        <span class="text-rose-600 font-semibold">Ditolak</span>
+                    @else
+                        <span class="text-gray-500 font-semibold">Pending</span>
+                    @endif
+                </p>
+
+                @if ($attendance->image)
+                    <div>
+                        <p class="font-semibold">Foto Bukti:</p>
+                        <img src="{{ asset('storage/' . $attendance->image) }}" class="mt-2 max-w-md rounded-md border" alt="Bukti presensi" />
+                    </div>
+                @endif
+
                 <div>
-                    <p class="font-semibold">Total Hadir per Murid:</p>
+                    <p class="font-semibold">Kehadiran per Murid:</p>
                     <ul class="mt-2 list-disc pl-5 text-sm text-gray-700">
                         @forelse ($attendance->students as $student)
-                            <li>{{ $student->name }}: {{ $student->pivot->total_present }}</li>
+                            <li>
+                                <x-hibernated-label :model="$student" :label="$student->name" type="murid privat" />:
+                                {{ $student->pivot->total_present ? 'Hadir' : 'Tidak Hadir' }}
+                            </li>
                         @empty
                             <li>-</li>
                         @endforelse
@@ -73,8 +92,9 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Validasi</label>
                         <select name="status" class="mt-1 w-full border-gray-300 rounded-md" required>
-                            <option value="valid" @selected(old('status', $attendance->status_validation) === 'valid')>Valid</option>
-                            <option value="revisi" @selected(old('status', $attendance->status_validation) === 'revisi')>Perlu Perbaikan</option>
+                            <option value="terima" @selected(old('status', $attendance->status_validation) === 'terima')>Terima</option>
+                            <option value="terlambat" @selected(old('status', $attendance->status_validation) === 'terlambat')>Terlambat</option>
+                            <option value="ditolak" @selected(old('status', $attendance->status_validation) === 'ditolak')>Tolak</option>
                         </select>
                         @error('status')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
                     </div>

@@ -17,7 +17,7 @@
                     </x-nav-link>
                     @if (auth()->user()?->role?->value === 'admin')
                         @php
-                            $adminPresensiActive = request()->routeIs('admin.attendance-windows.*', 'admin.presensi.*');
+                            $adminPresensiActive = request()->routeIs('admin.presensi.*');
                             $adminMasterActive = request()->routeIs('admin.students.*', 'admin.teachers.*', 'admin.programs.*', 'admin.enrollments.*', 'admin.lesson-offers.*');
                             $adminKelasActive = request()->routeIs('admin.class-students.*', 'admin.class-student-sessions.*');
                             $adminAnalisisActive = request()->routeIs('admin.analysis.ortu', 'admin.analysis.ortu-kelas', 'admin.analysis.guru', 'admin.payments.*', 'admin.discounts.*');
@@ -37,9 +37,6 @@
                                 </button>
                             </x-slot>
                             <x-slot name="content">
-                                <x-dropdown-link :href="route('admin.attendance-windows.index')">
-                                    {{ __('Periode Presensi') }}
-                                </x-dropdown-link>
                                 <x-dropdown-link :href="route('admin.presensi.index')">
                                     {{ __('Validasi Presensi') }}
                                 </x-dropdown-link>
@@ -259,9 +256,6 @@
             @if (auth()->user()?->role?->value === 'admin')
                 <x-responsive-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">
                     {{ __('Admin') }}
-                </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('admin.attendance-windows.index')" :active="request()->routeIs('admin.attendance-windows.*')">
-                    {{ __('Periode Presensi') }}
                 </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('admin.presensi.index')" :active="request()->routeIs('admin.presensi.*')">
                     {{ __('Validasi Presensi') }}

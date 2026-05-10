@@ -18,7 +18,6 @@ class ClassSessionController extends Controller
     {
         $sessions = ClassSession::with(['classGroup', 'teacher'])
             ->withCount('students')
-            ->withTrashed()
             ->latest('session_date')
             ->get();
 
@@ -199,17 +198,7 @@ class ClassSessionController extends Controller
 
         return redirect()
             ->route('admin.class-sessions.index')
-            ->with('status', 'Jadwal kelas dihibernasi.');
-    }
-
-    public function restore(int $classSessionId): RedirectResponse
-    {
-        $classSession = ClassSession::withTrashed()->findOrFail($classSessionId);
-        $classSession->restore();
-
-        return redirect()
-            ->route('admin.class-sessions.index')
-            ->with('status', 'Jadwal kelas dipulihkan.');
+            ->with('status', 'Jadwal kelas berhasil dihapus.');
     }
 
     private function resolvePeriod(Request $request): array

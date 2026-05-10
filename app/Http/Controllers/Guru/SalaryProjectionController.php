@@ -58,24 +58,31 @@ class SalaryProjectionController extends Controller
     {
         $rows = $attendances->map(function (MonthlyAttendance $attendance) {
             $rate = $attendance->enrollment?->teacher_rate ?? 0;
-            $total = $attendance->total_lessons * $rate;
+            $isLate = $attendance->status_validation === 'terlambat';
+            $penalty = $isLate ? 0.1 : 0;
+            $total = $rate * (1 - $penalty);
 
             $status = match ($attendance->status_validation) {
-                'valid' => 'validated',
-                'revisi' => 'needs_fix',
+                'terima' => 'validated',
+                'terlambat' => 'validated',
+                'ditolak' => 'rejected',
                 default => 'pending',
             };
 
             return [
                 'status' => $status,
                 'total' => $total,
+                'penalty' => $isLate ? $rate * 0.1 : 0,
             ];
         });
 
+        $latePenalty = (int) $rows->sum('penalty');
+
         return [
-            'validated' => (int) $rows->where('status', 'validated')->sum('total'),
+            'validated' => (int) $rows->whereIn('status', ['validated'])->sum('total'),
             'pending' => (int) $rows->where('status', 'pending')->sum('total'),
-            'needs_fix' => (int) $rows->where('status', 'needs_fix')->sum('total'),
+            'rejected' => (int) $rows->where('status', 'rejected')->sum('total'),
+            'late_penalty' => $latePenalty,
             'grand' => (int) $rows->sum('total'),
         ];
     }
@@ -99,7 +106,8 @@ class SalaryProjectionController extends Controller
 
         $query = DB::table('enrollment_attendances')
             ->join('enrollments', 'enrollment_attendances.enrollment_id', '=', 'enrollments.id')
-            ->selectRaw('enrollment_attendances.year, enrollment_attendances.month, SUM(enrollment_attendances.total_lessons * enrollments.teacher_rate) as total')
+            ->selectRaw('enrollment_attendances.year, enrollment_attendances.month, SUM(CASE WHEN enrollment_attendances.status_validation = ? THEN enrollments.teacher_rate WHEN enrollment_attendances.status_validation = ? THEN enrollments.teacher_rate * 0.9 ELSE 0 END) as total', ['terima', 'terlambat'])
+            ->whereIn('enrollment_attendances.status_validation', ['terima', 'terlambat'])
             ->where('enrollments.teacher_id', $teacherId)
             ->where(function ($builder) use ($conditions) {
                 foreach ($conditions as $condition) {

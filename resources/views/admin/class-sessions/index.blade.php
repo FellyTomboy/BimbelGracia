@@ -46,18 +46,11 @@
                                     <td class="py-2 flex gap-2">
                                         <a href="{{ route('admin.class-sessions.show', $session) }}" class="text-indigo-600">Detail</a>
                                         <a href="{{ route('admin.class-sessions.edit', $session) }}" class="text-indigo-600">Edit</a>
-                                        @if ($session->deleted_at)
-                                            <form method="POST" action="{{ route('admin.class-sessions.restore', $session->id) }}">
-                                                @csrf
-                                                <button type="submit" class="text-emerald-600">Restore</button>
-                                            </form>
-                                        @else
-                                            <form method="POST" action="{{ route('admin.class-sessions.destroy', $session) }}">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="text-rose-600">Hibernasi</button>
-                                            </form>
-                                        @endif
+                                        <form method="POST" action="{{ route('admin.class-sessions.destroy', $session) }}" onsubmit="return confirm('Hapus jadwal kelas ini?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="text-rose-600">Hapus</button>
+                                        </form>
                                     </td>
                                 </tr>
                             @endforeach

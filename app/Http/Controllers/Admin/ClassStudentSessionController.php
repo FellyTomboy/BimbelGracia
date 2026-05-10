@@ -14,26 +14,7 @@ use Illuminate\View\View;
 
 class ClassStudentSessionController extends Controller
 {
-    public function index(): View
-    {
-        $sessions = ClassStudentSession::with('students') // Load relasi pivot
-            ->latest('session_date')
-            ->get();
-
-        return view('admin.class-student-sessions.index', compact('sessions'));
-    }
-
-    public function inactive(): View
-    {
-        $sessions = ClassStudentSession::onlyTrashed()
-            ->with('student')
-            ->latest('deleted_at')
-            ->get();
-
-        return view('admin.class-student-sessions.inactive', compact('sessions'));
-    }
-
-    public function calendar(Request $request): View
+    public function index(Request $request): View
     {
         [$month, $year] = $this->resolvePeriod($request);
         $studentId = $request->input('class_student_id');
@@ -44,7 +25,6 @@ class ClassStudentSessionController extends Controller
         $sessions = ClassStudentSession::with('students')
             ->whereBetween('session_date', [$start, $end])
             ->when($studentId, function ($query) use ($studentId) {
-                // Filter menggunakan whereHas untuk tabel pivot
                 $query->whereHas('students', fn ($q) => $q->where('class_students.id', $studentId));
             })
             ->orderBy('session_date')
@@ -65,6 +45,16 @@ class ClassStudentSessionController extends Controller
             'students' => $students,
         ]);
     }
+
+    public function table(): View
+    {
+        $sessions = ClassStudentSession::with('students')
+            ->latest('session_date')
+            ->get();
+
+        return view('admin.class-student-sessions.table', compact('sessions'));
+    }
+
 
     public function create(): View
     {
@@ -137,17 +127,7 @@ class ClassStudentSessionController extends Controller
 
         return redirect()
             ->route('admin.class-student-sessions.index')
-            ->with('status', 'Jadwal murid kelas dihibernasi.');
-    }
-
-    public function restore(int $classStudentSessionId): RedirectResponse
-    {
-        $classStudentSession = ClassStudentSession::withTrashed()->findOrFail($classStudentSessionId);
-        $classStudentSession->restore();
-
-        return redirect()
-            ->route('admin.class-student-sessions.index')
-            ->with('status', 'Jadwal murid kelas dipulihkan.');
+            ->with('status', 'Jadwal murid kelas berhasil dihapus.');
     }
 
     private function resolvePeriod(Request $request): array

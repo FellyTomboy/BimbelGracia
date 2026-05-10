@@ -143,17 +143,7 @@ class TeacherController extends Controller
 
         $teacher->delete();
 
-        $enrollmentIds = DB::table('enrollments')
-            ->where('teacher_id', $teacher->id)
-            ->distinct()
-            ->pluck('id');
-
-        foreach ($enrollmentIds as $enrollmentId) {
-            $enrollment = Enrollment::withTrashed()->find($enrollmentId);
-            if ($enrollment) {
-                $this->snapshotSyncService->syncForEnrollment($enrollment);
-            }
-        }
+        $this->snapshotSyncService->syncAll();
 
         return redirect()
             ->route('admin.teachers.index')
@@ -170,17 +160,7 @@ class TeacherController extends Controller
             'status' => 'active',
         ]);
 
-        $enrollmentIds = DB::table('enrollments')
-            ->where('teacher_id', $teacher->id)
-            ->distinct()
-            ->pluck('id');
-
-        foreach ($enrollmentIds as $enrollmentId) {
-            $enrollment = Enrollment::withTrashed()->find($enrollmentId);
-            if ($enrollment) {
-                $this->snapshotSyncService->syncForEnrollment($enrollment);
-            }
-        }
+        $this->snapshotSyncService->syncAll();
 
         return redirect()
             ->route('admin.teachers.index')

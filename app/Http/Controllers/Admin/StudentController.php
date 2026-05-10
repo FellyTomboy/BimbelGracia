@@ -123,17 +123,7 @@ class StudentController extends Controller
 
         $student->delete();
 
-        $enrollmentIds = DB::table('enrollment_student')
-            ->where('student_id', $student->id)
-            ->distinct()
-            ->pluck('enrollment_id');
-
-        foreach ($enrollmentIds as $enrollmentId) {
-            $enrollment = \App\Models\Enrollment::withTrashed()->find($enrollmentId);
-            if ($enrollment) {
-                $this->snapshotSyncService->syncForEnrollment($enrollment);
-            }
-        }
+        $this->snapshotSyncService->syncAll();
 
         return redirect()
             ->route('admin.students.index')
@@ -150,17 +140,7 @@ class StudentController extends Controller
             'status' => 'active',
         ]);
 
-        $enrollmentIds = DB::table('enrollment_student')
-            ->where('student_id', $student->id)
-            ->distinct()
-            ->pluck('enrollment_id');
-
-        foreach ($enrollmentIds as $enrollmentId) {
-            $enrollment = \App\Models\Enrollment::withTrashed()->find($enrollmentId);
-            if ($enrollment) {
-                $this->snapshotSyncService->syncForEnrollment($enrollment);
-            }
-        }
+        $this->snapshotSyncService->syncAll();
 
         return redirect()
             ->route('admin.students.index')

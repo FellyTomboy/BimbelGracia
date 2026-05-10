@@ -21,9 +21,9 @@
                 </form>
             </div>
 
-            <div class="grid md:grid-cols-4 gap-6">
+            <div class="grid md:grid-cols-5 gap-6">
                 <div class="bg-white shadow-sm sm:rounded-lg p-6">
-                    <p class="text-sm text-gray-500">Validasi</p>
+                    <p class="text-sm text-gray-500">Diterima</p>
                     <p class="text-2xl font-semibold">Rp {{ number_format($totals['validated']) }}</p>
                 </div>
                 <div class="bg-white shadow-sm sm:rounded-lg p-6">
@@ -31,8 +31,12 @@
                     <p class="text-2xl font-semibold">Rp {{ number_format($totals['pending']) }}</p>
                 </div>
                 <div class="bg-white shadow-sm sm:rounded-lg p-6">
-                    <p class="text-sm text-gray-500">Perlu Perbaikan</p>
-                    <p class="text-2xl font-semibold">Rp {{ number_format($totals['needs_fix']) }}</p>
+                    <p class="text-sm text-gray-500">Ditolak</p>
+                    <p class="text-2xl font-semibold">Rp {{ number_format($totals['rejected'] ?? 0) }}</p>
+                </div>
+                <div class="bg-white shadow-sm sm:rounded-lg p-6">
+                    <p class="text-sm text-gray-500">Denda Keterlambatan</p>
+                    <p class="text-2xl font-semibold text-rose-600">-Rp {{ number_format($totals['late_penalty'] ?? 0) }}</p>
                 </div>
                 <div class="bg-white shadow-sm sm:rounded-lg p-6">
                     <p class="text-sm text-gray-500">Total Proyeksi</p>
@@ -54,9 +58,9 @@
                                 <th class="py-2">Program</th>
                                 <th class="py-2">Murid</th>
                                 <th class="py-2">Enrollment</th>
-                                <th class="py-2">Total Pertemuan</th>
                                 <th class="py-2">Gaji / Pertemuan</th>
                                 <th class="py-2">Total Gaji</th>
+                                <th class="py-2">Denda</th>
                                 <th class="py-2">Status Presensi</th>
                                 <th class="py-2">Status Gaji</th>
                             </tr>
@@ -65,10 +69,12 @@
                             @forelse ($attendances as $attendance)
                                 @php
                                     $rate = $attendance->enrollment?->teacher_rate ?? 0;
-                                    $total = $attendance->total_lessons * $rate;
+                                    $isLate = $attendance->status_validation === 'terlambat';
+                                    $penalty = $isLate ? $rate * 0.1 : 0;
+                                    $total = $rate - $penalty;
                                 @endphp
                                 <tr>
-                                    <td class="py-2">{{ sprintf('%02d', $attendance->month) }}/{{ $attendance->year }}</td>
+                                    <td class="py-2">{{ $attendance->lesson_date?->format('d M Y') ?? '-' }}</td>
                                     <td class="py-2">
                                         <x-hibernated-label :model="$attendance->enrollment?->program" :label="$attendance->enrollment?->program?->name ?? '-'" type="program" />
                                     </td>
@@ -82,10 +88,26 @@
                                         @endif
                                     </td>
                                     <td class="py-2">#{{ $attendance->enrollment_id }}</td>
-                                    <td class="py-2">{{ $attendance->total_lessons }}</td>
                                     <td class="py-2">Rp {{ number_format($rate) }}</td>
                                     <td class="py-2">Rp {{ number_format($total) }}</td>
-                                    <td class="py-2">{{ $attendance->status_validation }}</td>
+                                    <td class="py-2">
+                                        @if ($isLate)
+                                            <span class="text-rose-600">-Rp {{ number_format($penalty) }}</span>
+                                        @else
+                                            <span class="text-gray-400">-</span>
+                                        @endif
+                                    </td>
+                                    <td class="py-2">
+                                        @if ($attendance->status_validation === 'terima')
+                                            <span class="text-emerald-600 font-semibold">Diterima</span>
+                                        @elseif ($attendance->status_validation === 'terlambat')
+                                            <span class="text-amber-600 font-semibold">Terlambat</span>
+                                        @elseif ($attendance->status_validation === 'ditolak')
+                                            <span class="text-rose-600 font-semibold">Ditolak</span>
+                                        @else
+                                            <span class="text-gray-500">Pending</span>
+                                        @endif
+                                    </td>
                                     <td class="py-2">{{ $attendance->teacher_payment_status ?? '-' }}</td>
                                 </tr>
                             @empty

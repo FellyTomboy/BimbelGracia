@@ -395,16 +395,16 @@ class ExportController extends Controller
                 $studentNames = $attendance->students->pluck('name')->implode(', ');
                 return [
                     $attendance->id,
-                    sprintf('%02d/%d', $attendance->month, $attendance->year),
+                    $attendance->lesson_date?->format('d M Y') ?? '-',
                     $attendance->enrollment_id,
                     $attendance->enrollment?->program?->name,
                     $attendance->enrollment?->teacher?->name,
                     $studentNames,
-                    $attendance->total_lessons,
+                    1,
                     $parentRate,
-                    $parentTotal,
+                    $parentRate,
                     $teacherRate,
-                    $attendance->total_lessons * $teacherRate,
+                    $teacherRate,
                     $attendance->status_validation,
                     $attendance->parent_payment_status,
                     $attendance->teacher_payment_status,
@@ -415,7 +415,7 @@ class ExportController extends Controller
             ->all();
 
         return [
-            ['id', 'period', 'enrollment_id', 'program', 'teacher', 'students', 'total_lessons', 'parent_rate', 'parent_total', 'teacher_rate', 'teacher_total', 'status_validation', 'parent_payment', 'teacher_payment', 'created_at', 'validated_at'],
+            ['id', 'lesson_date', 'enrollment_id', 'program', 'teacher', 'students', 'total_lessons', 'parent_rate', 'parent_total', 'teacher_rate', 'teacher_total', 'status_validation', 'parent_payment', 'teacher_payment', 'created_at', 'validated_at'],
             $rows,
         ];
     }
@@ -522,16 +522,16 @@ class ExportController extends Controller
                 $studentNames = $attendance->students->pluck('name')->implode(', ');
                 return [
                     $attendance->id,
-                    sprintf('%02d/%d', $attendance->month, $attendance->year),
+                    $attendance->lesson_date?->format('d M Y') ?? '-',
                     $attendance->enrollment_id,
                     $attendance->enrollment?->program?->name,
                     $attendance->enrollment?->teacher?->name,
                     $studentNames,
-                    $attendance->total_lessons,
+                    1,
                     $parentRate,
-                    $parentTotal,
+                    $parentRate,
                     $teacherRate,
-                    $attendance->total_lessons * $teacherRate,
+                    $teacherRate,
                     $attendance->status_validation,
                     $attendance->parent_payment_status,
                     $attendance->teacher_payment_status,
@@ -542,7 +542,7 @@ class ExportController extends Controller
             ->all();
 
         return [
-            ['id', 'period', 'enrollment_id', 'program', 'teacher', 'students', 'total_lessons', 'parent_rate', 'parent_total', 'teacher_rate', 'teacher_total', 'status_validation', 'parent_payment', 'teacher_payment', 'created_at', 'validated_at'],
+            ['id', 'lesson_date', 'enrollment_id', 'program', 'teacher', 'students', 'total_lessons', 'parent_rate', 'parent_total', 'teacher_rate', 'teacher_total', 'status_validation', 'parent_payment', 'teacher_payment', 'created_at', 'validated_at'],
             $rows,
         ];
     }

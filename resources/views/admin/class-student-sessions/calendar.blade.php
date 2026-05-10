@@ -3,8 +3,8 @@
         <div class="flex items-center justify-between">
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">Kalender Murid Kelas</h2>
             <div class="flex items-center gap-3">
-                <a href="{{ route('admin.class-student-sessions.index') }}" class="px-4 py-2 rounded-md border text-sm">Daftar</a>
                 <a href="{{ route('admin.class-student-sessions.create') }}" class="px-4 py-2 rounded-md bg-slate-900 text-white text-sm">Tambah Jadwal</a>
+                <a href="{{ route('admin.class-student-sessions.table') }}" class="px-4 py-2 rounded-md border text-sm">Tabel</a>
             </div>
         </div>
     </x-slot>
@@ -12,7 +12,7 @@
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
             <div class="bg-white shadow-sm sm:rounded-lg">
-                <form method="GET" action="{{ route('admin.class-student-sessions.calendar') }}" class="p-6 grid md:grid-cols-4 gap-4">
+                <form method="GET" action="{{ route('admin.class-student-sessions.index') }}" class="p-6 grid md:grid-cols-4 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Bulan</label>
                         <input type="number" name="month" value="{{ $month }}" min="1" max="12" class="mt-1 w-full border-gray-300 rounded-md" required />
@@ -33,7 +33,7 @@
                     <div class="flex items-end">
                         <div class="flex items-center gap-3">
                             <button type="submit" class="px-4 py-2 rounded-md bg-slate-900 text-white">Terapkan</button>
-                            <a href="{{ route('admin.class-student-sessions.calendar') }}" class="text-sm text-gray-500">Reset</a>
+                            <a href="{{ route('admin.class-student-sessions.index') }}" class="text-sm text-gray-500">Reset</a>
                         </div>
                     </div>
                 </form>

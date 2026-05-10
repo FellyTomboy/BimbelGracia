@@ -14,15 +14,20 @@ use Illuminate\View\View;
 
 class MonthlyAttendanceController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
-        $attendances = MonthlyAttendance::with([
+        $query = MonthlyAttendance::with([
             'enrollment.program',
             'enrollment.teacher',
             'students',
-        ])
-            ->latest()
-            ->get();
+        ]);
+
+        // Filter by validation status
+        if ($request->filled('status')) {
+            $query->where('status_validation', $request->status);
+        }
+
+        $attendances = $query->latest()->get();
 
         return view('admin.presensi.index', compact('attendances'));
     }
@@ -95,7 +100,7 @@ class MonthlyAttendanceController extends Controller
     public function validateAttendance(Request $request, MonthlyAttendance $attendance): RedirectResponse
     {
         $validated = $request->validate([
-            'status' => ['required', 'in:valid,revisi'],
+            'status' => ['required', 'in:terima,terlambat,ditolak'],
         ]);
 
         $attendance->update([
@@ -104,12 +109,12 @@ class MonthlyAttendanceController extends Controller
             'validated_by' => $request->user()->id,
         ]);
 
-        if ($attendance->enrollment && $validated['status'] === 'valid') {
+        if ($attendance->enrollment && in_array($validated['status'], ['terima', 'terlambat'])) {
             $attendance->enrollment->update(['validation_status' => 1]);
         }
 
         return redirect()
-            ->route('admin.presensi.show', $attendance)
+            ->route('admin.presensi.index')
             ->with('status', 'Presensi diperbarui.');
     }
 }

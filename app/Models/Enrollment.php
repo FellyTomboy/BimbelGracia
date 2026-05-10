@@ -53,4 +53,19 @@ class Enrollment extends Model
     {
         return $this->hasMany(MonthlyAttendance::class, 'enrollment_id');
     }
+
+    protected static function booted()
+    {
+        static::saved(function () {
+            app(\App\Services\MonthlySnapshotSyncService::class)->syncAll();
+        });
+
+        static::deleted(function () {
+            app(\App\Services\MonthlySnapshotSyncService::class)->syncAll();
+        });
+
+        static::restored(function () {
+            app(\App\Services\MonthlySnapshotSyncService::class)->syncAll();
+        });
+    }
 }

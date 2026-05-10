@@ -32,7 +32,7 @@ class ClassReportController extends Controller
         $teacherRows = DB::table('enrollment_attendances')
             ->join('enrollments', 'enrollment_attendances.enrollment_id', '=', 'enrollments.id')
             ->join('programs', 'enrollments.program_id', '=', 'programs.id')
-            ->where('enrollment_attendances.status_validation', 'valid')
+            ->whereIn('enrollment_attendances.status_validation', ['terima', 'terlambat'])
             ->where('enrollment_attendances.month', $month)
             ->where('enrollment_attendances.year', $year)
             ->where('programs.type', 'kelas')

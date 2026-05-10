@@ -93,17 +93,7 @@ class ProgramController extends Controller
 
         $program->delete();
 
-        $enrollmentIds = DB::table('enrollments')
-            ->where('program_id', $program->id)
-            ->distinct()
-            ->pluck('id');
-
-        foreach ($enrollmentIds as $enrollmentId) {
-            $enrollment = Enrollment::withTrashed()->find($enrollmentId);
-            if ($enrollment) {
-                $this->snapshotSyncService->syncForEnrollment($enrollment);
-            }
-        }
+        $this->snapshotSyncService->syncAll();
 
         return redirect()
             ->route('admin.programs.index')
@@ -120,17 +110,7 @@ class ProgramController extends Controller
             'status' => 'active',
         ]);
 
-        $enrollmentIds = DB::table('enrollments')
-            ->where('program_id', $program->id)
-            ->distinct()
-            ->pluck('id');
-
-        foreach ($enrollmentIds as $enrollmentId) {
-            $enrollment = Enrollment::withTrashed()->find($enrollmentId);
-            if ($enrollment) {
-                $this->snapshotSyncService->syncForEnrollment($enrollment);
-            }
-        }
+        $this->snapshotSyncService->syncAll();
 
         return redirect()
             ->route('admin.programs.index')

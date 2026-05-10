@@ -71,7 +71,7 @@ class EnrollmentController extends Controller
 
         $enrollment->students()->sync($validated['student_ids']);
 
-        $this->snapshotSyncService->syncForEnrollment($enrollment);
+        $this->snapshotSyncService->syncAll();
 
         return redirect()
             ->route('admin.enrollments.index')
@@ -112,7 +112,7 @@ class EnrollmentController extends Controller
 
         $enrollment->students()->sync($validated['student_ids']);
 
-        $this->snapshotSyncService->syncForEnrollment($enrollment);
+        $this->snapshotSyncService->syncAll();
 
         return redirect()
             ->route('admin.enrollments.index')
@@ -130,10 +130,7 @@ class EnrollmentController extends Controller
 
         $enrollment->delete();
 
-        $fresh = Enrollment::withTrashed()->find($enrollmentId);
-        if ($fresh) {
-            $this->snapshotSyncService->syncForEnrollment($fresh);
-        }
+        $this->snapshotSyncService->syncAll();
 
         return redirect()
             ->route('admin.enrollments.index')
@@ -149,7 +146,7 @@ class EnrollmentController extends Controller
             'status' => 'active',
         ]);
 
-        $this->snapshotSyncService->syncForEnrollment($enrollment);
+        $this->snapshotSyncService->syncAll();
 
         return redirect()
             ->route('admin.enrollments.index')

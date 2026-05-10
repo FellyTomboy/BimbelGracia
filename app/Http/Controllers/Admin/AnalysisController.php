@@ -120,28 +120,30 @@ class AnalysisController extends Controller
                     ->groupBy(fn (array $row) => $row['enrollment']->id)
                     ->map(function (Collection $enrollmentItems) {
                         $row = $enrollmentItems->first();
-                        $studentNames = $enrollmentItems
-                            ->pluck('student')
-                            ->filter()
-                            ->pluck('name')
-                            ->unique()
-                            ->implode(', ');
+                        $studentName = $enrollmentItems->pluck('student')->filter()->pluck('name')->unique()->implode(', ');
                         $programName = $row['program']?->name ?? '-';
                         $rate = $row['teacher_rate'];
-                        $totalLessons = $row['attendance']->total_lessons;
-                        $total = $totalLessons * $rate;
+                        $totalCount = $enrollmentItems->count();
+                        $lateCount = $enrollmentItems->where('status_validation', 'terlambat')->count();
+                        $grossTotal = $totalCount * $rate;
+                        $penalty = $lateCount * $rate * 0.1;
 
                         return [
-                            'label' => sprintf('%s (%s)', $studentNames ?: '-', $programName),
-                            'count' => $totalLessons,
+                            'label' => sprintf('%s (%s)', $studentName ?: '-', $programName),
+                            'count' => $totalCount,
                             'rate' => $rate,
-                            'total' => $total,
+                            'total' => $grossTotal,
+                            'penalty' => (int) $penalty,
+                            'late_count' => $lateCount,
                         ];
                     })
                     ->values();
 
-                $grandTotal = $lines->sum('total');
-                $message = $this->buildTeacherMessage($teacher, $lines, $month, $year, $grandTotal);
+                $grandTotal = (int) $lines->sum('total');
+                $latePenalty = (int) $lines->sum('penalty');
+                $lateCountTotal = (int) $lines->sum('late_count');
+                $finalTotal = $grandTotal - $latePenalty;
+                $message = $this->buildTeacherMessage($teacher, $lines, $month, $year, $grandTotal, $latePenalty, $lateCountTotal, $finalTotal);
 
                 return [
                     'teacher' => $teacher,
@@ -294,7 +296,7 @@ class AnalysisController extends Controller
     {
         return MonthlyAttendance::query()
             ->with(['enrollment.program', 'enrollment.teacher', 'students'])
-            ->where('status_validation', 'valid')
+            ->whereIn('status_validation', ['terima', 'terlambat'])
             ->where('month', $month)
             ->where('year', $year)
             ->orderBy('enrollment_id');
@@ -317,6 +319,7 @@ class AnalysisController extends Controller
                     'total_present' => (int) ($student->pivot?->total_present ?? 0),
                     'parent_rate' => (int) ($enrollment?->parent_rate ?? 0),
                     'teacher_rate' => (int) ($enrollment?->teacher_rate ?? 0),
+                    'status_validation' => $attendance->status_validation,
                 ];
             });
         });
@@ -464,7 +467,7 @@ class AnalysisController extends Controller
         return $lines->implode("\n");
     }
 
-    private function buildTeacherMessage(?\App\Models\Teacher $teacher, Collection $lines, int $month, int $year, int $grandTotal): string
+    private function buildTeacherMessage(?\App\Models\Teacher $teacher, Collection $lines, int $month, int $year, int $grandTotal, int $latePenalty = 0, int $lateCountTotal = 0, int $finalTotal = 0): string
     {
         $linesText = $lines->values()->map(function (array $line, int $index): string {
             return sprintf(
@@ -483,14 +486,27 @@ class AnalysisController extends Controller
             sprintf('Total les sampai akhir *%s %s*:', $this->monthName($month), $year),
             '',
         ])
-            ->merge($linesText)
-            ->merge([
-                '',
-                sprintf('Total gaji Anda sebesar: *Rp %s*', number_format($grandTotal)),
-                '',
-                'Apakah nomor rekening tetap? Mohon info jika ada perubahan, dan mohon info perkembangan setiap siswa yang diajar.',
-                'Terima kasih sudah mengajar dengan penuh rasa tanggung jawab dan dedikasi.',
-            ]);
+            ->merge($linesText);
+
+        if ($latePenalty > 0) {
+            $messageLines->push('');
+            $messageLines->push(sprintf('Total keterlambatan presensi: *%d kali*', $lateCountTotal));
+            $messageLines->push(sprintf('Total denda: Rp %s x 10%% x %d = *-Rp %s*', number_format((int) ($latePenalty / $lateCountTotal / 0.1)), $lateCountTotal, number_format($latePenalty)));
+        }
+
+        $messageLines->push('');
+        $messageLines->push(sprintf('Gaji awal: *Rp %s*', number_format($grandTotal)));
+
+        if ($latePenalty > 0) {
+            $messageLines->push(sprintf('Potongan denda: *-Rp %s*', number_format($latePenalty)));
+        }
+
+        $messageLines = $messageLines->merge([
+            sprintf('Gaji final: *Rp %s*', number_format($finalTotal)),
+            '',
+            'Apakah nomor rekening tetap? Mohon info jika ada perubahan, dan mohon info perkembangan setiap siswa yang diajar.',
+            'Terima kasih sudah mengajar dengan penuh rasa tanggung jawab dan dedikasi.',
+        ]);
 
         return $messageLines->implode("\n");
     }
@@ -525,25 +541,34 @@ class AnalysisController extends Controller
     private function classParentSummaries(int $month, int $year): Collection
     {
         $discounts = $this->classDiscountsByPeriod($month, $year);
-        $classSessions = ClassStudentSession::with('student')
+        $classSessions = ClassStudentSession::with('students')
             ->whereMonth('session_date', $month)
             ->whereYear('session_date', $year)
             ->get();
 
-        return $classSessions
-            ->groupBy(function (ClassStudentSession $session) {
-                $student = $session->student;
+        // Flatten: each session can have multiple students via pivot
+        $rows = $classSessions->flatMap(function (ClassStudentSession $session) {
+            return $session->students->map(function (ClassStudent $student) use ($session) {
+                return [
+                    'session' => $session,
+                    'student' => $student,
+                ];
+            });
+        });
 
+        return $rows
+            ->groupBy(function (array $row) {
+                $student = $row['student'];
                 return $student?->whatsapp_primary
                     ?? $student?->whatsapp_secondary
                     ?? 'unknown';
             })
-            ->map(function (Collection $sessions, string $contact) use ($month, $year) {
-                $students = $sessions
-                    ->groupBy(fn (ClassStudentSession $session) => $session->class_student_id)
-                    ->map(function (Collection $studentSessions) use ($discounts) {
-                        $student = $studentSessions->first()?->student;
-                        $count = $studentSessions->count();
+            ->map(function (Collection $items, string $contact) use ($month, $year, $discounts) {
+                $students = $items
+                    ->groupBy(fn (array $row) => $row['student']->id)
+                    ->map(function (Collection $studentItems) use ($discounts) {
+                        $student = $studentItems->first()['student'];
+                        $count = $studentItems->count();
                         $rate = (int) ($student?->rate_per_meeting ?? 0);
                         $total = $count * $rate;
                         $discountModel = $discounts[$student?->id ?? 0] ?? null;

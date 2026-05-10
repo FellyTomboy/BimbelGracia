@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Guru;
 
 use App\Http\Controllers\Controller;
-use App\Models\AttendanceWindow;
 use App\Models\Enrollment;
 use App\Models\MonthlyAttendance;
 use App\Models\Teacher;
-use App\Models\Student;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class MonthlyAttendanceController extends Controller
@@ -19,7 +19,6 @@ class MonthlyAttendanceController extends Controller
     public function index(Request $request): View
     {
         $teacher = $this->resolveTeacher($request);
-        $openWindow = $this->currentWindow();
 
         $attendances = MonthlyAttendance::with([
             'enrollment.program',
@@ -29,17 +28,12 @@ class MonthlyAttendanceController extends Controller
             ->latest()
             ->get();
 
-        return view('guru.presensi.index', compact('attendances', 'openWindow'));
+        return view('guru.presensi.index', compact('attendances'));
     }
 
     public function create(Request $request): View
     {
         $teacher = $this->resolveTeacher($request);
-        $openWindow = $this->currentWindow();
-
-        if (! $openWindow) {
-            return view('guru.presensi.closed');
-        }
 
         $enrollments = Enrollment::with(['program', 'students'])
             ->where('teacher_id', $teacher->id)
@@ -47,28 +41,20 @@ class MonthlyAttendanceController extends Controller
             ->orderBy('id')
             ->get();
 
-        return view('guru.presensi.create', compact('openWindow', 'enrollments'));
+        return view('guru.presensi.create', compact('enrollments'));
     }
 
     public function store(Request $request): RedirectResponse
     {
         $teacher = $this->resolveTeacher($request);
-        $openWindow = $this->currentWindow();
-
-        if (! $openWindow) {
-            return redirect()
-                ->route('guru.presensi.index')
-                ->withErrors(['period' => 'Periode presensi belum dibuka admin.']);
-        }
 
         $validated = $request->validate([
             'enrollment_id' => ['required', 'exists:enrollments,id'],
-            'dates' => ['nullable', 'array'],
-            'dates.*' => ['integer', 'min:1', 'max:31'],
+            'lesson_date' => ['required', 'date', 'before_or_equal:today'],
             'notes' => ['nullable', 'string'],
-            'total_lessons' => ['required', 'integer', 'min:0'],
+            'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:5120'],
             'student_totals' => ['required', 'array'],
-            'student_totals.*' => ['required', 'integer', 'min:0'],
+            'student_totals.*' => ['required', 'integer', 'min:0', 'max:1'],
         ]);
 
         $enrollment = Enrollment::with(['students', 'program'])
@@ -76,74 +62,44 @@ class MonthlyAttendanceController extends Controller
             ->where('teacher_id', $teacher->id)
             ->firstOrFail();
 
-        if ($this->hasClassPlaceholderStudent($enrollment->students) && $enrollment->program?->type !== 'kelas') {
-            return back()
-                ->withInput()
-                ->withErrors(['enrollment_id' => 'Murid kelas bersama harus memakai program bertipe kelas.']);
+        $lessonDate = Carbon::parse($validated['lesson_date']);
+        $daysSinceLesson = $lessonDate->diffInDays(now(), false);
+
+        // Handle image upload
+        $imagePath = null;
+        if ($request->hasFile('image')) {
+            $imagePath = $request->file('image')->store('presensi', 'public');
         }
 
-        $exists = MonthlyAttendance::query()
-            ->where('enrollment_id', $enrollment->id)
-            ->where('month', $openWindow->month)
-            ->where('year', $openWindow->year)
-            ->exists();
-
-        if ($exists) {
-            $enrollment->update(['validation_status' => 2]);
-
-            return back()
-                ->withInput()
-                ->withErrors(['enrollment_id' => 'Presensi untuk periode ini sudah ada.']);
-        }
-
-        $dates = collect($validated['dates'] ?? [])
-            ->unique()
-            ->values()
-            ->all();
-
-        if (count($dates) !== (int) $validated['total_lessons']) {
-            return back()
-                ->withInput()
-                ->withErrors(['total_lessons' => 'Total pertemuan harus sama dengan jumlah tanggal.']);
-        }
-
-        $studentTotals = collect($validated['student_totals']);
-        $studentIds = $enrollment->students->pluck('id')->map(fn ($id) => (string) $id);
-
-        if ($studentTotals->keys()->diff($studentIds)->isNotEmpty()) {
-            return back()
-                ->withInput()
-                ->withErrors(['student_totals' => 'Murid tidak sesuai dengan enrollment yang dipilih.']);
-        }
-
-        if ($studentTotals->contains(fn ($total) => (int) $total > (int) $validated['total_lessons'])) {
-            return back()
-                ->withInput()
-                ->withErrors(['student_totals' => 'Total hadir murid tidak boleh melebihi total pertemuan.']);
-        }
+        // Auto-determine status: terima if within 7 days, terlambat if over 7 days
+        $status = $daysSinceLesson <= 7 ? 'terima' : 'terlambat';
 
         $attendance = MonthlyAttendance::create([
             'enrollment_id' => $enrollment->id,
-            'month' => $openWindow->month,
-            'year' => $openWindow->year,
-            'dates' => $dates,
+            'lesson_date' => $lessonDate,
+            'month' => $lessonDate->month,
+            'year' => $lessonDate->year,
             'notes' => $validated['notes'] ?? null,
-            'total_lessons' => $validated['total_lessons'],
-            'status_validation' => 'pending',
+            'image' => $imagePath,
+            'status_validation' => $status,
             'created_by' => $request->user()->id,
         ]);
 
         $attendance->students()->sync(
-            $studentTotals
+            collect($validated['student_totals'])
                 ->mapWithKeys(fn ($total, $studentId) => [(int) $studentId => ['total_present' => (int) $total]])
                 ->all()
         );
 
         $enrollment->update(['validation_status' => 1]);
 
+        $message = $status === 'terima'
+            ? 'Presensi diterima (dalam 7 hari).'
+            : 'Presensi terlambat (lebih dari 7 hari). Guru akan mendapat potongan 10%.';
+
         return redirect()
             ->route('guru.presensi.index')
-            ->with('status', 'Presensi dikirim, menunggu validasi admin.');
+            ->with('status', $message);
     }
 
     public function edit(Request $request, MonthlyAttendance $attendance): View
@@ -152,7 +108,7 @@ class MonthlyAttendanceController extends Controller
 
         abort_unless($attendance->enrollment?->teacher_id === $teacher->id, 403);
 
-        if ($attendance->status_validation === 'valid') {
+        if ($attendance->status_validation === 'terima') {
             abort(403);
         }
 
@@ -167,52 +123,41 @@ class MonthlyAttendanceController extends Controller
 
         abort_unless($attendance->enrollment?->teacher_id === $teacher->id, 403);
 
-        if ($attendance->status_validation === 'valid') {
+        if ($attendance->status_validation === 'terima') {
             abort(403);
         }
 
         $validated = $request->validate([
-            'dates' => ['nullable', 'array'],
-            'dates.*' => ['integer', 'min:1', 'max:31'],
+            'lesson_date' => ['required', 'date', 'before_or_equal:today'],
             'notes' => ['nullable', 'string'],
-            'total_lessons' => ['required', 'integer', 'min:0'],
+            'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:5120'],
             'student_totals' => ['required', 'array'],
-            'student_totals.*' => ['required', 'integer', 'min:0'],
+            'student_totals.*' => ['required', 'integer', 'min:0', 'max:1'],
         ]);
 
-        $dates = collect($validated['dates'] ?? [])
-            ->unique()
-            ->values()
-            ->all();
+        $lessonDate = Carbon::parse($validated['lesson_date']);
+        $daysSinceLesson = $lessonDate->diffInDays(now(), false);
 
-        if (count($dates) !== (int) $validated['total_lessons']) {
-            return back()
-                ->withInput()
-                ->withErrors(['total_lessons' => 'Total pertemuan harus sama dengan jumlah tanggal.']);
+        $updateData = [
+            'lesson_date' => $lessonDate,
+            'month' => $lessonDate->month,
+            'year' => $lessonDate->year,
+            'notes' => $validated['notes'] ?? null,
+            'status_validation' => $daysSinceLesson <= 7 ? 'terima' : 'terlambat',
+        ];
+
+        // Handle image upload (replace old if exists)
+        if ($request->hasFile('image')) {
+            if ($attendance->image) {
+                Storage::disk('public')->delete($attendance->image);
+            }
+            $updateData['image'] = $request->file('image')->store('presensi', 'public');
         }
+
+        $attendance->update($updateData);
 
         $attendance->load('enrollment.students');
         $studentTotals = collect($validated['student_totals']);
-        $studentIds = $attendance->enrollment->students->pluck('id')->map(fn ($id) => (string) $id);
-
-        if ($studentTotals->keys()->diff($studentIds)->isNotEmpty()) {
-            return back()
-                ->withInput()
-                ->withErrors(['student_totals' => 'Murid tidak sesuai dengan enrollment.']);
-        }
-
-        if ($studentTotals->contains(fn ($total) => (int) $total > (int) $validated['total_lessons'])) {
-            return back()
-                ->withInput()
-                ->withErrors(['student_totals' => 'Total hadir murid tidak boleh melebihi total pertemuan.']);
-        }
-
-        $attendance->update([
-            'dates' => $dates,
-            'notes' => $validated['notes'] ?? null,
-            'total_lessons' => $validated['total_lessons'],
-            'status_validation' => 'pending',
-        ]);
 
         $attendance->students()->sync(
             $studentTotals
@@ -222,22 +167,7 @@ class MonthlyAttendanceController extends Controller
 
         return redirect()
             ->route('guru.presensi.index')
-            ->with('status', 'Presensi diperbarui dan dikirim ulang.');
-    }
-
-    private function hasClassPlaceholderStudent($students): bool
-    {
-        $placeholder = (string) config('bimbel.class_student_placeholder', 'Murid Kelas Bersama');
-        $placeholder = trim($placeholder);
-        if ($placeholder === '') {
-            return false;
-        }
-
-        $needle = strtolower($placeholder);
-
-        return $students->contains(function (Student $student) use ($needle): bool {
-            return strtolower($student->name) === $needle;
-        });
+            ->with('status', 'Presensi diperbarui.');
     }
 
     private function resolveTeacher(Request $request): Teacher
@@ -246,17 +176,8 @@ class MonthlyAttendanceController extends Controller
             ->where('user_id', $request->user()->id)
             ->first();
 
-        abort_unless($teacher, 403);
+        abort_unless((bool) $teacher, 403);
 
         return $teacher;
-    }
-
-    private function currentWindow(): ?AttendanceWindow
-    {
-        return AttendanceWindow::query()
-            ->where('is_open', true)
-            ->orderByDesc('year')
-            ->orderByDesc('month')
-            ->first();
     }
 }

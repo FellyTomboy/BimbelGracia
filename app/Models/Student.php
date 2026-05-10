@@ -74,4 +74,17 @@ class Student extends Model
     {
         return $this->belongsToMany(ClassGroup::class)->withTimestamps();
     }
+
+    protected static function booted()
+    {
+        static::saved(function () {
+            app(\App\Services\MonthlySnapshotSyncService::class)->syncAll();
+        });
+        static::deleted(function () {
+            app(\App\Services\MonthlySnapshotSyncService::class)->syncAll();
+        });
+        static::restored(function () {
+            app(\App\Services\MonthlySnapshotSyncService::class)->syncAll();
+        });
+    }
 }

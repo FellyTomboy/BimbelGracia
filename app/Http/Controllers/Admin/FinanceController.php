@@ -22,16 +22,21 @@ class FinanceController extends Controller
 
         $privatGross = DB::table('enrollment_attendances')
             ->join('attendance_student', 'enrollment_attendances.id', '=', 'attendance_student.attendance_id')
-            ->where('enrollment_attendances.status_validation', 'valid')
+            ->whereIn('enrollment_attendances.status_validation', ['terima', 'terlambat'])
             ->where('enrollment_attendances.month', $month)
             ->where('enrollment_attendances.year', $year)
             ->sum(DB::raw('attendance_student.total_present * enrollment_attendances.parent_rate'));
 
+        // Teacher cost: full rate for 'terima', 90% rate for 'terlambat' (10% penalty)
         $privatTeacherCost = DB::table('enrollment_attendances')
-            ->where('enrollment_attendances.status_validation', 'valid')
+            ->selectRaw('
+                SUM(CASE WHEN status_validation = ? THEN teacher_rate ELSE 0 END) +
+                SUM(CASE WHEN status_validation = ? THEN teacher_rate * 0.9 ELSE 0 END)
+            ', ['terima', 'terlambat'])
+            ->whereIn('enrollment_attendances.status_validation', ['terima', 'terlambat'])
             ->where('enrollment_attendances.month', $month)
             ->where('enrollment_attendances.year', $year)
-            ->sum(DB::raw('enrollment_attendances.total_lessons * enrollment_attendances.teacher_rate'));
+            ->value('total');
 
         $classGross = DB::table('class_student_sessions')
             ->join('class_student_session_student', 'class_student_sessions.id', '=', 'class_student_session_student.class_student_session_id')
@@ -59,7 +64,7 @@ class FinanceController extends Controller
             ->count();
 
         $needsFix = MonthlyAttendance::query()
-            ->where('status_validation', 'revisi')
+            ->where('status_validation', 'ditolak')
             ->where('month', $month)
             ->where('year', $year)
             ->count();
@@ -169,15 +174,15 @@ class FinanceController extends Controller
                 ->join('enrollments', 'enrollment_attendances.enrollment_id', '=', 'enrollments.id')
                 ->join('attendance_student', 'enrollment_attendances.id', '=', 'attendance_student.attendance_id')
                 ->selectRaw('enrollment_attendances.year, SUM(attendance_student.total_present * enrollments.parent_rate) as gross')
-                ->where('enrollment_attendances.status_validation', 'valid')
+                ->whereIn('enrollment_attendances.status_validation', ['terima', 'terlambat'])
                 ->whereBetween('enrollment_attendances.year', [$rangeStart->year, $rangeEnd->year])
                 ->groupBy('enrollment_attendances.year')
                 ->pluck('gross', 'year');
 
             $cost = DB::table('enrollment_attendances')
                 ->join('enrollments', 'enrollment_attendances.enrollment_id', '=', 'enrollments.id')
-                ->selectRaw('enrollment_attendances.year, SUM(enrollment_attendances.total_lessons * enrollments.teacher_rate) as cost')
-                ->where('enrollment_attendances.status_validation', 'valid')
+                ->selectRaw('enrollment_attendances.year, SUM(CASE WHEN enrollment_attendances.status_validation = ? THEN enrollments.teacher_rate WHEN enrollment_attendances.status_validation = ? THEN enrollments.teacher_rate * 0.9 ELSE 0 END) as cost', ['terima', 'terlambat'])
+                ->whereIn('enrollment_attendances.status_validation', ['terima', 'terlambat'])
                 ->whereBetween('enrollment_attendances.year', [$rangeStart->year, $rangeEnd->year])
                 ->groupBy('enrollment_attendances.year')
                 ->pluck('cost', 'year');
@@ -216,7 +221,7 @@ class FinanceController extends Controller
             ->join('enrollments', 'enrollment_attendances.enrollment_id', '=', 'enrollments.id')
             ->join('attendance_student', 'enrollment_attendances.id', '=', 'attendance_student.attendance_id')
             ->selectRaw('enrollment_attendances.year, enrollment_attendances.month, SUM(attendance_student.total_present * enrollments.parent_rate) as gross')
-            ->where('enrollment_attendances.status_validation', 'valid')
+            ->whereIn('enrollment_attendances.status_validation', ['terima', 'terlambat'])
             ->where(function ($builder) use ($conditions) {
                 foreach ($conditions as $condition) {
                     $builder->orWhere(fn ($sub) => $sub
@@ -231,8 +236,8 @@ class FinanceController extends Controller
 
         $cost = DB::table('enrollment_attendances')
             ->join('enrollments', 'enrollment_attendances.enrollment_id', '=', 'enrollments.id')
-            ->selectRaw('enrollment_attendances.year, enrollment_attendances.month, SUM(enrollment_attendances.total_lessons * enrollments.teacher_rate) as cost')
-            ->where('enrollment_attendances.status_validation', 'valid')
+            ->selectRaw('enrollment_attendances.year, enrollment_attendances.month, SUM(CASE WHEN enrollment_attendances.status_validation = ? THEN enrollments.teacher_rate WHEN enrollment_attendances.status_validation = ? THEN enrollments.teacher_rate * 0.9 ELSE 0 END) as cost', ['terima', 'terlambat'])
+            ->whereIn('enrollment_attendances.status_validation', ['terima', 'terlambat'])
             ->where(function ($builder) use ($conditions) {
                 foreach ($conditions as $condition) {
                     $builder->orWhere(fn ($sub) => $sub
@@ -385,7 +390,7 @@ class FinanceController extends Controller
 
         $privateStudentsCount = DB::table('enrollment_attendances')
             ->join('attendance_student', 'enrollment_attendances.id', '=', 'attendance_student.attendance_id')
-            ->where('enrollment_attendances.status_validation', 'valid')
+            ->whereIn('enrollment_attendances.status_validation', ['terima', 'terlambat'])
             ->where('enrollment_attendances.month', $month)
             ->where('enrollment_attendances.year', $year)
             ->distinct('attendance_student.student_id')
@@ -454,7 +459,7 @@ class FinanceController extends Controller
             ->join('enrollments', 'enrollment_attendances.enrollment_id', '=', 'enrollments.id')
             ->join('attendance_student', 'enrollment_attendances.id', '=', 'attendance_student.attendance_id')
             ->selectRaw('enrollment_attendances.year, enrollment_attendances.month, SUM(attendance_student.total_present * enrollments.parent_rate) as gross')
-            ->where('enrollment_attendances.status_validation', 'valid')
+            ->whereIn('enrollment_attendances.status_validation', ['terima', 'terlambat'])
             ->where(function ($builder) use ($conditions) {
                 foreach ($conditions as $condition) {
                     $builder->orWhere(function ($sub) use ($condition) {
@@ -489,8 +494,8 @@ class FinanceController extends Controller
 
         $costQuery = DB::table('enrollment_attendances')
             ->join('enrollments', 'enrollment_attendances.enrollment_id', '=', 'enrollments.id')
-            ->selectRaw('enrollment_attendances.year, enrollment_attendances.month, SUM(enrollment_attendances.total_lessons * enrollments.teacher_rate) as cost')
-            ->where('enrollment_attendances.status_validation', 'valid')
+            ->selectRaw('enrollment_attendances.year, enrollment_attendances.month, SUM(CASE WHEN enrollment_attendances.status_validation = ? THEN enrollments.teacher_rate WHEN enrollment_attendances.status_validation = ? THEN enrollments.teacher_rate * 0.9 ELSE 0 END) as cost', ['terima', 'terlambat'])
+            ->whereIn('enrollment_attendances.status_validation', ['terima', 'terlambat'])
             ->where(function ($builder) use ($conditions) {
                 foreach ($conditions as $condition) {
                     $builder->orWhere(function ($sub) use ($condition) {

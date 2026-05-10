@@ -6,12 +6,8 @@
     <div class="py-12">
         <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white shadow-sm sm:rounded-lg">
-                <form method="POST" action="{{ route('guru.presensi.store') }}" class="p-6 space-y-4">
+                <form method="POST" action="{{ route('guru.presensi.store') }}" class="p-6 space-y-4" enctype="multipart/form-data">
                     @csrf
-
-                    <div class="bg-slate-50 rounded-md px-4 py-3 text-sm text-gray-600">
-                        Periode aktif: {{ sprintf('%02d', $openWindow->month) }}/{{ $openWindow->year }}
-                    </div>
 
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Enrollment</label>
@@ -27,27 +23,21 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Checklist Tanggal</label>
-                        <div class="mt-2 grid grid-cols-8 gap-2 text-sm">
-                            @for ($day = 1; $day <= 31; $day++)
-                                <label class="flex items-center gap-2">
-                                    <input type="checkbox" name="dates[]" value="{{ $day }}" @checked(is_array(old('dates')) && in_array($day, old('dates', []))) />
-                                    <span>{{ $day }}</span>
-                                </label>
-                            @endfor
-                        </div>
-                        @error('dates')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                        <label class="block text-sm font-medium text-gray-700">Tanggal Les</label>
+                        <input type="date" name="lesson_date" value="{{ old('lesson_date', date('Y-m-d')) }}" class="mt-1 w-full border-gray-300 rounded-md" required max="{{ date('Y-m-d') }}" />
+                        @error('lesson_date')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                        <p class="mt-1 text-xs text-gray-500">Presensi maksimal 7 hari setelah les. Jika lebih, status akan menunggu validasi admin.</p>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Total Les</label>
-                        <input type="number" name="total_lessons" value="{{ old('total_lessons') }}" class="mt-1 w-full border-gray-300 rounded-md" required />
-                        @error('total_lessons')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
-                        <p class="mt-2 text-xs text-gray-500">Total pertemuan harus sama dengan jumlah tanggal.</p>
+                        <label class="block text-sm font-medium text-gray-700">Foto Bukti (opsional)</label>
+                        <input type="file" name="image" accept="image/jpeg,image/png,image/jpg,image/gif,image/webp" class="mt-1 w-full border-gray-300 rounded-md" />
+                        @error('image')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                        <p class="mt-1 text-xs text-gray-500">Upload screenshot WA atau foto bersama murid. Maks 5MB.</p>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Total Hadir per Murid</label>
+                        <label class="block text-sm font-medium text-gray-700">Kehadiran Murid</label>
                         @error('student_totals')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
                         <div class="mt-2 space-y-3">
                             @foreach ($enrollments as $enrollment)
@@ -57,14 +47,17 @@
                                         @foreach ($enrollment->students as $student)
                                             <label class="flex items-center justify-between gap-3 text-sm">
                                                 <span>{{ $student->name }}</span>
-                                                <input type="number" name="student_totals[{{ $student->id }}]" value="{{ old('student_totals.'.$student->id, 0) }}" class="w-24 border-gray-300 rounded-md" min="0" required />
+                                                <select name="student_totals[{{ $student->id }}]" class="w-24 border-gray-300 rounded-md" required>
+                                                    <option value="0" @selected(old('student_totals.'.$student->id, '0') == '0')>Tidak Hadir</option>
+                                                    <option value="1" @selected(old('student_totals.'.$student->id) == '1')>Hadir</option>
+                                                </select>
                                             </label>
                                         @endforeach
                                     </div>
                                 </div>
                             @endforeach
                         </div>
-                        <p class="mt-2 text-xs text-gray-500">Gunakan 0 jika murid tidak hadir.</p>
+                        <p class="mt-2 text-xs text-gray-500">Pilih Hadir/Tidak Hadir untuk setiap murid.</p>
                     </div>
 
                     <div>
@@ -91,7 +84,7 @@
             sections.forEach((section) => {
                 const isActive = section.dataset.enrollmentSection === activeId;
                 section.classList.toggle('hidden', !isActive);
-                section.querySelectorAll('input').forEach((input) => {
+                section.querySelectorAll('input, select').forEach((input) => {
                     input.disabled = !isActive;
                 });
             });

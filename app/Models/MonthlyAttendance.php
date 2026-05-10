@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use App\Traits\Auditable;
@@ -17,11 +19,11 @@ class MonthlyAttendance extends Model
 
     protected $fillable = [
         'enrollment_id',
+        'lesson_date',
         'month',
         'year',
-        'dates',
         'notes',
-        'total_lessons',
+        'image',
         'status_validation',
         'parent_payment_status',
         'teacher_payment_status',
@@ -33,10 +35,9 @@ class MonthlyAttendance extends Model
     ];
 
     protected $casts = [
+        'lesson_date' => 'date',
         'month' => 'integer',
         'year' => 'integer',
-        'dates' => 'array',
-        'total_lessons' => 'integer',
         'validated_at' => 'datetime',
         'status_validation' => 'string',
         'parent_payment_status' => 'string',
@@ -76,6 +77,13 @@ class MonthlyAttendance extends Model
             }
             if (! $attendance->teacher_rate && $attendance->enrollment) {
                 $attendance->teacher_rate = $attendance->enrollment->teacher_rate;
+            }
+            // Auto-set month/year from lesson_date
+            if ($attendance->lesson_date && ! $attendance->month) {
+                $attendance->month = $attendance->lesson_date->month;
+            }
+            if ($attendance->lesson_date && ! $attendance->year) {
+                $attendance->year = $attendance->lesson_date->year;
             }
         });
     }
