@@ -4,15 +4,47 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Models\ClassStudent;
+use App\Models\MonthlyStudentSnapshot;
 use App\Models\Enrollment;
-use App\Models\Program;
-use App\Models\Student;
-use App\Models\Teacher;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Collection;
 
 class MonthlySnapshotSyncService
 {
+    /**
+     * Sinkronisasi rekap jumlah presensi individu murid kelas (Grup)
+     */
+    public function syncClassStudents(int $month, int $year): void
+    {
+        $students = ClassStudent::all();
+        
+        foreach ($students as $student) {
+            // Hitung kehadiran individu melalui relasi pivot yang baru
+            $totalPresent = $student->sessions()
+                ->whereMonth('session_date', $month)
+                ->whereYear('session_date', $year)
+                ->count();
+
+            // SOLUSI: Menggunakan tabel khusus untuk rekap tagihan/absen individu
+            // Jangan gunakan 'monthly_student_snapshots' agar tidak bentrok dengan dasbor
+            DB::table('class_student_monthly_attendances')->updateOrInsert(
+                [
+                    'class_student_id' => $student->id, 
+                    'month' => $month, 
+                    'year' => $year
+                ],
+                [
+                    'total_present' => $totalPresent,
+                    'updated_at' => now(),
+                    'created_at' => DB::raw('COALESCE(created_at, NOW())'),
+                ]
+            );
+        }
+    }
+
+    /**
+     * Sinkronisasi data agregat dasbor bulanan
+     */
     public function syncForEnrollment(Enrollment $enrollment): void
     {
         $periods = DB::table('enrollment_attendances')
@@ -24,11 +56,11 @@ class MonthlySnapshotSyncService
             return;
         }
 
-        $periods->each(function ($p) use ($enrollment) {
+        $periods->each(function ($p) {
             $year = (int) $p->year;
             $month = (int) $p->month;
 
-            // Murid privat (berdasarkan enrollment active), bukan attendance valid
+            // 1. Hitung agregat murid privat
             $privateStudentsCount = DB::table('enrollment_attendances')
                 ->join('enrollments', 'enrollment_attendances.enrollment_id', '=', 'enrollments.id')
                 ->join('attendance_student', 'enrollment_attendances.id', '=', 'attendance_student.attendance_id')
@@ -40,7 +72,7 @@ class MonthlySnapshotSyncService
                 ->selectRaw('COUNT(DISTINCT attendance_student.student_id) as cnt')
                 ->value('cnt') ?? 0;
 
-            // Guru per bulan (berdasarkan enrollment active)
+            // 2. Hitung agregat guru
             $teachersCount = DB::table('enrollment_attendances')
                 ->join('enrollments', 'enrollment_attendances.enrollment_id', '=', 'enrollments.id')
                 ->join('teachers', 'enrollments.teacher_id', '=', 'teachers.id')
@@ -51,57 +83,35 @@ class MonthlySnapshotSyncService
                 ->selectRaw('COUNT(DISTINCT enrollments.teacher_id) as cnt')
                 ->value('cnt') ?? 0;
 
+            // 3. Hitung agregat murid kelas
             $classStudentsCount = DB::table('class_students')
                 ->where('status', 'active')
                 ->count();
 
+            // 4. Simpan ke tabel dasbor agregat murid
             DB::table('monthly_student_snapshots')->updateOrInsert(
                 ['year' => $year, 'month' => $month],
                 [
                     'private_students_count' => $privateStudentsCount,
                     'class_students_count' => $classStudentsCount,
                     'updated_at' => now(),
-                    'created_at' => now(),
+                    'created_at' => DB::raw('COALESCE(created_at, NOW())'),
                 ]
             );
 
+            // 5. Simpan ke tabel dasbor agregat guru
             DB::table('monthly_teacher_snapshots')->updateOrInsert(
                 ['year' => $year, 'month' => $month],
                 [
                     'teachers_count' => $teachersCount,
                     'updated_at' => now(),
-                    'created_at' => now(),
+                    'created_at' => DB::raw('COALESCE(created_at, NOW())'),
                 ]
             );
+
+            // 6. Opsional: Jalankan sinkronisasi absen individu otomatis
+            // Setiap kali rekap agregat berjalan, rekap individu juga akan diperbarui.
+            $this->syncClassStudents($month, $year);
         });
-    }
-
-    public function syncClassStudentsCountsForAllPeriods(): void
-    {
-        $periods = DB::table('enrollment_attendances')
-            ->distinct()
-            ->get(['year', 'month']);
-
-        if ($periods->isEmpty()) {
-            return;
-        }
-
-        $classStudentsCount = DB::table('class_students')
-            ->where('status', 'active')
-            ->count();
-
-        foreach ($periods as $p) {
-            $year = (int) $p->year;
-            $month = (int) $p->month;
-
-            DB::table('monthly_student_snapshots')->updateOrInsert(
-                ['year' => $year, 'month' => $month],
-                [
-                    'class_students_count' => $classStudentsCount,
-                    'updated_at' => now(),
-                    'created_at' => now(),
-                ]
-            );
-        }
     }
 }

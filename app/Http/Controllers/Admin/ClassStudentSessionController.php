@@ -16,7 +16,7 @@ class ClassStudentSessionController extends Controller
 {
     public function index(): View
     {
-        $sessions = ClassStudentSession::with('student')
+        $sessions = ClassStudentSession::with('students') // Load relasi pivot
             ->latest('session_date')
             ->get();
 
@@ -41,17 +41,17 @@ class ClassStudentSessionController extends Controller
         $start = Carbon::create($year, $month, 1)->startOfMonth();
         $end = Carbon::create($year, $month, 1)->endOfMonth();
 
-        $sessions = ClassStudentSession::with('student')
+        $sessions = ClassStudentSession::with('students')
             ->whereBetween('session_date', [$start, $end])
-            ->when($studentId, fn ($query) => $query->where('class_student_id', $studentId))
+            ->when($studentId, function ($query) use ($studentId) {
+                // Filter menggunakan whereHas untuk tabel pivot
+                $query->whereHas('students', fn ($q) => $q->where('class_students.id', $studentId));
+            })
             ->orderBy('session_date')
             ->orderBy('start_time')
             ->get();
 
-        $sessionsByDate = $sessions->groupBy(function (ClassStudentSession $session) {
-            return $session->session_date->format('Y-m-d');
-        });
-
+        $sessionsByDate = $sessions->groupBy(fn ($session) => $session->session_date->format('Y-m-d'));
         $students = ClassStudent::orderBy('name')->get();
 
         return view('admin.class-student-sessions.calendar', [
@@ -84,19 +84,19 @@ class ClassStudentSessionController extends Controller
             'notes' => ['nullable', 'string'],
         ]);
 
-        $classStudentIds = $validated['class_student_ids'];
-        unset($validated['class_student_ids']);
+        // Simpan 1 record session
+        $session = ClassStudentSession::create([
+            'session_date' => $validated['session_date'],
+            'start_time' => $validated['start_time'],
+            'end_time' => $validated['end_time'],
+            'notes' => $validated['notes'],
+        ]);
 
-        foreach ($classStudentIds as $classStudentId) {
-            ClassStudentSession::create([
-                ...$validated,
-                'class_student_id' => (int) $classStudentId,
-            ]);
-        }
+        // Hubungkan ke banyak murid via pivot
+        $session->students()->attach($validated['class_student_ids']);
 
-        return redirect()
-            ->route('admin.class-student-sessions.index')
-            ->with('status', 'Jadwal murid kelas berhasil dibuat untuk semua murid terpilih.');
+        return redirect()->route('admin.class-student-sessions.index')
+            ->with('status', 'Jadwal blok berhasil dibuat.');
     }
 
     public function edit(ClassStudentSession $classStudentSession): View
@@ -117,18 +117,18 @@ class ClassStudentSessionController extends Controller
             'notes' => ['nullable', 'string'],
         ]);
 
-        // Update session ke murid pertama yang dipilih
         $classStudentSession->update([
-            'class_student_id' => $validated['class_student_ids'][0],
             'session_date' => $validated['session_date'],
             'start_time' => $validated['start_time'],
             'end_time' => $validated['end_time'],
-            'notes' => $validated['notes'] ?? null,
+            'notes' => $validated['notes'],
         ]);
 
-        return redirect()
-            ->route('admin.class-student-sessions.index')
-            ->with('status', 'Jadwal murid kelas berhasil diperbarui.');
+        // Sinkronisasi data murid (tambah yang baru, hapus yang tidak dipilih lagi)
+        $classStudentSession->students()->sync($validated['class_student_ids']);
+
+        return redirect()->route('admin.class-student-sessions.index')
+            ->with('status', 'Jadwal berhasil diperbarui.');
     }
 
     public function destroy(ClassStudentSession $classStudentSession): RedirectResponse

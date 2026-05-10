@@ -12,7 +12,7 @@ return new class extends Migration
     {
         Schema::create('class_student_sessions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('class_student_id')->constrained('class_students')->cascadeOnDelete();
+            // Kolom class_student_id dihapus dari sini
             $table->date('session_date');
             $table->time('start_time');
             $table->time('end_time')->nullable();
@@ -20,7 +20,7 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            $table->index(['session_date', 'class_student_id']);
+            $table->index('session_date');
         });
     }
 

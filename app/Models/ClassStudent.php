@@ -8,7 +8,7 @@ use App\Traits\Auditable;
 use App\Traits\FormatsWhatsappNumber;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ClassStudent extends Model
@@ -39,8 +39,13 @@ class ClassStudent extends Model
         $this->attributes['whatsapp_secondary'] = $this->normalizeWhatsapp($value);
     }
 
-    public function sessions(): HasMany
+    public function sessions(): BelongsToMany
     {
-        return $this->hasMany(ClassStudentSession::class);
+        return $this->belongsToMany(
+            ClassStudentSession::class,
+            'class_student_session_student',
+            'class_student_id',
+            'class_student_session_id'
+        )->withTimestamps();
     }
 }
