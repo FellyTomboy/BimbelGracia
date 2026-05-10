@@ -17,10 +17,9 @@ class LessonOffer extends Model
 
     protected $fillable = [
         'code',
-        'student_id',
+        'education_level',
         'subject',
-        'schedule_day',
-        'schedule_time',
+        'schedules',
         'note',
         'status',
         'contact_whatsapp',
@@ -29,16 +28,12 @@ class LessonOffer extends Model
 
     protected $casts = [
         'status' => 'string',
+        'schedules' => 'array',
     ];
 
     public function setContactWhatsappAttribute(?string $value): void
     {
         $this->attributes['contact_whatsapp'] = $this->normalizeWhatsapp($value);
-    }
-
-    public function student(): BelongsTo
-    {
-        return $this->belongsTo(Student::class);
     }
 
     public function creator(): BelongsTo

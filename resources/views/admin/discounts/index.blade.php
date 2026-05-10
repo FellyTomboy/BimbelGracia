@@ -59,8 +59,12 @@
                                             <input type="checkbox" name="enrollment_ids[]" value="{{ $enrollment->id }}" class="rounded border-gray-300" />
                                         </td>
                                         <td class="py-2">#{{ $enrollment->id }}</td>
-                                        <td class="py-2">{{ $enrollment->program?->name ?? '-' }}</td>
-                                        <td class="py-2">{{ $enrollment->teacher?->name ?? '-' }}</td>
+                                        <td class="py-2">
+                                            <x-hibernated-label :model="$enrollment->program" :label="$enrollment->program?->name ?? '-'" type="program" />
+                                        </td>
+                                        <td class="py-2">
+                                            <x-hibernated-label :model="$enrollment->teacher" :label="$enrollment->teacher?->name ?? '-'" type="guru" />
+                                        </td>
                                         <td class="py-2">
                                             {{ $enrollment->students->pluck('name')->implode(', ') ?: '-' }}
                                         </td>

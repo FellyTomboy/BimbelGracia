@@ -10,45 +10,58 @@
                     @csrf
                     @method('PUT')
 
-                    @php
-                        $days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
-                    @endphp
-
                     <div>
                         <label class="block text-sm font-medium text-gray-700">ID Tawaran</label>
                         <input name="code" value="{{ old('code', $lessonOffer->code) }}" class="mt-1 w-full border-gray-300 rounded-md" required />
                         @error('code')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Murid</label>
-                        <select name="student_id" class="mt-1 w-full border-gray-300 rounded-md" required>
-                            @foreach ($students as $student)
-                                <option value="{{ $student->id }}" @selected(old('student_id', $lessonOffer->student_id) == $student->id)>{{ $student->name }}</option>
+                        <label class="block text-sm font-medium text-gray-700">Tingkat Pendidikan</label>
+                        <select name="education_level" class="mt-1 w-full border-gray-300 rounded-md" required>
+                            <option value="">Pilih tingkat pendidikan</option>
+                            @foreach ($educationLevels as $level)
+                                <option value="{{ $level }}" @selected(old('education_level', $lessonOffer->education_level) === $level)>{{ $level }}</option>
                             @endforeach
                         </select>
-                        @error('student_id')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                        @error('education_level')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Mapel</label>
                         <input name="subject" value="{{ old('subject', $lessonOffer->subject) }}" class="mt-1 w-full border-gray-300 rounded-md" required />
                         @error('subject')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
                     </div>
-                    <div class="grid md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Hari</label>
-                            <select name="schedule_day" class="mt-1 w-full border-gray-300 rounded-md" required>
-                                @foreach ($days as $day)
-                                    <option value="{{ $day }}" @selected(old('schedule_day', $lessonOffer->schedule_day) === $day)>{{ $day }}</option>
-                                @endforeach
-                            </select>
-                            @error('schedule_day')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+
+                    {{-- Jadwal (multi pasang hari-jam) --}}
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Jadwal</label>
+                        <div id="schedules_wrapper" class="space-y-2 mt-1">
+                            @php
+                                $existingSchedules = old('schedules', $lessonOffer->schedules ?: [['day' => '', 'time' => '']]);
+                            @endphp
+                            @foreach ($existingSchedules as $idx => $sch)
+                                <div class="schedule-row flex items-center gap-2">
+                                    <select name="schedules[{{ $idx }}][day]" class="w-full border-gray-300 rounded-md" required>
+                                        <option value="">Hari</option>
+                                        @foreach ($days as $day)
+                                            <option value="{{ $day }}" @selected(($sch['day'] ?? '') === $day)>{{ $day }}</option>
+                                        @endforeach
+                                    </select>
+                                    <select name="schedules[{{ $idx }}][time]" class="w-full border-gray-300 rounded-md" required>
+                                        <option value="">Waktu</option>
+                                        @foreach ($times as $time)
+                                            <option value="{{ $time }}" @selected(($sch['time'] ?? '') === $time)>{{ ucfirst($time) }}</option>
+                                        @endforeach
+                                    </select>
+                                    <button type="button" class="remove-schedule text-rose-600 text-sm font-medium px-2">✕</button>
+                                </div>
+                            @endforeach
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Jam</label>
-                            <input type="time" name="schedule_time" value="{{ old('schedule_time', $lessonOffer->schedule_time) }}" class="mt-1 w-full border-gray-300 rounded-md" required />
-                            @error('schedule_time')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
-                        </div>
+                        <button type="button" id="add_schedule" class="mt-2 text-sm text-indigo-600 font-medium">+ Tambah jadwal</button>
+                        @error('schedules')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                        @error('schedules.*.day')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                        @error('schedules.*.time')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
                     </div>
+
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Kontak WhatsApp (opsional)</label>
                         <input name="contact_whatsapp" value="{{ old('contact_whatsapp', $lessonOffer->contact_whatsapp) }}" class="mt-1 w-full border-gray-300 rounded-md" />
@@ -77,4 +90,45 @@
             </div>
         </div>
     </div>
+
+    <script>
+        (function () {
+            const wrapper = document.getElementById('schedules_wrapper');
+            const addBtn = document.getElementById('add_schedule');
+            if (!wrapper || !addBtn) return;
+
+            let idx = wrapper.querySelectorAll('.schedule-row').length;
+
+            addBtn.addEventListener('click', function () {
+                const row = document.createElement('div');
+                row.className = 'schedule-row flex items-center gap-2';
+                row.innerHTML = `
+                    <select name="schedules[${idx}][day]" class="w-full border-gray-300 rounded-md" required>
+                        <option value="">Hari</option>
+                        @foreach ($days as $day)
+                            <option value="{{ $day }}">{{ $day }}</option>
+                        @endforeach
+                    </select>
+                    <select name="schedules[${idx}][time]" class="w-full border-gray-300 rounded-md" required>
+                        <option value="">Waktu</option>
+                        @foreach ($times as $time)
+                            <option value="{{ $time }}">{{ ucfirst($time) }}</option>
+                        @endforeach
+                    </select>
+                    <button type="button" class="remove-schedule text-rose-600 text-sm font-medium px-2">✕</button>
+                `;
+                wrapper.appendChild(row);
+                idx++;
+            });
+
+            wrapper.addEventListener('click', function (e) {
+                if (e.target.classList.contains('remove-schedule')) {
+                    const row = e.target.closest('.schedule-row');
+                    if (wrapper.querySelectorAll('.schedule-row').length > 1) {
+                        row.remove();
+                    }
+                }
+            });
+        })();
+    </script>
 </x-app-layout>

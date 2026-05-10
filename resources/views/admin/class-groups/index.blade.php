@@ -31,7 +31,9 @@
                                 <tr>
                                     <td class="py-2 font-medium">{{ $group->name }}</td>
                                     <td class="py-2">{{ $group->subject ?? '-' }}</td>
-                                    <td class="py-2">{{ $group->teacher?->name ?? '-' }}</td>
+                                    <td class="py-2">
+                                        <x-hibernated-label :model="$group->teacher" :label="$group->teacher?->name ?? '-'" type="guru" />
+                                    </td>
                                     <td class="py-2">{{ $group->students->count() }}</td>
                                     <td class="py-2">{{ $group->deleted_at ? 'hibernasi' : 'active' }}</td>
                                     <td class="py-2 flex gap-2">

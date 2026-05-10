@@ -15,8 +15,8 @@
             @endif
 
             <div class="bg-white shadow-sm sm:rounded-lg p-6 space-y-2">
-                <p><span class="font-semibold">Kelas:</span> {{ $classSession->classGroup?->name ?? '-' }}</p>
-                <p><span class="font-semibold">Guru:</span> {{ $classSession->teacher?->name ?? '-' }}</p>
+                <p><span class="font-semibold">Kelas:</span> <x-hibernated-label :model="$classSession->classGroup" :label="$classSession->classGroup?->name ?? '-'" type="kelas" /></p>
+                <p><span class="font-semibold">Guru:</span> <x-hibernated-label :model="$classSession->teacher" :label="$classSession->teacher?->name ?? '-'" type="guru" /></p>
                 <p><span class="font-semibold">Tanggal:</span> {{ $classSession->session_date->format('d M Y') }}</p>
                 <p><span class="font-semibold">Jam:</span> {{ $classSession->session_time?->format('H:i') ?? '-' }}</p>
                 <p><span class="font-semibold">Mapel:</span> {{ $classSession->subject ?? '-' }}</p>

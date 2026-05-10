@@ -35,8 +35,12 @@
                                 <tr>
                                     <td class="py-2">{{ $session->session_date->format('d M Y') }}</td>
                                     <td class="py-2">{{ $session->session_time?->format('H:i') ?? '-' }}</td>
-                                    <td class="py-2">{{ $session->classGroup?->name ?? '-' }}</td>
-                                    <td class="py-2">{{ $session->teacher?->name ?? '-' }}</td>
+                                    <td class="py-2">
+                                        <x-hibernated-label :model="$session->classGroup" :label="$session->classGroup?->name ?? '-'" type="kelas" />
+                                    </td>
+                                    <td class="py-2">
+                                        <x-hibernated-label :model="$session->teacher" :label="$session->teacher?->name ?? '-'" type="guru" />
+                                    </td>
                                     <td class="py-2">{{ $session->subject ?? '-' }}</td>
                                     <td class="py-2">{{ $session->students_count }}</td>
                                     <td class="py-2 flex gap-2">

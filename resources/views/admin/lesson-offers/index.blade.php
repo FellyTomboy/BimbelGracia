@@ -22,7 +22,7 @@
                         <thead>
                             <tr class="text-left text-gray-500">
                                 <th class="py-2">ID</th>
-                                <th class="py-2">Murid</th>
+                                <th class="py-2">Tingkat</th>
                                 <th class="py-2">Mapel</th>
                                 <th class="py-2">Jadwal</th>
                                 <th class="py-2">Status</th>
@@ -35,9 +35,15 @@
                             @foreach ($offers as $offer)
                                 <tr>
                                     <td class="py-2 font-medium">{{ $offer->code }}</td>
-                                    <td class="py-2">{{ $offer->student?->name ?? '-' }}</td>
+                                    <td class="py-2">{{ $offer->education_level }}</td>
                                     <td class="py-2">{{ $offer->subject }}</td>
-                                    <td class="py-2">{{ $offer->schedule_day }} {{ $offer->schedule_time }}</td>
+                                    <td class="py-2">
+                                        @if ($offer->schedules)
+                                            @foreach ($offer->schedules as $sch)
+                                                <div>{{ $sch['day'] ?? '' }} {{ $sch['time'] ?? '' }}</div>
+                                            @endforeach
+                                        @endif
+                                    </td>
                                     <td class="py-2">{{ $offer->status }}</td>
                                     <td class="py-2">{{ $offer->contact_whatsapp ?? '-' }}</td>
                                     <td class="py-2">{{ $offer->note ?? '-' }}</td>

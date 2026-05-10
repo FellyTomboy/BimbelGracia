@@ -16,9 +16,17 @@
 
             <div class="bg-white shadow-sm sm:rounded-lg p-6 space-y-3">
                 <p><span class="font-semibold">Periode:</span> {{ sprintf('%02d', $attendance->month) }}/{{ $attendance->year }}</p>
-                <p><span class="font-semibold">Program:</span> {{ $attendance->enrollment?->program?->name ?? '-' }}</p>
-                <p><span class="font-semibold">Guru:</span> {{ $attendance->enrollment?->teacher?->name ?? '-' }}</p>
-                <p><span class="font-semibold">Murid:</span> {{ $attendance->students->pluck('name')->implode(', ') ?: '-' }}</p>
+                <p><span class="font-semibold">Program:</span> <x-hibernated-label :model="$attendance->enrollment?->program" :label="$attendance->enrollment?->program?->name ?? '-'" type="program" /></p>
+                <p><span class="font-semibold">Guru:</span> <x-hibernated-label :model="$attendance->enrollment?->teacher" :label="$attendance->enrollment?->teacher?->name ?? '-'" type="guru" /></p>
+                <p><span class="font-semibold">Murid:</span>
+                    @if ($attendance->students->count() > 0)
+                        @foreach ($attendance->students as $student)
+                            <x-hibernated-label :model="$student" :label="$student->name" type="murid privat" />{{ !$loop->last ? ', ' : '' }}
+                        @endforeach
+                    @else
+                        -
+                    @endif
+                </p>
                 <p><span class="font-semibold">Enrollment:</span> #{{ $attendance->enrollment_id }}</p>
                 <p><span class="font-semibold">Tanggal:</span> {{ $attendance->dates ? implode(', ', $attendance->dates) : '-' }}</p>
                 <p><span class="font-semibold">Total:</span> {{ $attendance->total_lessons }}</p>

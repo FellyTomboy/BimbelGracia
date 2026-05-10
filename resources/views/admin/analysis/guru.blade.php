@@ -31,7 +31,9 @@
                 @foreach ($summaries as $summary)
                     <div class="bg-white shadow-sm sm:rounded-lg p-6 space-y-4">
                         <div>
-                            <h3 class="text-lg font-semibold">{{ $summary['teacher']?->name ?? 'Guru' }}</h3>
+                            <h3 class="text-lg font-semibold">
+                                <x-hibernated-label :model="$summary['teacher'] ?? null" :label="$summary['teacher']?->name ?? 'Guru'" type="guru" />
+                            </h3>
                             <p class="text-sm text-gray-500">WA: {{ $summary['teacher']?->whatsapp_number ?? '-' }}</p>
                         </div>
                         <div class="text-sm text-gray-700 space-y-2">

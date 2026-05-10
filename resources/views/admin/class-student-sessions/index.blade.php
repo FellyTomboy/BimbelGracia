@@ -39,7 +39,7 @@
                                     </td>
                                     <td class="py-2">
                                         @foreach ($session->students as $student)
-                                            {{ $student->name ?? '-' }}<br>
+                                            <x-hibernated-label :model="$student" :label="$student->name" type="murid kelas" /><br>
                                         @endforeach
                                     </td>
                                     <td class="py-2">{{ $session->notes ?? '-' }}</td>

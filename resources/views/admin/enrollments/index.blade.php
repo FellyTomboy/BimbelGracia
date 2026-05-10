@@ -34,9 +34,21 @@
                         <tbody class="divide-y">
                             @foreach ($enrollments as $enrollment)
                                 <tr>
-                                    <td class="py-2 font-medium">{{ $enrollment->program?->name ?? '-' }}</td>
-                                    <td class="py-2">{{ $enrollment->teacher?->name ?? '-' }}</td>
-                                    <td class="py-2">{{ $enrollment->students->pluck('name')->implode(', ') ?: '-' }}</td>
+                                    <td class="py-2 font-medium">
+                                        <x-hibernated-label :model="$enrollment->program" :label="$enrollment->program?->name ?? '-'" type="program" />
+                                    </td>
+                                    <td class="py-2">
+                                        <x-hibernated-label :model="$enrollment->teacher" :label="$enrollment->teacher?->name ?? '-'" type="guru" />
+                                    </td>
+                                    <td class="py-2">
+                                        @if ($enrollment->students->count() > 0)
+                                            @foreach ($enrollment->students as $student)
+                                                <x-hibernated-label :model="$student" :label="$student->name" type="murid privat" />{{ !$loop->last ? ', ' : '' }}
+                                            @endforeach
+                                        @else
+                                            -
+                                        @endif
+                                    </td>
                                     <td class="py-2">Rp {{ number_format($enrollment->parent_rate) }}</td>
                                     <td class="py-2">Rp {{ number_format($enrollment->teacher_rate) }}</td>
                                     <td class="py-2">{{ $enrollment->validation_status }}</td>

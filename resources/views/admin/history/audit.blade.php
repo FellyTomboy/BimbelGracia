@@ -23,7 +23,9 @@
                             @foreach ($logs as $log)
                                 <tr>
                                     <td class="py-2">{{ $log->created_at->format('d M Y H:i') }}</td>
-                                    <td class="py-2">{{ $log->user?->name ?? '-' }}</td>
+                                    <td class="py-2">
+                                        <x-hibernated-label :model="$log->user" :label="$log->user?->name ?? '-'" type="user" />
+                                    </td>
                                     <td class="py-2">{{ $log->action }}</td>
                                     <td class="py-2">{{ class_basename($log->auditable_type) }}</td>
                                     <td class="py-2">{{ $log->auditable_id }}</td>

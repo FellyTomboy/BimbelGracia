@@ -48,9 +48,21 @@
                                         $rate = $attendance->enrollment?->teacher_rate ?? 0;
                                         $total = $attendance->total_lessons * $rate;
                                     @endphp
-                                    <td class="py-2">{{ $attendance->enrollment?->teacher?->name ?? '-' }}</td>
-                                    <td class="py-2">{{ $attendance->enrollment?->program?->name ?? '-' }}</td>
-                                    <td class="py-2">{{ $attendance->students->pluck('name')->implode(', ') ?: '-' }}</td>
+                                    <td class="py-2">
+                                        <x-hibernated-label :model="$attendance->enrollment?->teacher" :label="$attendance->enrollment?->teacher?->name ?? '-'" type="guru" />
+                                    </td>
+                                    <td class="py-2">
+                                        <x-hibernated-label :model="$attendance->enrollment?->program" :label="$attendance->enrollment?->program?->name ?? '-'" type="program" />
+                                    </td>
+                                    <td class="py-2">
+                                        @if ($attendance->students->count() > 0)
+                                            @foreach ($attendance->students as $student)
+                                                <x-hibernated-label :model="$student" :label="$student->name" type="murid privat" />{{ !$loop->last ? ', ' : '' }}
+                                            @endforeach
+                                        @else
+                                            -
+                                        @endif
+                                    </td>
                                     <td class="py-2">#{{ $attendance->enrollment_id }}</td>
                                     <td class="py-2">Rp {{ number_format($total) }}</td>
                                     <td class="py-2">{{ $attendance->teacher_payment_status }}</td>

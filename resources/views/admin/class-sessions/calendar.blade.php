@@ -82,8 +82,12 @@
                                                 <div class="mt-2 space-y-2">
                                                     @foreach ($items as $session)
                                                         <div class="rounded-md border border-gray-200 p-2 text-xs">
-                                                            <div class="font-semibold">{{ $session->classGroup?->name ?? 'Kelas' }}</div>
-                                                            <div>{{ $session->teacher?->name ?? '-' }}</div>
+                                                            <div class="font-semibold">
+                                                                <x-hibernated-label :model="$session->classGroup" :label="$session->classGroup?->name ?? 'Kelas'" type="kelas" />
+                                                            </div>
+                                                            <div>
+                                                                <x-hibernated-label :model="$session->teacher" :label="$session->teacher?->name ?? '-'" type="guru" />
+                                                            </div>
                                                             <div>{{ $session->session_time?->format('H:i') ?? '-' }} • {{ $session->subject ?? '-' }}</div>
                                                             <div class="text-gray-500">Hadir: {{ $session->present_students_count }} / {{ $session->total_students_count }}</div>
                                                             <a href="{{ route('admin.class-sessions.show', $session) }}" class="text-indigo-600">Detail</a>

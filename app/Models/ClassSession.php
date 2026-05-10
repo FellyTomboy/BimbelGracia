@@ -29,12 +29,12 @@ class ClassSession extends Model
 
     public function classGroup(): BelongsTo
     {
-        return $this->belongsTo(ClassGroup::class);
+        return $this->belongsTo(ClassGroup::class)->withTrashed();
     }
 
     public function teacher(): BelongsTo
     {
-        return $this->belongsTo(Teacher::class);
+        return $this->belongsTo(Teacher::class)->withTrashed();
     }
 
     public function students(): BelongsToMany

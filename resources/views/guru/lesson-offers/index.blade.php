@@ -11,7 +11,7 @@
                         <thead>
                             <tr class="text-left text-gray-500">
                                 <th class="py-2">ID</th>
-                                <th class="py-2">Murid</th>
+                                <th class="py-2">Tingkat</th>
                                 <th class="py-2">Mapel</th>
                                 <th class="py-2">Jadwal</th>
                                 <th class="py-2">Catatan</th>
@@ -23,21 +23,36 @@
                                 @php
                                     $contact = $offer->contact_whatsapp ?: $defaultContact;
                                     $teacherName = $teacher?->name ?? auth()->user()?->name;
+
+                                    $scheduleText = '';
+                                    if ($offer->schedules) {
+                                        $parts = [];
+                                        foreach ($offer->schedules as $sch) {
+                                            $parts[] = ($sch['day'] ?? '') . ' ' . ($sch['time'] ?? '');
+                                        }
+                                        $scheduleText = implode(', ', $parts);
+                                    }
+
                                     $message = sprintf(
-                                        'Halo admin, saya %s tertarik mengambil tawaran %s untuk murid %s, mapel %s, jadwal %s %s.',
+                                        'Halo admin, saya %s tertarik mengambil tawaran %s untuk tingkat %s, mapel %s, jadwal %s.',
                                         $teacherName,
                                         $offer->code,
-                                        $offer->student?->name ?? '-',
+                                        $offer->education_level,
                                         $offer->subject,
-                                        $offer->schedule_day,
-                                        $offer->schedule_time
+                                        $scheduleText
                                     );
                                 @endphp
                                 <tr>
                                     <td class="py-2 font-medium">{{ $offer->code }}</td>
-                                    <td class="py-2">{{ $offer->student?->name ?? '-' }}</td>
+                                    <td class="py-2">{{ $offer->education_level }}</td>
                                     <td class="py-2">{{ $offer->subject }}</td>
-                                    <td class="py-2">{{ $offer->schedule_day }} {{ $offer->schedule_time }}</td>
+                                    <td class="py-2">
+                                        @if ($offer->schedules)
+                                            @foreach ($offer->schedules as $sch)
+                                                <div>{{ $sch['day'] ?? '' }} {{ $sch['time'] ?? '' }}</div>
+                                            @endforeach
+                                        @endif
+                                    </td>
                                     <td class="py-2">{{ $offer->note ?? '-' }}</td>
                                     <td class="py-2">
                                         @if ($contact)

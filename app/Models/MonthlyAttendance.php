@@ -47,7 +47,7 @@ class MonthlyAttendance extends Model
 
     public function enrollment(): BelongsTo
     {
-        return $this->belongsTo(Enrollment::class);
+        return $this->belongsTo(Enrollment::class)->withTrashed();
     }
 
     public function creator(): BelongsTo

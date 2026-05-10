@@ -16,7 +16,6 @@ class LessonOfferController extends Controller
         $offers = LessonOffer::query()
             ->where('status', 'open')
             ->orderByDesc('created_at')
-            ->with('student')
             ->get();
 
         $teacher = Teacher::query()

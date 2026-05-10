@@ -95,11 +95,15 @@
                                                 <div class="mt-2 space-y-2">
                                                     @foreach ($items as $session)
                                                         <div class="rounded-md border border-gray-200 p-2 text-xs">
-                                                            @foreach ($session->students as $student)
-                                                            <div class="font-semibold">{{ $student->name ?? '-' }}</div>
-                                                            @endforeach
-                                                            <div>{{ $session->start_time?->format('H:i') ?? '-' }} - {{ $session->end_time?->format('H:i') ?? '-' }}</div>
-                                                            <div class="text-gray-500">{{ $session->notes ?? '-' }}</div>
+                                                            <div class="font-semibold">{{ $session->start_time?->format('H:i') ?? '-' }} - {{ $session->end_time?->format('H:i') ?? '-' }}</div>
+                                                            <ul class="ml-3 list-disc">
+                                                                @foreach ($session->students as $student)
+                                                                <li>{{ $student->name }}</li>
+                                                                @endforeach
+                                                            </ul>
+                                                            @if ($session->notes)
+                                                            <div class="text-gray-500">{{ $session->notes }}</div>
+                                                            @endif
                                                             <a href="{{ route('admin.class-student-sessions.edit', $session) }}" class="text-indigo-600">Edit</a>
                                                         </div>
                                                     @endforeach

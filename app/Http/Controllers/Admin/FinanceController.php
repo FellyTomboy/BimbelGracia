@@ -34,7 +34,8 @@ class FinanceController extends Controller
             ->sum(DB::raw('enrollment_attendances.total_lessons * enrollment_attendances.teacher_rate'));
 
         $classGross = DB::table('class_student_sessions')
-            ->join('class_students', 'class_student_sessions.class_student_id', '=', 'class_students.id')
+            ->join('class_student_session_student', 'class_student_sessions.id', '=', 'class_student_session_student.class_student_session_id')
+            ->join('class_students', 'class_student_session_student.class_student_id', '=', 'class_students.id')
             ->whereMonth('class_student_sessions.session_date', $month)
             ->whereYear('class_student_sessions.session_date', $year)
             ->sum(DB::raw('class_students.rate_per_meeting'));
@@ -182,7 +183,8 @@ class FinanceController extends Controller
                 ->pluck('cost', 'year');
 
             $classGross = DB::table('class_student_sessions')
-                ->join('class_students', 'class_student_sessions.class_student_id', '=', 'class_students.id')
+                ->join('class_student_session_student', 'class_student_sessions.id', '=', 'class_student_session_student.class_student_session_id')
+                ->join('class_students', 'class_student_session_student.class_student_id', '=', 'class_students.id')
                 ->selectRaw('YEAR(class_student_sessions.session_date) as year, SUM(class_students.rate_per_meeting) as gross')
                 ->whereBetween(DB::raw('YEAR(class_student_sessions.session_date)'), [$rangeStart->year, $rangeEnd->year])
                 ->groupBy('year')
@@ -244,7 +246,8 @@ class FinanceController extends Controller
             ->keyBy(fn ($r) => sprintf('%04d-%02d', $r->year, $r->month));
 
         $classGross = DB::table('class_student_sessions')
-            ->join('class_students', 'class_student_sessions.class_student_id', '=', 'class_students.id')
+            ->join('class_student_session_student', 'class_student_sessions.id', '=', 'class_student_session_student.class_student_session_id')
+            ->join('class_students', 'class_student_session_student.class_student_id', '=', 'class_students.id')
             ->selectRaw('YEAR(class_student_sessions.session_date) as year, MONTH(class_student_sessions.session_date) as month, SUM(class_students.rate_per_meeting) as gross')
             ->where(function ($builder) use ($conditions) {
                 foreach ($conditions as $condition) {
@@ -467,7 +470,8 @@ class FinanceController extends Controller
             });
 
         $classGrossQuery = DB::table('class_student_sessions')
-            ->join('class_students', 'class_student_sessions.class_student_id', '=', 'class_students.id')
+            ->join('class_student_session_student', 'class_student_sessions.id', '=', 'class_student_session_student.class_student_session_id')
+            ->join('class_students', 'class_student_session_student.class_student_id', '=', 'class_students.id')
             ->selectRaw('YEAR(class_student_sessions.session_date) as year, MONTH(class_student_sessions.session_date) as month, SUM(class_students.rate_per_meeting) as gross')
             ->where(function ($builder) use ($conditions) {
                 foreach ($conditions as $condition) {

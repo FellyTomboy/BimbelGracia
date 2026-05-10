@@ -51,7 +51,7 @@
                         <label class="block text-sm font-medium text-gray-700">Murid (pilih beberapa)</label>
 
                         @php
-                            $oldIds = collect((array) old('class_student_ids', [$classStudentSession->class_student_id]))->map(fn ($v) => (string)$v)->values();
+                            $oldIds = collect((array) old('class_student_ids', $classStudentSession->students->pluck('id')->toArray()))->map(fn ($v) => (string)$v)->values();
                         @endphp
                         <input
                             type="text"
