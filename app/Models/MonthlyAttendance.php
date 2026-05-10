@@ -28,6 +28,8 @@ class MonthlyAttendance extends Model
         'validated_at',
         'validated_by',
         'created_by',
+        'parent_rate',
+        'teacher_rate',
     ];
 
     protected $casts = [
@@ -39,6 +41,8 @@ class MonthlyAttendance extends Model
         'status_validation' => 'string',
         'parent_payment_status' => 'string',
         'teacher_payment_status' => 'string',
+        'parent_rate' => 'integer',
+        'teacher_rate' => 'integer',
     ];
 
     public function enrollment(): BelongsTo
@@ -61,5 +65,18 @@ class MonthlyAttendance extends Model
         return $this->belongsToMany(Student::class, 'attendance_student', 'attendance_id', 'student_id')
             ->withPivot(['total_present'])
             ->withTimestamps();
+    }
+
+    protected static function booted()
+    {
+        static::creating(function ($attendance) {
+            // Store rates at time of validation for historical accuracy
+            if (! $attendance->parent_rate && $attendance->enrollment) {
+                $attendance->parent_rate = $attendance->enrollment->parent_rate;
+            }
+            if (! $attendance->teacher_rate && $attendance->enrollment) {
+                $attendance->teacher_rate = $attendance->enrollment->teacher_rate;
+            }
+        });
     }
 }

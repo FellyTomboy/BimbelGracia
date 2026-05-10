@@ -24,6 +24,8 @@ return new class extends Migration
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamp('validated_at')->nullable();
             $table->foreignId('validated_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->unsignedInteger('parent_rate')->nullable()->default(0);
+            $table->unsignedInteger('teacher_rate')->nullable()->default(0);
             $table->timestamps();
             $table->softDeletes();
 

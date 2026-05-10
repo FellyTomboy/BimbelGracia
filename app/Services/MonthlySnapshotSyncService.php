@@ -60,7 +60,11 @@ class MonthlySnapshotSyncService
             $year = (int) $p->year;
             $month = (int) $p->month;
 
-            // 1. Hitung agregat murid privat
+            // 1. Hitung agregat murid privat (historically accurate)
+            // Count students who were active during the specified month/year
+            $firstDayOfMonth = sprintf('%04d-%02d-01', $year, $month);
+            $lastDayOfMonth = date('Y-m-t', strtotime($firstDayOfMonth));
+            
             $privateStudentsCount = DB::table('enrollment_attendances')
                 ->join('enrollments', 'enrollment_attendances.enrollment_id', '=', 'enrollments.id')
                 ->join('attendance_student', 'enrollment_attendances.id', '=', 'attendance_student.attendance_id')
@@ -69,10 +73,19 @@ class MonthlySnapshotSyncService
                 ->where('students.status', 'active')
                 ->where('enrollment_attendances.month', $month)
                 ->where('enrollment_attendances.year', $year)
+                ->where('students.created_at', '<=', $lastDayOfMonth)
+                ->where(function ($query) use ($firstDayOfMonth) {
+                    $query->whereNull('students.deleted_at')
+                          ->orWhere('students.deleted_at', '>=', $firstDayOfMonth);
+                })
                 ->selectRaw('COUNT(DISTINCT attendance_student.student_id) as cnt')
                 ->value('cnt') ?? 0;
 
-            // 2. Hitung agregat guru
+            // 2. Hitung agregat guru (historically accurate)
+            // Count teachers who were active during the specified month/year
+            $firstDayOfMonth = sprintf('%04d-%02d-01', $year, $month);
+            $lastDayOfMonth = date('Y-m-t', strtotime($firstDayOfMonth));
+            
             $teachersCount = DB::table('enrollment_attendances')
                 ->join('enrollments', 'enrollment_attendances.enrollment_id', '=', 'enrollments.id')
                 ->join('teachers', 'enrollments.teacher_id', '=', 'teachers.id')
@@ -80,12 +93,25 @@ class MonthlySnapshotSyncService
                 ->where('teachers.status', 'active')
                 ->where('enrollment_attendances.month', $month)
                 ->where('enrollment_attendances.year', $year)
+                ->where('teachers.created_at', '<=', $lastDayOfMonth)
+                ->where(function ($query) use ($firstDayOfMonth) {
+                    $query->whereNull('teachers.deleted_at')
+                          ->orWhere('teachers.deleted_at', '>=', $firstDayOfMonth);
+                })
                 ->selectRaw('COUNT(DISTINCT enrollments.teacher_id) as cnt')
                 ->value('cnt') ?? 0;
 
-            // 3. Hitung agregat murid kelas
+            // 3. Hitung agregat murid kelas (historically accurate)
+            // Count students who existed during the specified month/year
+            $firstDayOfMonth = sprintf('%04d-%02d-01', $year, $month);
+            $lastDayOfMonth = date('Y-m-t', strtotime($firstDayOfMonth));
+            
             $classStudentsCount = DB::table('class_students')
-                ->where('status', 'active')
+                ->where('created_at', '<=', $lastDayOfMonth)
+                ->where(function ($query) use ($firstDayOfMonth) {
+                    $query->whereNull('deleted_at')
+                          ->orWhere('deleted_at', '>=', $firstDayOfMonth);
+                })
                 ->count();
 
             // 4. Simpan ke tabel dasbor agregat murid

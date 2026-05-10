@@ -106,8 +106,9 @@ class ClassSessionController extends Controller
         ]);
 
         $studentIds = $validated['student_ids'] ?? [];
+        // Don't automatically mark as present - require explicit attendance update
         $syncData = collect($studentIds)->mapWithKeys(function (int $studentId) {
-            return [$studentId => ['is_present' => true]];
+            return [$studentId => ['is_present' => false]]; // Default to not present
         })->all();
 
         $session->students()->sync($syncData);
@@ -158,8 +159,9 @@ class ClassSessionController extends Controller
 
         $existing = $classSession->students->pluck('pivot.is_present', 'id')->toArray();
         $studentIds = $validated['student_ids'] ?? [];
+        // Preserve existing attendance status for students not in the update
         $syncData = collect($studentIds)->mapWithKeys(function (int $studentId) use ($existing) {
-            return [$studentId => ['is_present' => $existing[$studentId] ?? true]];
+            return [$studentId => ['is_present' => $existing[$studentId] ?? false]]; // Default to not present for new students
         })->all();
 
         $classSession->students()->sync($syncData);

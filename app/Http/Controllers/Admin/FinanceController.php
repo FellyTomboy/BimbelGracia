@@ -21,19 +21,17 @@ class FinanceController extends Controller
         [$month, $year] = $this->resolvePeriod($request);
 
         $privatGross = DB::table('enrollment_attendances')
-            ->join('enrollments', 'enrollment_attendances.enrollment_id', '=', 'enrollments.id')
             ->join('attendance_student', 'enrollment_attendances.id', '=', 'attendance_student.attendance_id')
             ->where('enrollment_attendances.status_validation', 'valid')
             ->where('enrollment_attendances.month', $month)
             ->where('enrollment_attendances.year', $year)
-            ->sum(DB::raw('attendance_student.total_present * enrollments.parent_rate'));
+            ->sum(DB::raw('attendance_student.total_present * enrollment_attendances.parent_rate'));
 
         $privatTeacherCost = DB::table('enrollment_attendances')
-            ->join('enrollments', 'enrollment_attendances.enrollment_id', '=', 'enrollments.id')
             ->where('enrollment_attendances.status_validation', 'valid')
             ->where('enrollment_attendances.month', $month)
             ->where('enrollment_attendances.year', $year)
-            ->sum(DB::raw('enrollment_attendances.total_lessons * enrollments.teacher_rate'));
+            ->sum(DB::raw('enrollment_attendances.total_lessons * enrollment_attendances.teacher_rate'));
 
         $classGross = DB::table('class_student_sessions')
             ->join('class_students', 'class_student_sessions.class_student_id', '=', 'class_students.id')
@@ -470,7 +468,7 @@ class FinanceController extends Controller
 
         $classGrossQuery = DB::table('class_student_sessions')
             ->join('class_students', 'class_student_sessions.class_student_id', '=', 'class_students.id')
-            ->selectRaw('strftime("%Y", class_student_sessions.session_date) as year, strftime("%m", class_student_sessions.session_date) as month, SUM(class_students.rate_per_meeting) as gross')
+            ->selectRaw('YEAR(class_student_sessions.session_date) as year, MONTH(class_student_sessions.session_date) as month, SUM(class_students.rate_per_meeting) as gross')
             ->where(function ($builder) use ($conditions) {
                 foreach ($conditions as $condition) {
                     $builder->orWhere(function ($sub) use ($condition) {

@@ -37,7 +37,11 @@
                                     <td class="py-2">
                                         {{ $session->start_time?->format('H:i') ?? '-' }} - {{ $session->end_time?->format('H:i') ?? '-' }}
                                     </td>
-                                    <td class="py-2">{{ $session->student?->name ?? '-' }}</td>
+                                    <td class="py-2">
+                                        @foreach ($session->students as $student)
+                                            {{ $student->name ?? '-' }}<br>
+                                        @endforeach
+                                    </td>
                                     <td class="py-2">{{ $session->notes ?? '-' }}</td>
                                     <td class="py-2">active</td>
                                     <td class="py-2 flex gap-2">
