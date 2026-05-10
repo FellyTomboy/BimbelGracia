@@ -76,18 +76,27 @@ class ClassStudentSessionController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'class_student_id' => ['required', 'exists:class_students,id'],
+            'class_student_ids' => ['required', 'array', 'min:1'],
+            'class_student_ids.*' => ['required', 'exists:class_students,id'],
             'session_date' => ['required', 'date'],
             'start_time' => ['required', 'date_format:H:i'],
             'end_time' => ['nullable', 'date_format:H:i'],
             'notes' => ['nullable', 'string'],
         ]);
 
-        ClassStudentSession::create($validated);
+        $classStudentIds = $validated['class_student_ids'];
+        unset($validated['class_student_ids']);
+
+        foreach ($classStudentIds as $classStudentId) {
+            ClassStudentSession::create([
+                ...$validated,
+                'class_student_id' => (int) $classStudentId,
+            ]);
+        }
 
         return redirect()
             ->route('admin.class-student-sessions.index')
-            ->with('status', 'Jadwal murid kelas berhasil dibuat.');
+            ->with('status', 'Jadwal murid kelas berhasil dibuat untuk semua murid terpilih.');
     }
 
     public function edit(ClassStudentSession $classStudentSession): View
@@ -100,14 +109,22 @@ class ClassStudentSessionController extends Controller
     public function update(Request $request, ClassStudentSession $classStudentSession): RedirectResponse
     {
         $validated = $request->validate([
-            'class_student_id' => ['required', 'exists:class_students,id'],
+            'class_student_ids' => ['required', 'array', 'min:1'],
+            'class_student_ids.*' => ['required', 'exists:class_students,id'],
             'session_date' => ['required', 'date'],
             'start_time' => ['required', 'date_format:H:i'],
             'end_time' => ['nullable', 'date_format:H:i'],
             'notes' => ['nullable', 'string'],
         ]);
 
-        $classStudentSession->update($validated);
+        // Update session ke murid pertama yang dipilih
+        $classStudentSession->update([
+            'class_student_id' => $validated['class_student_ids'][0],
+            'session_date' => $validated['session_date'],
+            'start_time' => $validated['start_time'],
+            'end_time' => $validated['end_time'],
+            'notes' => $validated['notes'] ?? null,
+        ]);
 
         return redirect()
             ->route('admin.class-student-sessions.index')

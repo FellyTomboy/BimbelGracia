@@ -1,0 +1,6 @@
+- [ ] Update create form jadwal: multi-select murid untuk 1 tanggal-jam
+- [ ] Update controller store: jika class_student_ids[] diberikan, buat 1 record ClassStudentSession per murid
+- [ ] Refactor kalender: tampilkan 1 blok per tanggal + jam + catatan, berisi daftar nama semua murid di blok tersebut
+- [ ] Update tampilan hibernasi: jangan tampilkan '-' untuk nama; tampilkan nama tetap + badge/peringatan kecil saat murid hibernasi
+- [ ] (Opsional) Update edit form & blade terkait agar badge hibernasi tetap muncul
+- [x] Jalankan pengecekan manual: tambah jadwal untuk beberapa murid, pastikan kalender 1 blok per jam dan hibernasi tampil benar

@@ -9,12 +9,16 @@ use App\Models\Enrollment;
 use App\Models\Program;
 use App\Models\Student;
 use App\Models\Teacher;
+use App\Services\MonthlySnapshotSyncService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class EnrollmentController extends Controller
 {
+    public function __construct(private MonthlySnapshotSyncService $snapshotSyncService)
+    {
+    }
     public function index(): View
     {
         $enrollments = Enrollment::with(['program', 'teacher', 'students'])
@@ -26,7 +30,8 @@ class EnrollmentController extends Controller
 
     public function inactive(): View
     {
-        $enrollments = Enrollment::onlyTrashed()
+        $enrollments = Enrollment::withTrashed()
+            ->where('status', 'hibernasi')
             ->with(['program', 'teacher', 'students'])
             ->latest('deleted_at')
             ->get();
@@ -65,6 +70,8 @@ class EnrollmentController extends Controller
         ]);
 
         $enrollment->students()->sync($validated['student_ids']);
+
+        $this->snapshotSyncService->syncForEnrollment($enrollment);
 
         return redirect()
             ->route('admin.enrollments.index')
@@ -105,6 +112,8 @@ class EnrollmentController extends Controller
 
         $enrollment->students()->sync($validated['student_ids']);
 
+        $this->snapshotSyncService->syncForEnrollment($enrollment);
+
         return redirect()
             ->route('admin.enrollments.index')
             ->with('status', 'Enrollment berhasil diperbarui.');
@@ -112,7 +121,19 @@ class EnrollmentController extends Controller
 
     public function destroy(Enrollment $enrollment): RedirectResponse
     {
+        // simpan id untuk sink snapshot setelah delete
+        $enrollmentId = $enrollment->id;
+
+        $enrollment->update([
+            'status' => 'hibernasi',
+        ]);
+
         $enrollment->delete();
+
+        $fresh = Enrollment::withTrashed()->find($enrollmentId);
+        if ($fresh) {
+            $this->snapshotSyncService->syncForEnrollment($fresh);
+        }
 
         return redirect()
             ->route('admin.enrollments.index')
@@ -124,8 +145,15 @@ class EnrollmentController extends Controller
         $enrollment = Enrollment::withTrashed()->findOrFail($enrollmentId);
         $enrollment->restore();
 
+        $enrollment->update([
+            'status' => 'active',
+        ]);
+
+        $this->snapshotSyncService->syncForEnrollment($enrollment);
+
         return redirect()
             ->route('admin.enrollments.index')
             ->with('status', 'Enrollment berhasil dipulihkan.');
     }
+
 }

@@ -42,11 +42,33 @@
             <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden">
                 <div class="p-6 text-gray-900 overflow-x-auto">
                     @php
+                        // Grouping supaya 1 blok per tanggal + jam sesi + catatan,
+                        // isi blok berupa semua murid dalam session tersebut.
                         $startOffset = $firstDayOfWeek - 1;
                         $totalCells = $startOffset + $daysInMonth;
                         $rows = (int) ceil($totalCells / 7);
                         $day = 1;
                         $dayNames = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+
+                        $sessionsGrouped = collect();
+                        foreach ($sessionsByDate as $dateKey => $items) {
+                            foreach ($items as $session) {
+                                $start = $session->start_time?->format('H:i') ?? '';
+                                $end = $session->end_time?->format('H:i') ?? '';
+                                $notesKey = (string) ($session->notes ?? '');
+                                $key = $dateKey . '|' . $start . '|' . $end . '|' . $notesKey;
+
+                                $sessionsGrouped[$key] ??= [
+                                    'dateKey' => $dateKey,
+                                    'start_time' => $start,
+                                    'end_time' => $end,
+                                    'notes' => $session->notes ?? null,
+                                    'sessions' => collect(),
+                                ];
+
+                                $sessionsGrouped[$key]['sessions']->push($session);
+                            }
+                        }
                     @endphp
 
                     <table class="min-w-full text-sm border-collapse">

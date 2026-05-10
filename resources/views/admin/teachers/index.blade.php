@@ -4,6 +4,14 @@
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">Guru</h2>
             <div class="flex items-center gap-3">
                 <a href="{{ route('admin.teachers.inactive') }}" class="px-4 py-2 rounded-md border text-sm">Data tidak aktif</a>
+
+                <form method="POST" action="{{ route('admin.finance.snapshot.teachers') }}">
+                    @csrf
+                    <button type="submit" class="px-4 py-2 rounded-md border text-sm">
+                        Snapshot jumlah guru
+                    </button>
+                </form>
+
                 <a href="{{ route('admin.teachers.create') }}" class="px-4 py-2 rounded-md bg-slate-900 text-white text-sm">Tambah Guru</a>
             </div>
         </div>

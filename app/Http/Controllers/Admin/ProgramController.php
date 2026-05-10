@@ -5,13 +5,19 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Enrollment;
 use App\Models\Program;
+use App\Services\MonthlySnapshotSyncService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class ProgramController extends Controller
 {
+    public function __construct(private MonthlySnapshotSyncService $snapshotSyncService)
+    {
+    }
     public function index(): View
     {
         $programs = Program::query()
@@ -23,7 +29,8 @@ class ProgramController extends Controller
 
     public function inactive(): View
     {
-        $programs = Program::onlyTrashed()
+        $programs = Program::withTrashed()
+            ->where('status', 'hibernasi')
             ->latest('deleted_at')
             ->get();
 
@@ -80,7 +87,23 @@ class ProgramController extends Controller
 
     public function destroy(Program $program): RedirectResponse
     {
+        $program->update([
+            'status' => 'hibernasi',
+        ]);
+
         $program->delete();
+
+        $enrollmentIds = DB::table('enrollments')
+            ->where('program_id', $program->id)
+            ->distinct()
+            ->pluck('id');
+
+        foreach ($enrollmentIds as $enrollmentId) {
+            $enrollment = Enrollment::withTrashed()->find($enrollmentId);
+            if ($enrollment) {
+                $this->snapshotSyncService->syncForEnrollment($enrollment);
+            }
+        }
 
         return redirect()
             ->route('admin.programs.index')
@@ -90,7 +113,24 @@ class ProgramController extends Controller
     public function restore(int $programId): RedirectResponse
     {
         $program = Program::withTrashed()->findOrFail($programId);
+
         $program->restore();
+
+        $program->update([
+            'status' => 'active',
+        ]);
+
+        $enrollmentIds = DB::table('enrollments')
+            ->where('program_id', $program->id)
+            ->distinct()
+            ->pluck('id');
+
+        foreach ($enrollmentIds as $enrollmentId) {
+            $enrollment = Enrollment::withTrashed()->find($enrollmentId);
+            if ($enrollment) {
+                $this->snapshotSyncService->syncForEnrollment($enrollment);
+            }
+        }
 
         return redirect()
             ->route('admin.programs.index')

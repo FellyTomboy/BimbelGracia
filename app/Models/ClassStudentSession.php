@@ -15,7 +15,7 @@ class ClassStudentSession extends Model
     use HasFactory, SoftDeletes, Auditable;
 
     protected $fillable = [
-        'class_student_id',
+        'class_student_ids',
         'session_date',
         'start_time',
         'end_time',
@@ -23,13 +23,9 @@ class ClassStudentSession extends Model
     ];
 
     protected $casts = [
+        'class_student_ids' => 'array',
         'session_date' => 'date',
         'start_time' => 'datetime:H:i',
         'end_time' => 'datetime:H:i',
     ];
-
-    public function student(): BelongsTo
-    {
-        return $this->belongsTo(ClassStudent::class, 'class_student_id');
-    }
 }

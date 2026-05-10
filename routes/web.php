@@ -136,6 +136,11 @@ Route::middleware(['auth', 'password.force'])->group(function () {
             Route::get('finance', [FinanceController::class, 'index'])
                 ->name('finance.index');
 
+            Route::post('finance/snapshot/students', [FinanceController::class, 'snapshotStudents'])
+                ->name('finance.snapshot.students');
+            Route::post('finance/snapshot/teachers', [FinanceController::class, 'snapshotTeachers'])
+                ->name('finance.snapshot.teachers');
+
             Route::get('class-reports', [ClassReportController::class, 'index'])
                 ->name('class-reports.index');
 

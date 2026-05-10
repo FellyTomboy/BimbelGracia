@@ -6,6 +6,9 @@ use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\Teacher;
 use App\Models\User;
+use App\Models\Enrollment;
+use App\Services\MonthlySnapshotSyncService;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -13,6 +16,9 @@ use Illuminate\View\View;
 
 class TeacherController extends Controller
 {
+    public function __construct(private MonthlySnapshotSyncService $snapshotSyncService)
+    {
+    }
     public function index(): View
     {
         $teachers = Teacher::with('user')
@@ -24,7 +30,8 @@ class TeacherController extends Controller
 
     public function inactive(): View
     {
-        $teachers = Teacher::onlyTrashed()
+        $teachers = Teacher::withTrashed()
+            ->where('status', 'hibernasi')
             ->with('user')
             ->latest('deleted_at')
             ->get();
@@ -130,7 +137,23 @@ class TeacherController extends Controller
 
     public function destroy(Teacher $teacher): RedirectResponse
     {
+        $teacher->update([
+            'status' => 'hibernasi',
+        ]);
+
         $teacher->delete();
+
+        $enrollmentIds = DB::table('enrollments')
+            ->where('teacher_id', $teacher->id)
+            ->distinct()
+            ->pluck('id');
+
+        foreach ($enrollmentIds as $enrollmentId) {
+            $enrollment = Enrollment::withTrashed()->find($enrollmentId);
+            if ($enrollment) {
+                $this->snapshotSyncService->syncForEnrollment($enrollment);
+            }
+        }
 
         return redirect()
             ->route('admin.teachers.index')
@@ -140,7 +163,24 @@ class TeacherController extends Controller
     public function restore(int $teacherId): RedirectResponse
     {
         $teacher = Teacher::withTrashed()->findOrFail($teacherId);
+
         $teacher->restore();
+
+        $teacher->update([
+            'status' => 'active',
+        ]);
+
+        $enrollmentIds = DB::table('enrollments')
+            ->where('teacher_id', $teacher->id)
+            ->distinct()
+            ->pluck('id');
+
+        foreach ($enrollmentIds as $enrollmentId) {
+            $enrollment = Enrollment::withTrashed()->find($enrollmentId);
+            if ($enrollment) {
+                $this->snapshotSyncService->syncForEnrollment($enrollment);
+            }
+        }
 
         return redirect()
             ->route('admin.teachers.index')

@@ -15,6 +15,7 @@ class ClassStudentController extends Controller
     public function index(): View
     {
         $students = ClassStudent::query()
+            ->where('status', 'active')
             ->orderBy('name')
             ->get();
 
@@ -23,7 +24,8 @@ class ClassStudentController extends Controller
 
     public function inactive(): View
     {
-        $students = ClassStudent::onlyTrashed()
+        $students = ClassStudent::withTrashed()
+            ->where('status', 'hibernasi')
             ->orderBy('deleted_at', 'desc')
             ->get();
 
@@ -78,6 +80,10 @@ class ClassStudentController extends Controller
 
     public function destroy(ClassStudent $classStudent): RedirectResponse
     {
+        $classStudent->update([
+            'status' => 'hibernasi',
+        ]);
+
         $classStudent->delete();
 
         return redirect()
@@ -89,6 +95,10 @@ class ClassStudentController extends Controller
     {
         $classStudent = ClassStudent::withTrashed()->findOrFail($classStudentId);
         $classStudent->restore();
+
+        $classStudent->update([
+            'status' => 'active',
+        ]);
 
         return redirect()
             ->route('admin.class-students.index')

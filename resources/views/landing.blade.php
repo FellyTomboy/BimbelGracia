@@ -72,6 +72,7 @@
                 <a href="#testimoni" class="text-sm text-white/80 hover:text-white">Testimoni</a>
                 <a href="#kontak" class="text-sm text-white/80 hover:text-white">Kontak</a>
                 <a href="{{ route('login') }}" class="px-4 py-2 rounded-full bg-white text-[color:var(--bg-deep)] font-semibold shadow-lg">Login</a>
+
             </div>
         </header>
 
