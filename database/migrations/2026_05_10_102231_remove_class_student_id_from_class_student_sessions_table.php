@@ -12,9 +12,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('class_student_sessions', function (Blueprint $table) {
-            // Drop foreign key constraint first before dropping the column
-            $table->dropForeign(['class_student_id']);
-            $table->dropColumn('class_student_id');
+            if (Schema::hasColumn('class_student_sessions', 'class_student_id')) {
+                // Drop foreign key constraint first before dropping the column
+                $table->dropForeign(['class_student_id']);
+                $table->dropColumn('class_student_id');
+            }
         });
     }
 
@@ -24,7 +26,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('class_student_sessions', function (Blueprint $table) {
-            $table->foreignId('class_student_id')->constrained('class_students')->cascadeOnDelete();
+            if (! Schema::hasColumn('class_student_sessions', 'class_student_id')) {
+                $table->foreignId('class_student_id')->constrained('class_students')->cascadeOnDelete();
+            }
         });
     }
 };

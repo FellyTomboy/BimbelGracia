@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Enrollment;
 use App\Models\Program;
 use App\Services\MonthlySnapshotSyncService;
+use App\Traits\SearchAndSort;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,14 +16,26 @@ use Illuminate\View\View;
 
 class ProgramController extends Controller
 {
+    use SearchAndSort;
+
     public function __construct(private MonthlySnapshotSyncService $snapshotSyncService)
     {
     }
-    public function index(): View
+    public function index(Request $request): View
     {
-        $programs = Program::query()
-            ->latest()
-            ->get();
+        $params = $this->getSearchSortParams($request);
+
+        $programs = Program::query();
+
+        $programs = $this->applySearch($programs, $params['search'], [
+            'name', 'type', 'subject', 'status',
+        ]);
+
+        $programs = $this->applySort($programs, $params['sort'], $params['direction'], [
+            'name', 'type', 'status', 'default_parent_rate', 'default_teacher_rate', 'created_at',
+        ]);
+
+        $programs = $programs->paginate(20)->withQueryString();
 
         return view('admin.programs.index', compact('programs'));
     }

@@ -37,8 +37,10 @@ return new class extends Migration
             $table->foreign('validated_by')->references('id')->on('users')->nullOnDelete();
         });
 
-        // Change status_validation via raw SQL
-        DB::statement("ALTER TABLE enrollment_attendances MODIFY COLUMN status_validation VARCHAR(20) NOT NULL DEFAULT 'pending'");
+        // Change status_validation via raw SQL only for databases that support MODIFY COLUMN.
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE enrollment_attendances MODIFY COLUMN status_validation VARCHAR(20) NOT NULL DEFAULT 'pending'");
+        }
     }
 
     public function down(): void

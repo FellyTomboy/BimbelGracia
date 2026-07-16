@@ -31,7 +31,31 @@ class ClassStudentSessionController extends Controller
             ->orderBy('start_time')
             ->get();
 
-        $sessionsByDate = $sessions->groupBy(fn ($session) => $session->session_date->format('Y-m-d'));
+        $sessionsByDate = $sessions
+            ->groupBy(fn ($session) => $session->session_date->format('Y-m-d'))
+            ->map(function ($items) {
+                return $items
+                    ->groupBy(function ($session) {
+                        return implode('|', [
+                            $session->session_date->format('Y-m-d'),
+                            $session->start_time?->format('H:i') ?? '',
+                            $session->end_time?->format('H:i') ?? '',
+                            (string) ($session->notes ?? ''),
+                        ]);
+                    })
+                    ->map(function ($groupedItems) {
+                        $first = $groupedItems->first();
+
+                        return [
+                            'session' => $first,
+                            'students' => $groupedItems
+                                ->flatMap(fn ($session) => $session->students)
+                                ->unique('id')
+                                ->values(),
+                        ];
+                    })
+                    ->values();
+            });
         $students = ClassStudent::orderBy('name')->get();
 
         return view('admin.class-student-sessions.calendar', [

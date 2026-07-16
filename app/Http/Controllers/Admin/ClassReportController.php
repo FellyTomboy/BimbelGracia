@@ -17,10 +17,11 @@ class ClassReportController extends Controller
         [$month, $year] = $this->resolvePeriod($request);
 
         $studentRows = DB::table('class_student_sessions')
-            ->where('session_date', '>=', Carbon::create($year, $month, 1)->startOfMonth())
-            ->where('session_date', '<=', Carbon::create($year, $month, 1)->endOfMonth())
-            ->selectRaw('class_student_id, COUNT(*) as total')
-            ->groupBy('class_student_id')
+            ->join('class_student_session_student', 'class_student_sessions.id', '=', 'class_student_session_student.class_student_session_id')
+            ->where('class_student_sessions.session_date', '>=', Carbon::create($year, $month, 1)->startOfMonth())
+            ->where('class_student_sessions.session_date', '<=', Carbon::create($year, $month, 1)->endOfMonth())
+            ->selectRaw('class_student_session_student.class_student_id, COUNT(*) as total')
+            ->groupBy('class_student_session_student.class_student_id')
             ->get();
 
         $studentTotals = $studentRows->pluck('total', 'class_student_id');
@@ -36,7 +37,7 @@ class ClassReportController extends Controller
             ->where('enrollment_attendances.month', $month)
             ->where('enrollment_attendances.year', $year)
             ->where('programs.type', 'kelas')
-            ->selectRaw('enrollments.teacher_id, SUM(enrollment_attendances.total_lessons) as total')
+            ->selectRaw('enrollments.teacher_id, COUNT(*) as total')
             ->groupBy('enrollments.teacher_id')
             ->get();
 

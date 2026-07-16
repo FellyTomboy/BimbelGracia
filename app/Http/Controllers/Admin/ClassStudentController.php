@@ -6,18 +6,31 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ClassStudent;
+use App\Traits\SearchAndSort;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class ClassStudentController extends Controller
 {
-    public function index(): View
+    use SearchAndSort;
+
+    public function index(Request $request): View
     {
+        $params = $this->getSearchSortParams($request);
+
         $students = ClassStudent::query()
-            ->where('status', 'active')
-            ->orderBy('name')
-            ->get();
+            ->where('status', 'active');
+
+        $students = $this->applySearch($students, $params['search'], [
+            'name', 'whatsapp_primary', 'whatsapp_secondary', 'status',
+        ]);
+
+        $students = $this->applySort($students, $params['sort'], $params['direction'], [
+            'name', 'rate_per_meeting', 'status', 'created_at',
+        ]);
+
+        $students = $students->paginate(20)->withQueryString();
 
         return view('admin.class-students.index', compact('students'));
     }

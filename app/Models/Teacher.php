@@ -70,16 +70,6 @@ class Teacher extends Model
         return $this->hasMany(ClassSession::class);
     }
 
-    public function monthlyAttendances(): HasMany
-    {
-        return $this->hasMany(MonthlyAttendance::class);
-    }
-
-    public function classTeacherSessions(): HasMany
-    {
-        return $this->hasMany(ClassTeacherSession::class);
-    }
-
     protected static function booted()
     {
         static::saved(function () {

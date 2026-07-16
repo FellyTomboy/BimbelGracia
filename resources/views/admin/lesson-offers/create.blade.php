@@ -11,8 +11,7 @@
 
                     <div>
                         <label class="block text-sm font-medium text-gray-700">ID Tawaran</label>
-                        <input name="code" value="{{ old('code') }}" class="mt-1 w-full border-gray-300 rounded-md" required />
-                        @error('code')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                        <input value="Auto-generated" class="mt-1 w-full border-gray-300 rounded-md bg-gray-50 text-gray-500" disabled />
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Tingkat Pendidikan</label>

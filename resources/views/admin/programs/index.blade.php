@@ -18,20 +18,23 @@
             @endif
             <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden">
                 <div class="p-6 text-gray-900 overflow-x-auto">
+                    <div class="mb-4">
+                        <x-search-form placeholder="Cari nama, tipe, mapel..." />
+                    </div>
                     <table class="min-w-full text-sm">
                         <thead>
                             <tr class="text-left text-gray-500">
-                                <th class="py-2">Nama</th>
-                                <th class="py-2">Tipe</th>
+                                <x-sortable-header label="Nama" column="name" />
+                                <x-sortable-header label="Tipe" column="type" />
                                 <th class="py-2">Mapel</th>
-                                <th class="py-2">Harga Ortu</th>
-                                <th class="py-2">Gaji Guru</th>
-                                <th class="py-2">Status</th>
+                                <x-sortable-header label="Harga Ortu" column="default_parent_rate" />
+                                <x-sortable-header label="Gaji Guru" column="default_teacher_rate" />
+                                <x-sortable-header label="Status" column="status" />
                                 <th class="py-2">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y">
-                            @foreach ($programs as $program)
+                            @forelse ($programs as $program)
                                 <tr>
                                     <td class="py-2 font-medium">{{ $program->name }}</td>
                                     <td class="py-2">{{ $program->type }}</td>
@@ -48,9 +51,16 @@
                                         </form>
                                     </td>
                                 </tr>
-                            @endforeach
+                            @empty
+                                <tr>
+                                    <td colspan="7" class="py-8 text-center text-gray-500">Tidak ada program ditemukan.</td>
+                                </tr>
+                            @endforelse
                         </tbody>
                     </table>
+                    <div class="mt-4">
+                        {{ $programs->links() }}
+                    </div>
                 </div>
             </div>
         </div>

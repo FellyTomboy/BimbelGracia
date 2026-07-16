@@ -18,19 +18,22 @@
             @endif
             <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden">
                 <div class="p-6 text-gray-900 overflow-x-auto">
+                    <div class="mb-4">
+                        <x-search-form placeholder="Cari nama, WA..." />
+                    </div>
                     <table class="min-w-full text-sm">
                         <thead>
                             <tr class="text-left text-gray-500">
-                                <th class="py-2">Nama</th>
+                                <x-sortable-header label="Nama" column="name" />
                                 <th class="py-2">WA Utama</th>
                                 <th class="py-2">WA Cadangan</th>
-                                <th class="py-2">Tarif / Pertemuan</th>
-                                <th class="py-2">Status</th>
+                                <x-sortable-header label="Tarif / Pertemuan" column="rate_per_meeting" />
+                                <x-sortable-header label="Status" column="status" />
                                 <th class="py-2">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y">
-                            @foreach ($students as $student)
+                            @forelse ($students as $student)
                                 <tr>
                                     <td class="py-2 font-medium">{{ $student->name }}</td>
                                     <td class="py-2">{{ $student->whatsapp_primary ?? '-' }}</td>
@@ -46,9 +49,16 @@
                                         </form>
                                     </td>
                                 </tr>
-                            @endforeach
+                            @empty
+                                <tr>
+                                    <td colspan="6" class="py-8 text-center text-gray-500">Tidak ada murid kelas bersama ditemukan.</td>
+                                </tr>
+                            @endforelse
                         </tbody>
                     </table>
+                    <div class="mt-4">
+                        {{ $students->links() }}
+                    </div>
                 </div>
             </div>
         </div>

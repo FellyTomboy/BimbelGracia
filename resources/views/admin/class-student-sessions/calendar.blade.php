@@ -49,26 +49,6 @@
                         $rows = (int) ceil($totalCells / 7);
                         $day = 1;
                         $dayNames = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
-
-                        $sessionsGrouped = collect();
-                        foreach ($sessionsByDate as $dateKey => $items) {
-                            foreach ($items as $session) {
-                                $start = $session->start_time?->format('H:i') ?? '';
-                                $end = $session->end_time?->format('H:i') ?? '';
-                                $notesKey = (string) ($session->notes ?? '');
-                                $key = $dateKey . '|' . $start . '|' . $end . '|' . $notesKey;
-
-                                $sessionsGrouped[$key] ??= [
-                                    'dateKey' => $dateKey,
-                                    'start_time' => $start,
-                                    'end_time' => $end,
-                                    'notes' => $session->notes ?? null,
-                                    'sessions' => collect(),
-                                ];
-
-                                $sessionsGrouped[$key]['sessions']->push($session);
-                            }
-                        }
                     @endphp
 
                     <table class="min-w-full text-sm border-collapse">
@@ -93,18 +73,24 @@
                                             @if ($inMonth)
                                                 <div class="text-xs font-semibold text-gray-500">{{ $day }}</div>
                                                 <div class="mt-2 space-y-2">
-                                                    @foreach ($items as $session)
+                                                    @foreach ($items as $block)
+                                                        @php $session = $block['session']; @endphp
                                                         <div class="rounded-md border border-gray-200 p-2 text-xs">
                                                             <div class="font-semibold">{{ $session->start_time?->format('H:i') ?? '-' }} - {{ $session->end_time?->format('H:i') ?? '-' }}</div>
-                                                            <ul class="ml-3 list-disc">
-                                                                @foreach ($session->students as $student)
-                                                                <li>{{ $student->name }}</li>
+                                                            <ul class="mt-1 space-y-1">
+                                                                @foreach ($block['students'] as $student)
+                                                                <li class="flex items-center gap-2">
+                                                                    <x-hibernated-label :model="$student" :label="$student->name" type="murid kelas" />
+                                                                    @if (($student->status ?? '') === 'hibernasi')
+                                                                        <span class="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">Hibernasi</span>
+                                                                    @endif
+                                                                </li>
                                                                 @endforeach
                                                             </ul>
                                                             @if ($session->notes)
-                                                            <div class="text-gray-500">{{ $session->notes }}</div>
+                                                            <div class="mt-1 text-gray-500">{{ $session->notes }}</div>
                                                             @endif
-                                                            <a href="{{ route('admin.class-student-sessions.edit', $session) }}" class="text-indigo-600">Edit</a>
+                                                            <a href="{{ route('admin.class-student-sessions.edit', $session) }}" class="mt-1 inline-block text-indigo-600">Edit</a>
                                                         </div>
                                                     @endforeach
                                                     @if ($items->isEmpty())

@@ -18,21 +18,24 @@
             @endif
             <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden">
                 <div class="p-6 text-gray-900 overflow-x-auto">
+                    <div class="mb-4">
+                        <x-search-form placeholder="Cari ID, tingkat, mapel..." />
+                    </div>
                     <table class="min-w-full text-sm">
                         <thead>
                             <tr class="text-left text-gray-500">
-                                <th class="py-2">ID</th>
-                                <th class="py-2">Tingkat</th>
-                                <th class="py-2">Mapel</th>
+                                <x-sortable-header label="ID" column="code" />
+                                <x-sortable-header label="Tingkat" column="education_level" />
+                                <x-sortable-header label="Mapel" column="subject" />
                                 <th class="py-2">Jadwal</th>
-                                <th class="py-2">Status</th>
+                                <x-sortable-header label="Status" column="status" />
                                 <th class="py-2">Kontak WA</th>
                                 <th class="py-2">Catatan</th>
                                 <th class="py-2">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y">
-                            @foreach ($offers as $offer)
+                            @forelse ($offers as $offer)
                                 <tr>
                                     <td class="py-2 font-medium">{{ $offer->code }}</td>
                                     <td class="py-2">{{ $offer->education_level }}</td>
@@ -56,9 +59,16 @@
                                         </form>
                                     </td>
                                 </tr>
-                            @endforeach
+                            @empty
+                                <tr>
+                                    <td colspan="8" class="py-8 text-center text-gray-500">Tidak ada tawaran les ditemukan.</td>
+                                </tr>
+                            @endforelse
                         </tbody>
                     </table>
+                    <div class="mt-4">
+                        {{ $offers->links() }}
+                    </div>
                 </div>
             </div>
         </div>

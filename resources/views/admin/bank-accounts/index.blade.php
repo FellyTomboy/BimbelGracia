@@ -18,18 +18,21 @@
             @endif
             <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden">
                 <div class="p-6 text-gray-900 overflow-x-auto">
+                    <div class="mb-4">
+                        <x-search-form placeholder="Cari bank, no rekening, pemilik..." />
+                    </div>
                     <table class="min-w-full text-sm">
                         <thead>
                             <tr class="text-left text-gray-500">
-                                <th class="py-2">Bank</th>
+                                <x-sortable-header label="Bank" column="bank_name" />
                                 <th class="py-2">No Rekening</th>
                                 <th class="py-2">Pemilik</th>
-                                <th class="py-2">Status</th>
+                                <x-sortable-header label="Status" column="status" />
                                 <th class="py-2">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y">
-                            @foreach ($accounts as $account)
+                            @forelse ($accounts as $account)
                                 <tr>
                                     <td class="py-2 font-medium">{{ $account->bank_name }}</td>
                                     <td class="py-2">{{ $account->account_number }}</td>
@@ -44,9 +47,16 @@
                                         </form>
                                     </td>
                                 </tr>
-                            @endforeach
+                            @empty
+                                <tr>
+                                    <td colspan="5" class="py-8 text-center text-gray-500">Tidak ada rekening ditemukan.</td>
+                                </tr>
+                            @endforelse
                         </tbody>
                     </table>
+                    <div class="mt-4">
+                        {{ $accounts->links() }}
+                    </div>
                 </div>
             </div>
         </div>

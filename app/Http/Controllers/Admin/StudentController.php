@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Student;
 use App\Models\User;
 use App\Services\MonthlySnapshotSyncService;
+use App\Traits\SearchAndSort;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,14 +17,30 @@ use Illuminate\View\View;
 
 class StudentController extends Controller
 {
+    use SearchAndSort;
+
     public function __construct(private MonthlySnapshotSyncService $snapshotSyncService)
     {
     }
-    public function index(): View
+    public function index(Request $request): View
     {
-        $students = Student::with(['user', 'teachers'])
-            ->latest()
-            ->get();
+        $params = $this->getSearchSortParams($request);
+
+        $students = Student::with(['user', 'teachers']);
+
+        $students = $this->applySearch($students, $params['search'], [
+            'students.name',
+            'user.email',
+            'students.whatsapp_primary',
+            'students.whatsapp_secondary',
+            'students.status',
+        ]);
+
+        $students = $this->applySort($students, $params['sort'], $params['direction'], [
+            'students.name', 'students.status', 'students.created_at',
+        ]);
+
+        $students = $students->paginate(20)->withQueryString();
 
         return view('admin.students.index', compact('students'));
     }

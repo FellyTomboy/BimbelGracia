@@ -11,8 +11,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('enrollment_attendances', function (Blueprint $table) {
-            $table->unsignedInteger('parent_rate')->nullable()->default(0)->after('validated_by');
-            $table->unsignedInteger('teacher_rate')->nullable()->default(0)->after('parent_rate');
+            if (! Schema::hasColumn('enrollment_attendances', 'parent_rate')) {
+                $table->unsignedInteger('parent_rate')->nullable()->default(0)->after('validated_by');
+            }
+
+            if (! Schema::hasColumn('enrollment_attendances', 'teacher_rate')) {
+                $table->unsignedInteger('teacher_rate')->nullable()->default(0)->after('parent_rate');
+            }
         });
     }
 

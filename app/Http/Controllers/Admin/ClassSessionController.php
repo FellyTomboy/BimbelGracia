@@ -7,6 +7,7 @@ use App\Models\ClassGroup;
 use App\Models\ClassSession;
 use App\Models\Student;
 use App\Models\Teacher;
+use App\Traits\SearchAndSort;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -14,12 +15,26 @@ use Illuminate\View\View;
 
 class ClassSessionController extends Controller
 {
-    public function index(): View
+    use SearchAndSort;
+
+    public function index(Request $request): View
     {
+        $params = $this->getSearchSortParams($request);
+
         $sessions = ClassSession::with(['classGroup', 'teacher'])
-            ->withCount('students')
-            ->latest('session_date')
-            ->get();
+            ->withCount('students');
+
+        $sessions = $this->applySearch($sessions, $params['search'], [
+            'class_sessions.subject',
+            'class_group.name',
+            'teacher.name',
+        ]);
+
+        $sessions = $this->applySort($sessions, $params['sort'], $params['direction'], [
+            'class_sessions.session_date', 'class_sessions.session_time', 'class_sessions.subject', 'class_sessions.created_at',
+        ]);
+
+        $sessions = $sessions->paginate(20)->withQueryString();
 
         return view('admin.class-sessions.index', compact('sessions'));
     }

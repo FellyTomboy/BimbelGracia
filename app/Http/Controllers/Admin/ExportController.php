@@ -447,8 +447,7 @@ class ExportController extends Controller
 
     private function classSessionsData(): array
     {
-        $rows = ClassSession::withTrashed()
-            ->with(['classGroup', 'teacher', 'students'])
+        $rows = ClassSession::with(['classGroup', 'teacher', 'students'])
             ->orderByDesc('session_date')
             ->get()
             ->map(function (ClassSession $session) {
@@ -460,7 +459,7 @@ class ExportController extends Controller
                     $session->teacher?->name,
                     $session->subject,
                     $session->students->count(),
-                    $session->deleted_at ? 'hibernasi' : 'active',
+                    'active',
                 ];
             })
             ->all();

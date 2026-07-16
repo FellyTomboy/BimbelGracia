@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 return [
-    'default_password' => '12345678',
+    'default_password' => 'password',
     'admin_whatsapp' => env('BIMBEL_ADMIN_WHATSAPP'),
     'payment_accounts' => [
         [

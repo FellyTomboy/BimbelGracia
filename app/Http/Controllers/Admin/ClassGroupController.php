@@ -6,18 +6,33 @@ use App\Http\Controllers\Controller;
 use App\Models\ClassGroup;
 use App\Models\Student;
 use App\Models\Teacher;
+use App\Traits\SearchAndSort;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class ClassGroupController extends Controller
 {
-    public function index(): View
+    use SearchAndSort;
+
+    public function index(Request $request): View
     {
+        $params = $this->getSearchSortParams($request);
+
         $groups = ClassGroup::with(['teacher', 'students'])
-            ->withTrashed()
-            ->latest()
-            ->get();
+            ->withTrashed();
+
+        $groups = $this->applySearch($groups, $params['search'], [
+            'class_groups.name',
+            'class_groups.subject',
+            'teacher.name',
+        ]);
+
+        $groups = $this->applySort($groups, $params['sort'], $params['direction'], [
+            'class_groups.name', 'class_groups.subject', 'class_groups.created_at',
+        ]);
+
+        $groups = $groups->paginate(20)->withQueryString();
 
         return view('admin.class-groups.index', compact('groups'));
     }

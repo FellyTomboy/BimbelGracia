@@ -15,11 +15,14 @@
             @endif
             <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden">
                 <div class="p-6 text-gray-900 overflow-x-auto">
+                    <div class="mb-4">
+                        <x-search-form placeholder="Cari nama kelas, mapel, guru..." />
+                    </div>
                     <table class="min-w-full text-sm">
                         <thead>
                             <tr class="text-left text-gray-500">
-                                <th class="py-2">Nama Kelas</th>
-                                <th class="py-2">Mapel</th>
+                                <x-sortable-header label="Nama Kelas" column="class_groups.name" />
+                                <x-sortable-header label="Mapel" column="class_groups.subject" />
                                 <th class="py-2">Guru</th>
                                 <th class="py-2">Murid</th>
                                 <th class="py-2">Status</th>
@@ -27,7 +30,7 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y">
-                            @foreach ($groups as $group)
+                            @forelse ($groups as $group)
                                 <tr>
                                     <td class="py-2 font-medium">{{ $group->name }}</td>
                                     <td class="py-2">{{ $group->subject ?? '-' }}</td>
@@ -52,9 +55,16 @@
                                         @endif
                                     </td>
                                 </tr>
-                            @endforeach
+                            @empty
+                                <tr>
+                                    <td colspan="6" class="py-8 text-center text-gray-500">Tidak ada kelas bersama ditemukan.</td>
+                                </tr>
+                            @endforelse
                         </tbody>
                     </table>
+                    <div class="mt-4">
+                        {{ $groups->links() }}
+                    </div>
                 </div>
             </div>
         </div>

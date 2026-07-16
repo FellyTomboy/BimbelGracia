@@ -10,20 +10,35 @@ use App\Models\Program;
 use App\Models\Student;
 use App\Models\Teacher;
 use App\Services\MonthlySnapshotSyncService;
+use App\Traits\SearchAndSort;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class EnrollmentController extends Controller
 {
+    use SearchAndSort;
+
     public function __construct(private MonthlySnapshotSyncService $snapshotSyncService)
     {
     }
-    public function index(): View
+    public function index(Request $request): View
     {
-        $enrollments = Enrollment::with(['program', 'teacher', 'students'])
-            ->latest()
-            ->get();
+        $params = $this->getSearchSortParams($request);
+
+        $enrollments = Enrollment::with(['program', 'teacher', 'students']);
+
+        $enrollments = $this->applySearch($enrollments, $params['search'], [
+            'program.name',
+            'teacher.name',
+            'enrollments.status',
+        ]);
+
+        $enrollments = $this->applySort($enrollments, $params['sort'], $params['direction'], [
+            'enrollments.parent_rate', 'enrollments.teacher_rate', 'enrollments.validation_status', 'enrollments.status', 'enrollments.created_at',
+        ]);
+
+        $enrollments = $enrollments->paginate(20)->withQueryString();
 
         return view('admin.enrollments.index', compact('enrollments'));
     }

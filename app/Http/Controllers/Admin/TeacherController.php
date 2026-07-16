@@ -8,6 +8,7 @@ use App\Models\Teacher;
 use App\Models\User;
 use App\Models\Enrollment;
 use App\Services\MonthlySnapshotSyncService;
+use App\Traits\SearchAndSort;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,14 +17,31 @@ use Illuminate\View\View;
 
 class TeacherController extends Controller
 {
+    use SearchAndSort;
+
     public function __construct(private MonthlySnapshotSyncService $snapshotSyncService)
     {
     }
-    public function index(): View
+    public function index(Request $request): View
     {
-        $teachers = Teacher::with('user')
-            ->latest()
-            ->get();
+        $params = $this->getSearchSortParams($request);
+
+        $teachers = Teacher::with('user');
+
+        $teachers = $this->applySearch($teachers, $params['search'], [
+            'teachers.name',
+            'user.email',
+            'teachers.whatsapp_number',
+            'teachers.major',
+            'teachers.subjects',
+            'teachers.status',
+        ]);
+
+        $teachers = $this->applySort($teachers, $params['sort'], $params['direction'], [
+            'teachers.name', 'teachers.class_rate', 'teachers.status', 'teachers.created_at',
+        ]);
+
+        $teachers = $teachers->paginate(20)->withQueryString();
 
         return view('admin.teachers.index', compact('teachers'));
     }

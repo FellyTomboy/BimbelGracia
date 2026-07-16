@@ -18,20 +18,23 @@
             @endif
             <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden">
                 <div class="p-6 text-gray-900 overflow-x-auto">
+                    <div class="mb-4">
+                        <x-search-form placeholder="Cari mapel, kelas, guru..." />
+                    </div>
                     <table class="min-w-full text-sm">
                         <thead>
                             <tr class="text-left text-gray-500">
-                                <th class="py-2">Tanggal</th>
-                                <th class="py-2">Jam</th>
+                                <x-sortable-header label="Tanggal" column="class_sessions.session_date" />
+                                <x-sortable-header label="Jam" column="class_sessions.session_time" />
                                 <th class="py-2">Kelas</th>
                                 <th class="py-2">Guru</th>
-                                <th class="py-2">Mapel</th>
+                                <x-sortable-header label="Mapel" column="class_sessions.subject" />
                                 <th class="py-2">Murid</th>
                                 <th class="py-2">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y">
-                            @foreach ($sessions as $session)
+                            @forelse ($sessions as $session)
                                 <tr>
                                     <td class="py-2">{{ $session->session_date->format('d M Y') }}</td>
                                     <td class="py-2">{{ $session->session_time?->format('H:i') ?? '-' }}</td>
@@ -53,9 +56,16 @@
                                         </form>
                                     </td>
                                 </tr>
-                            @endforeach
+                            @empty
+                                <tr>
+                                    <td colspan="7" class="py-8 text-center text-gray-500">Tidak ada jadwal kelas ditemukan.</td>
+                                </tr>
+                            @endforelse
                         </tbody>
                     </table>
+                    <div class="mt-4">
+                        {{ $sessions->links() }}
+                    </div>
                 </div>
             </div>
         </div>

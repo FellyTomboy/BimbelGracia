@@ -6,12 +6,15 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\LessonOffer;
+use App\Traits\SearchAndSort;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class LessonOfferController extends Controller
 {
+    use SearchAndSort;
+
     private array $days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
 
     private array $times = ['pagi', 'siang', 'sore', 'malam'];
@@ -39,11 +42,21 @@ class LessonOfferController extends Controller
         'Dewasa',
     ];
 
-    public function index(): View
+    public function index(Request $request): View
     {
-        $offers = LessonOffer::with('creator')
-            ->latest()
-            ->get();
+        $params = $this->getSearchSortParams($request);
+
+        $offers = LessonOffer::with('creator');
+
+        $offers = $this->applySearch($offers, $params['search'], [
+            'code', 'education_level', 'subject', 'status',
+        ]);
+
+        $offers = $this->applySort($offers, $params['sort'], $params['direction'], [
+            'code', 'education_level', 'subject', 'status', 'created_at',
+        ]);
+
+        $offers = $offers->paginate(20)->withQueryString();
 
         return view('admin.lesson-offers.index', compact('offers'));
     }
@@ -70,7 +83,6 @@ class LessonOfferController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'code' => ['required', 'string', 'max:50', 'unique:lesson_offers,code'],
             'education_level' => ['required', 'string', 'max:50'],
             'subject' => ['required', 'string', 'max:255'],
             'schedules' => ['required', 'array', 'min:1'],
@@ -82,7 +94,6 @@ class LessonOfferController extends Controller
         ]);
 
         LessonOffer::create([
-            'code' => $validated['code'],
             'education_level' => $validated['education_level'],
             'subject' => $validated['subject'],
             'schedules' => $validated['schedules'],
@@ -110,7 +121,6 @@ class LessonOfferController extends Controller
     public function update(Request $request, LessonOffer $lessonOffer): RedirectResponse
     {
         $validated = $request->validate([
-            'code' => ['required', 'string', 'max:50', 'unique:lesson_offers,code,'.$lessonOffer->id],
             'education_level' => ['required', 'string', 'max:50'],
             'subject' => ['required', 'string', 'max:255'],
             'schedules' => ['required', 'array', 'min:1'],

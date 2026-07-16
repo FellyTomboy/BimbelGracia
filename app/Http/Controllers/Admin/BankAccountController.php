@@ -4,17 +4,30 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\BankAccount;
+use App\Traits\SearchAndSort;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class BankAccountController extends Controller
 {
-    public function index(): View
+    use SearchAndSort;
+
+    public function index(Request $request): View
     {
-        $accounts = BankAccount::query()
-            ->latest()
-            ->get();
+        $params = $this->getSearchSortParams($request);
+
+        $accounts = BankAccount::query();
+
+        $accounts = $this->applySearch($accounts, $params['search'], [
+            'bank_name', 'account_number', 'account_holder', 'status',
+        ]);
+
+        $accounts = $this->applySort($accounts, $params['sort'], $params['direction'], [
+            'bank_name', 'status', 'created_at',
+        ]);
+
+        $accounts = $accounts->paginate(20)->withQueryString();
 
         return view('admin.bank-accounts.index', compact('accounts'));
     }

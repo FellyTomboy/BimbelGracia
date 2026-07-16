@@ -60,11 +60,6 @@ class Student extends Model
             ->withTimestamps();
     }
 
-    public function monthlyAttendances(): HasMany
-    {
-        return $this->hasMany(MonthlyAttendance::class, 'student_id');
-    }
-
     public function classSessions(): BelongsToMany
     {
         return $this->belongsToMany(ClassSession::class)->withTimestamps();

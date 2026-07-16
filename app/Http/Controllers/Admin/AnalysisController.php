@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\BankAccount;
+use App\Models\ClassStudent;
 use App\Models\ClassStudentDiscount;
 use App\Models\ClassStudentSession;
 use App\Models\EnrollmentStudentDiscount;

@@ -18,21 +18,24 @@
             @endif
             <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden">
                 <div class="p-6 text-gray-900 overflow-x-auto">
+                    <div class="mb-4">
+                        <x-search-form placeholder="Cari program, guru, status..." />
+                    </div>
                     <table class="min-w-full text-sm">
                         <thead>
                             <tr class="text-left text-gray-500">
                                 <th class="py-2">Program</th>
                                 <th class="py-2">Guru</th>
                                 <th class="py-2">Murid</th>
-                                <th class="py-2">Harga Ortu</th>
-                                <th class="py-2">Gaji Guru</th>
-                                <th class="py-2">Validasi</th>
-                                <th class="py-2">Status</th>
+                                <x-sortable-header label="Harga Ortu" column="enrollments.parent_rate" />
+                                <x-sortable-header label="Gaji Guru" column="enrollments.teacher_rate" />
+                                <x-sortable-header label="Validasi" column="enrollments.validation_status" />
+                                <x-sortable-header label="Status" column="enrollments.status" />
                                 <th class="py-2">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y">
-                            @foreach ($enrollments as $enrollment)
+                            @forelse ($enrollments as $enrollment)
                                 <tr>
                                     <td class="py-2 font-medium">
                                         <x-hibernated-label :model="$enrollment->program" :label="$enrollment->program?->name ?? '-'" type="program" />
@@ -62,9 +65,16 @@
                                         </form>
                                     </td>
                                 </tr>
-                            @endforeach
+                            @empty
+                                <tr>
+                                    <td colspan="8" class="py-8 text-center text-gray-500">Tidak ada enrollment ditemukan.</td>
+                                </tr>
+                            @endforelse
                         </tbody>
                     </table>
+                    <div class="mt-4">
+                        {{ $enrollments->links() }}
+                    </div>
                 </div>
             </div>
         </div>

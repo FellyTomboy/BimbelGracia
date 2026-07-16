@@ -31,6 +31,15 @@ class LessonOffer extends Model
         'schedules' => 'array',
     ];
 
+    protected static function booted(): void
+    {
+        static::creating(function (LessonOffer $offer) {
+            if (! $offer->code) {
+                $offer->code = 'LO-' . strtoupper(\Illuminate\Support\Str::random(6));
+            }
+        });
+    }
+
     public function setContactWhatsappAttribute(?string $value): void
     {
         $this->attributes['contact_whatsapp'] = $this->normalizeWhatsapp($value);
