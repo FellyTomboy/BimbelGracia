@@ -17,130 +17,96 @@
                     </x-nav-link>
                     @if (auth()->user()?->role?->value === 'admin')
                         @php
-                            $adminPresensiActive = request()->routeIs('admin.presensi.*');
-                            $adminMasterActive = request()->routeIs('admin.students.*', 'admin.teachers.*', 'admin.programs.*', 'admin.enrollments.*', 'admin.lesson-offers.*');
-                            $adminKelasActive = request()->routeIs('admin.class-students.*', 'admin.class-student-sessions.*');
-                            $adminAnalisisActive = request()->routeIs('admin.analysis.ortu', 'admin.analysis.ortu-kelas', 'admin.analysis.guru', 'admin.payments.*', 'admin.discounts.*');
-                            $adminLaporanActive = request()->routeIs('admin.class-reports.*', 'admin.history.*', 'admin.finance.*', 'admin.export.*');
+                            $menuLengkapActive = request()->routeIs('admin.students.*', 'admin.teachers.*', 'admin.programs.*', 'admin.enrollments.*', 'admin.lesson-offers.*', 'admin.presensi.*', 'admin.class-students.*', 'admin.class-student-sessions.*', 'admin.analysis.ortu', 'admin.analysis.ortu-kelas', 'admin.analysis.guru', 'admin.payments.*', 'admin.discounts.*', 'admin.class-reports.*', 'admin.history.*', 'admin.finance.*', 'admin.export.*');
                             $dropdownBase = 'inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 focus:outline-none transition duration-150 ease-in-out';
                         @endphp
                         <x-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">
                             {{ __('Admin') }}
                         </x-nav-link>
-                        <x-dropdown align="left" width="56">
-                            <x-slot name="trigger">
-                                <button class="{{ $dropdownBase }} {{ $adminPresensiActive ? 'border-indigo-400 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
-                                    {{ __('Presensi') }}
-                                    <svg class="ms-1 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.27a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-                                    </svg>
-                                </button>
-                            </x-slot>
-                            <x-slot name="content">
-                                <x-dropdown-link :href="route('admin.presensi.index')">
-                                    {{ __('Validasi Presensi') }}
-                                </x-dropdown-link>
-                            </x-slot>
-                        </x-dropdown>
-                        <x-dropdown align="left" width="56">
-                            <x-slot name="trigger">
-                                <button class="{{ $dropdownBase }} {{ $adminMasterActive ? 'border-indigo-400 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
-                                    {{ __('Data Master') }}
-                                    <svg class="ms-1 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.27a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-                                    </svg>
-                                </button>
-                            </x-slot>
-                            <x-slot name="content">
-                                <x-dropdown-link :href="route('admin.students.index')">
-                                    {{ __('Murid') }}
-                                </x-dropdown-link>
-                                <x-dropdown-link :href="route('admin.teachers.index')">
-                                    {{ __('Guru') }}
-                                </x-dropdown-link>
-                                <x-dropdown-link :href="route('admin.programs.index')">
-                                    {{ __('Program') }}
-                                </x-dropdown-link>
-                                <x-dropdown-link :href="route('admin.enrollments.index')">
-                                    {{ __('Enrollment') }}
-                                </x-dropdown-link>
-                                <x-dropdown-link :href="route('admin.lesson-offers.index')">
-                                    {{ __('Tawaran Les') }}
-                                </x-dropdown-link>
-                            </x-slot>
-                        </x-dropdown>
-                        <x-dropdown align="left" width="56">
-                            <x-slot name="trigger">
-                                <button class="{{ $dropdownBase }} {{ $adminKelasActive ? 'border-indigo-400 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
-                                    {{ __('Kelas') }}
-                                    <svg class="ms-1 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.27a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-                                    </svg>
-                                </button>
-                            </x-slot>
-                            <x-slot name="content">
-                                <x-dropdown-link :href="route('admin.class-students.index')">
-                                    {{ __('Murid Kelas') }}
-                                </x-dropdown-link>
-                                <x-dropdown-link :href="route('admin.class-student-sessions.index')">
-                                    {{ __('Jadwal Murid') }}
-                                </x-dropdown-link>
-                            </x-slot>
-                        </x-dropdown>
-                        <x-dropdown align="left" width="56">
-                            <x-slot name="trigger">
-                                <button class="{{ $dropdownBase }} {{ $adminAnalisisActive ? 'border-indigo-400 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
-                                    {{ __('WA') }}
-                                    <svg class="ms-1 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.27a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-                                    </svg>
-                                </button>
-                            </x-slot>
-                            <x-slot name="content">
-                                <x-dropdown-link :href="route('admin.analysis.ortu')">
-                                    {{ __('WA Ortu Privat') }}
-                                </x-dropdown-link>
-                                <x-dropdown-link :href="route('admin.analysis.ortu-kelas')">
-                                    {{ __('WA Ortu Kelas') }}
-                                </x-dropdown-link>
-                                <x-dropdown-link :href="route('admin.analysis.guru')">
-                                    {{ __('WA Guru') }}
-                                </x-dropdown-link>
-                                <x-dropdown-link :href="route('admin.discounts.index')">
-                                    {{ __('Diskon/Promo') }}
-                                </x-dropdown-link>
-                                <x-dropdown-link :href="route('admin.payments.ortu')">
-                                    {{ __('Pembayaran Ortu') }}
-                                </x-dropdown-link>
-                                <x-dropdown-link :href="route('admin.payments.guru')">
-                                    {{ __('Pembayaran Guru') }}
-                                </x-dropdown-link>
-                            </x-slot>
-                        </x-dropdown>
-                        <x-dropdown align="left" width="60">
-                            <x-slot name="trigger">
-                                <button class="{{ $dropdownBase }} {{ $adminLaporanActive ? 'border-indigo-400 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
-                                    {{ __('Laporan') }}
-                                    <svg class="ms-1 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.27a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-                                    </svg>
-                                </button>
-                            </x-slot>
-                            <x-slot name="content">
-                                <x-dropdown-link :href="route('admin.class-reports.index')">
-                                    {{ __('WA Kelas') }}
-                                </x-dropdown-link>
-                                <x-dropdown-link :href="route('admin.history.students')">
-                                    {{ __('Riwayat') }}
-                                </x-dropdown-link>
-                                <x-dropdown-link :href="route('admin.finance.index')">
-                                    {{ __('Keuangan') }}
-                                </x-dropdown-link>
-                                <x-dropdown-link :href="route('admin.export.index')">
-                                    {{ __('Export & Backup') }}
-                                </x-dropdown-link>
-                            </x-slot>
-                        </x-dropdown>
+                        <div class="relative" id="menu-lengkap-wrapper">
+                            <button onclick="toggleMenuLengkap()" class="{{ $dropdownBase }} {{ $menuLengkapActive ? 'border-indigo-400 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
+                                {{ __('Menu Lengkap') }}
+                                <svg class="ms-1 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.27a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                            <div id="menu-lengkap-dropdown" class="absolute left-0 mt-2 w-56 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-50 py-2 hidden">
+                                <div class="relative" data-submenu="data-master">
+                                    <span onclick="toggleSubmenu('data-master')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center justify-between">
+                                        Data Master
+                                        <svg class="h-4 w-4 sub-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                                    </span>
+                                    <div class="pl-4 hidden" data-submenu-content="data-master">
+                                        <a href="{{ route('admin.students.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Murid</a>
+                                        <a href="{{ route('admin.teachers.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Guru</a>
+                                        <a href="{{ route('admin.programs.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Program</a>
+                                        <a href="{{ route('admin.enrollments.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Enrollment</a>
+                                        <a href="{{ route('admin.lesson-offers.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Tawaran Les</a>
+                                        <div class="border-t border-gray-100 my-1"></div>
+                                        <a href="{{ route('admin.presensi.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Validasi Presensi</a>
+                                    </div>
+                                </div>
+                                <div class="relative" data-submenu="kelas">
+                                    <span onclick="toggleSubmenu('kelas')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center justify-between">
+                                        Kelas
+                                        <svg class="h-4 w-4 sub-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                                    </span>
+                                    <div class="pl-4 hidden" data-submenu-content="kelas">
+                                        <a href="{{ route('admin.class-students.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Murid Kelas</a>
+                                        <a href="{{ route('admin.class-student-sessions.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Jadwal Murid</a>
+                                        <a href="{{ route('admin.analysis.ortu-kelas') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">WA Ortu Kelas</a>
+                                    </div>
+                                </div>
+                                <div class="relative" data-submenu="wa">
+                                    <span onclick="toggleSubmenu('wa')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center justify-between">
+                                        WA
+                                        <svg class="h-4 w-4 sub-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                                    </span>
+                                    <div class="pl-4 hidden" data-submenu-content="wa">
+                                        <a href="{{ route('admin.analysis.ortu') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">WA Ortu Privat</a>
+                                        <a href="{{ route('admin.analysis.guru') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">WA Guru</a>
+                                        <a href="{{ route('admin.discounts.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Diskon/Promo</a>
+                                    </div>
+                                </div>
+                                <div class="relative" data-submenu="pembayaran">
+                                    <span onclick="toggleSubmenu('pembayaran')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center justify-between">
+                                        Pembayaran
+                                        <svg class="h-4 w-4 sub-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                                    </span>
+                                    <div class="pl-4 hidden" data-submenu-content="pembayaran">
+                                        <a href="{{ route('admin.payments.ortu') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Pembayaran Ortu</a>
+                                        <a href="{{ route('admin.payments.guru') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Pembayaran Guru</a>
+                                    </div>
+                                </div>
+                                <div class="relative" data-submenu="laporan">
+                                    <span onclick="toggleSubmenu('laporan')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center justify-between">
+                                        Laporan
+                                        <svg class="h-4 w-4 sub-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                                    </span>
+                                    <div class="pl-4 hidden" data-submenu-content="laporan">
+                                        <a href="{{ route('admin.class-reports.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Laporan Kelas</a>
+                                        <a href="{{ route('admin.history.students') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Riwayat</a>
+                                        <a href="{{ route('admin.finance.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Keuangan</a>
+                                        <a href="{{ route('admin.export.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Export & Backup</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <script>
+                            function toggleMenuLengkap() {
+                                document.getElementById('menu-lengkap-dropdown').classList.toggle('hidden');
+                            }
+                            function toggleSubmenu(id) {
+                                const el = document.querySelector('[data-submenu-content="' + id + '"]');
+                                el.classList.toggle('hidden');
+                            }
+                            document.addEventListener('click', function(e) {
+                                const wrapper = document.getElementById('menu-lengkap-wrapper');
+                                if (!wrapper.contains(e.target)) {
+                                    document.getElementById('menu-lengkap-dropdown').classList.add('hidden');
+                                }
+                            });
+                        </script>
                     @endif
                     @if (auth()->user()?->role?->value === 'guru')
                         @php
@@ -257,9 +223,6 @@
                 <x-responsive-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">
                     {{ __('Admin') }}
                 </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('admin.presensi.index')" :active="request()->routeIs('admin.presensi.*')">
-                    {{ __('Validasi Presensi') }}
-                </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('admin.students.index')" :active="request()->routeIs('admin.students.*')">
                     {{ __('Murid') }}
                 </x-responsive-nav-link>
@@ -284,11 +247,11 @@
                 <x-responsive-nav-link :href="route('admin.class-student-sessions.index')" :active="request()->routeIs('admin.class-student-sessions.*')">
                     {{ __('Jadwal Murid') }}
                 </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('admin.analysis.ortu')" :active="request()->routeIs('admin.analysis.ortu')">
-                    {{ __('WA Ortu Privat') }}
-                </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('admin.analysis.ortu-kelas')" :active="request()->routeIs('admin.analysis.ortu-kelas')">
                     {{ __('WA Ortu Kelas') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('admin.analysis.ortu')" :active="request()->routeIs('admin.analysis.ortu')">
+                    {{ __('WA Ortu Privat') }}
                 </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('admin.analysis.guru')" :active="request()->routeIs('admin.analysis.guru')">
                     {{ __('WA Guru') }}
@@ -303,7 +266,7 @@
                     {{ __('Pembayaran Guru') }}
                 </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('admin.class-reports.index')" :active="request()->routeIs('admin.class-reports.*')">
-                    {{ __('WA Kelas') }}
+                    {{ __('Laporan Kelas') }}
                 </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('admin.history.students')" :active="request()->routeIs('admin.history.*')">
                     {{ __('Riwayat') }}

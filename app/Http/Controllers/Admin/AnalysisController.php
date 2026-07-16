@@ -548,7 +548,7 @@ class AnalysisController extends Controller
 
         // Flatten: each session can have multiple students via pivot
         $rows = $classSessions->flatMap(function (ClassStudentSession $session) {
-            return $session->students->map(function (ClassStudent $student) use ($session) {
+            return $session->students->map(function ($student) use ($session) {
                 return [
                     'session' => $session,
                     'student' => $student,
