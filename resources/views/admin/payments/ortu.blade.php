@@ -27,62 +27,90 @@
                 </form>
             </div>
 
-            <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden">
-                <div class="p-6 text-gray-900 overflow-x-auto">
-                    <table class="min-w-full text-sm">
-                        <thead>
-                            <tr class="text-left text-gray-500">
-                                <th class="py-2">Program</th>
-                                <th class="py-2">Guru</th>
-                                <th class="py-2">Murid</th>
-                                <th class="py-2">Enrollment</th>
-                                <th class="py-2">Total</th>
-                                <th class="py-2">Status</th>
-                                <th class="py-2">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y">
-                            @foreach ($attendances as $attendance)
-                                <tr>
-                                    @php
-                                        $rate = $attendance->enrollment?->parent_rate ?? 0;
-                                        $total = $attendance->students->sum(fn ($student) => (int) ($student->pivot?->total_present ?? 0) * $rate);
-                                    @endphp
-                                    <td class="py-2">
-                                        <x-hibernated-label :model="$attendance->enrollment?->program" :label="$attendance->enrollment?->program?->name ?? '-'" type="program" />
-                                    </td>
-                                    <td class="py-2">
-                                        <x-hibernated-label :model="$attendance->enrollment?->teacher" :label="$attendance->enrollment?->teacher?->name ?? '-'" type="guru" />
-                                    </td>
-                                    <td class="py-2">
-                                        @if ($attendance->students->count() > 0)
-                                            @foreach ($attendance->students as $student)
-                                                <x-hibernated-label :model="$student" :label="$student->name" type="murid privat" />{{ !$loop->last ? ', ' : '' }}
-                                            @endforeach
-                                        @else
-                                            -
-                                        @endif
-                                    </td>
-                                    <td class="py-2">#{{ $attendance->enrollment_id }}</td>
-                                    <td class="py-2">Rp {{ number_format($total) }}</td>
-                                    <td class="py-2">{{ $attendance->parent_payment_status }}</td>
-                                    <td class="py-2">
-                                        <form method="POST" action="{{ route('admin.payments.ortu.payment', $attendance) }}" class="flex items-center gap-2">
-                                            @csrf
-                                            <select name="parent_payment_status" class="border-gray-300 rounded-md text-sm">
-                                                <option value="unpaid" @selected($attendance->parent_payment_status === 'unpaid')>Belum bayar</option>
-                                                <option value="partial" @selected($attendance->parent_payment_status === 'partial')>Cicil</option>
-                                                <option value="paid" @selected($attendance->parent_payment_status === 'paid')>Sudah bayar</option>
-                                            </select>
-                                            <button type="submit" class="text-indigo-600">Simpan</button>
-                                        </form>
-                                    </td>
+            @foreach ($summaries as $summary)
+                <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden">
+                    <div class="p-4 border-b bg-gray-50 flex items-center justify-between">
+                        <div>
+                            <span class="font-semibold text-lg">{{ $summary['student']?->name ?? 'Unknown' }}</span>
+                        </div>
+                        <span class="font-semibold">Total: Rp {{ number_format($summary['total']) }}</span>
+                    </div>
+                    <div class="p-4 text-gray-900 overflow-x-auto">
+                        <table class="min-w-full text-sm">
+                            <thead>
+                                <tr class="text-left text-gray-500">
+                                    <th class="py-1">Program / Guru</th>
+                                    <th class="py-1">Tarif</th>
+                                    <th class="py-1">Jumlah</th>
+                                    <th class="py-1">Subtotal</th>
+                                    <th class="py-1">Status</th>
+                                    <th class="py-1">Bukti</th>
+                                    <th class="py-1">Aksi</th>
                                 </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody class="divide-y">
+                                @foreach ($summary['lines'] as $line)
+                                    <tr>
+                                        <td class="py-1">{{ $line['label'] }}</td>
+                                        <td class="py-1">Rp {{ number_format($line['rate']) }}</td>
+                                        <td class="py-1">{{ $line['count'] }}x</td>
+                                        <td class="py-1">Rp {{ number_format($line['total']) }}</td>
+                                        <td class="py-1">{{ $line['payment_status'] }}</td>
+                                        <td class="py-1">
+                                            @if ($line['proof_url'])
+                                                <a href="{{ asset('storage/' . $line['proof_url']) }}" target="_blank" class="text-indigo-600 underline text-xs">Lihat Bukti</a>
+                                                @if ($line['proof_status'] === 'pending')
+                                                    <div class="flex gap-1 mt-1">
+                                                        <form method="POST" action="{{ route('admin.payments.confirm-proof', $line['attendance_id']) }}" class="inline">
+                                                            @csrf
+                                                            <input type="hidden" name="action" value="approve" />
+                                                            <button type="submit" class="text-xs text-emerald-600 font-medium">Setujui</button>
+                                                        </form>
+                                                        <form method="POST" action="{{ route('admin.payments.confirm-proof', $line['attendance_id']) }}" class="inline">
+                                                            @csrf
+                                                            <input type="hidden" name="action" value="reject" />
+                                                            <button type="submit" class="text-xs text-rose-600 font-medium">Tolak</button>
+                                                        </form>
+                                                    </div>
+                                                @elseif ($line['proof_status'] === 'approved')
+                                                    <span class="text-xs text-emerald-600">Disetujui</span>
+                                                @elseif ($line['proof_status'] === 'rejected')
+                                                    <span class="text-xs text-rose-600">Ditolak</span>
+                                                @endif
+                                            @else
+                                                <span class="text-gray-400 text-xs">Belum ada</span>
+                                            @endif
+                                        </td>
+                                        <td class="py-1">
+                                            <form method="POST" action="{{ route('admin.payments.ortu.payment', $line['attendance_id']) }}" class="flex items-center gap-1">
+                                                @csrf
+                                                <select name="parent_payment_status" class="border-gray-300 rounded-md text-xs">
+                                                    <option value="unpaid" @selected($line['payment_status'] === 'unpaid')>Belum bayar</option>
+                                                    <option value="paid" @selected($line['payment_status'] === 'paid')>Sudah bayar</option>
+                                                </select>
+                                                <button type="submit" class="text-indigo-600 text-xs">Simpan</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                            <tfoot>
+                                <tr class="font-semibold bg-gray-50">
+                                    <td colspan="3" class="py-1 text-right">Total:</td>
+                                    <td class="py-1">Rp {{ number_format($summary['total']) }}</td>
+                                    <td colspan="3"></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
                 </div>
-            </div>
+            @endforeach
+
+            @if ($summaries->isEmpty())
+                <div class="bg-white shadow-sm sm:rounded-lg p-6 text-center text-gray-500">
+                    Tidak ada data pembayaran untuk periode ini.
+                </div>
+            @endif
         </div>
     </div>
 </x-app-layout>

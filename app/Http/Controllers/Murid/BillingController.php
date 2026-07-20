@@ -7,47 +7,103 @@ namespace App\Http\Controllers\Murid;
 use App\Http\Controllers\Controller;
 use App\Models\MonthlyAttendance;
 use App\Models\Student;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class BillingController extends Controller
 {
     public function index(Request $request): View
     {
-        [$month, $year] = $this->resolvePeriod($request);
-
         $student = Student::query()
             ->where('user_id', $request->user()?->id)
             ->first();
 
+        // Get all attendances for this student across all time
         $attendances = MonthlyAttendance::with(['enrollment.teacher', 'enrollment.program', 'students'])
             ->when($student, fn ($query) => $query->whereHas('students', fn ($sub) => $sub->where('students.id', $student->id)))
-            ->where('month', $month)
-            ->where('year', $year)
+            ->whereIn('status_validation', ['terima', 'terlambat'])
             ->orderByDesc('year')
             ->orderByDesc('month')
             ->get();
 
         $totals = $this->buildTotals($attendances, $student?->id);
 
+        // Group by month-year for the list
+        $monthlyList = $attendances
+            ->groupBy(fn ($a) => sprintf('%04d-%02d', $a->year, $a->month))
+            ->map(function ($items, $period) use ($student) {
+                [$year, $month] = explode('-', $period);
+                $total = 0;
+                $status = 'unpaid';
+                $hasProof = false;
+                $proofStatus = 'none';
+
+                foreach ($items as $attendance) {
+                    $s = $attendance->students->firstWhere('id', $student?->id ?? 0);
+                    $present = (int) ($s?->pivot?->total_present ?? 0);
+                    $rate = $attendance->enrollment?->parent_rate ?? 0;
+                    $total += $present * $rate;
+
+                    // Aggregate status: if any is paid, show paid; if any has proof, show pending
+                    if ($attendance->parent_payment_status === 'paid') {
+                        $status = 'paid';
+                    } elseif ($attendance->payment_proof_status === 'pending') {
+                        $status = 'pending';
+                        $hasProof = true;
+                        $proofStatus = 'pending';
+                    } elseif ($attendance->payment_proof) {
+                        $hasProof = true;
+                        $proofStatus = $attendance->payment_proof_status;
+                    } elseif ($status !== 'paid' && $status !== 'pending') {
+                        $status = $attendance->parent_payment_status ?? 'unpaid';
+                    }
+                }
+
+                return [
+                    'period' => sprintf('%s %s', $this->monthName((int) $month), $year),
+                    'year' => (int) $year,
+                    'month' => (int) $month,
+                    'total' => $total,
+                    'status' => $status,
+                    'has_proof' => $hasProof,
+                    'proof_status' => $proofStatus,
+                    'attendance_ids' => $items->pluck('id')->toArray(),
+                ];
+            })
+            ->values();
+
         return view('murid.billing.index', [
-            'month' => $month,
-            'year' => $year,
             'student' => $student,
-            'attendances' => $attendances,
             'totals' => $totals,
+            'monthlyList' => $monthlyList,
         ]);
     }
 
-    private function resolvePeriod(Request $request): array
+    public function uploadProof(Request $request, MonthlyAttendance $attendance): RedirectResponse
     {
-        $month = (int) $request->input('month', now()->month);
-        $year = (int) $request->input('year', now()->year);
+        $student = Student::query()
+            ->where('user_id', $request->user()?->id)
+            ->first();
 
-        $month = max(1, min(12, $month));
-        $year = max(2020, min(2100, $year));
+        // Verify this student is associated with this attendance
+        if (! $student || ! $attendance->students->contains($student->id)) {
+            abort(403, 'Anda tidak berhak mengupload bukti untuk tagihan ini.');
+        }
 
-        return [$month, $year];
+        $validated = $request->validate([
+            'payment_proof' => ['required', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
+        ]);
+
+        $path = $validated['payment_proof']->store('payment-proofs', 'public');
+
+        $attendance->update([
+            'payment_proof' => $path,
+            'payment_proof_status' => 'pending',
+        ]);
+
+        return back()->with('status', 'Bukti pembayaran berhasil diupload, menunggu konfirmasi admin.');
     }
 
     private function buildTotals($attendances, ?int $studentId): array
@@ -67,9 +123,17 @@ class BillingController extends Controller
         return [
             'paid' => (int) $rows->where('status', 'paid')->sum('total'),
             'unpaid' => (int) $rows->where('status', 'unpaid')->sum('total'),
-            'partial' => (int) $rows->where('status', 'partial')->sum('total'),
-            'unknown' => (int) $rows->where('status', 'unknown')->sum('total'),
             'grand' => (int) $rows->sum('total'),
         ];
+    }
+
+    private function monthName(int $month): string
+    {
+        $names = [
+            1 => 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+            'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+        ];
+
+        return $names[$month] ?? 'Bulan';
     }
 }

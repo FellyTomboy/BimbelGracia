@@ -4,6 +4,7 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Bimbel Gracia - Bimbingan Belajar Privat & Kelas</title>
+        <link rel="icon" type="image/jpeg" href="{{ asset('logo_bimbel.jpg') }}" />
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         <style>
             @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap');

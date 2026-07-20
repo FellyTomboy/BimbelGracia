@@ -167,11 +167,49 @@ class AnalysisController extends Controller
         [$month, $year] = $this->resolvePeriod($request);
 
         $attendances = $this->baseAttendanceQuery($month, $year)->get();
+        $rows = $this->attendanceRows($attendances);
+
+        $summaries = $rows
+            ->groupBy(fn (array $row) => $row['student']?->id)
+            ->map(function (Collection $items) {
+                $student = $items->first()['student'];
+                $lines = $items
+                    ->groupBy(fn (array $row) => $row['enrollment']->id)
+                    ->map(function (Collection $enrollmentItems) {
+                        $row = $enrollmentItems->first();
+                        $teacherName = $row['teacher']?->name ?? '-';
+                        $programName = $row['program']?->name ?? '-';
+                        $rate = $row['parent_rate'];
+                        $count = $enrollmentItems->sum('total_present');
+                        $total = $count * $rate;
+
+                        $att = $row['attendance'];
+
+                        return [
+                            'label' => sprintf('%s (%s)', $teacherName, $programName),
+                            'count' => $count,
+                            'rate' => $rate,
+                            'total' => $total,
+                            'payment_status' => $att->parent_payment_status,
+                            'attendance_id' => $att->id,
+                            'proof_url' => $att->payment_proof,
+                            'proof_status' => $att->payment_proof_status ?? 'none',
+                        ];
+                    })
+                    ->values();
+
+                return [
+                    'student' => $student,
+                    'lines' => $lines,
+                    'total' => $lines->sum('total'),
+                ];
+            })
+            ->values();
 
         return view('admin.payments.ortu', [
             'month' => $month,
             'year' => $year,
-            'attendances' => $attendances,
+            'summaries' => $summaries,
         ]);
     }
 
@@ -180,22 +218,60 @@ class AnalysisController extends Controller
         [$month, $year] = $this->resolvePeriod($request);
 
         $attendances = $this->baseAttendanceQuery($month, $year)->get();
-        $enrollments = Enrollment::with(['program', 'teacher', 'students'])
-            ->orderBy('id')
-            ->get();
+        $rows = $this->attendanceRows($attendances);
+
+        $summaries = $rows
+            ->groupBy(fn (array $row) => $row['teacher']?->id)
+            ->map(function (Collection $items) {
+                $teacher = $items->first()['teacher'];
+                $lines = $items
+                    ->groupBy(fn (array $row) => $row['enrollment']->id)
+                    ->map(function (Collection $enrollmentItems) {
+                        $row = $enrollmentItems->first();
+                        $studentName = $enrollmentItems->pluck('student')->filter()->pluck('name')->unique()->implode(', ');
+                        $programName = $row['program']?->name ?? '-';
+                        $rate = $row['teacher_rate'];
+                        $totalCount = $enrollmentItems->count();
+                        $lateCount = $enrollmentItems->where('status_validation', 'terlambat')->count();
+                        $grossTotal = $totalCount * $rate;
+                        $penalty = $lateCount * $rate * 0.1;
+
+                        return [
+                            'label' => sprintf('%s (%s)', $studentName ?: '-', $programName),
+                            'count' => $totalCount,
+                            'rate' => $rate,
+                            'total' => $grossTotal,
+                            'penalty' => (int) $penalty,
+                            'late_count' => $lateCount,
+                            'payment_status' => $row['attendance']->teacher_payment_status,
+                            'attendance_id' => $row['attendance']->id,
+                        ];
+                    })
+                    ->values();
+
+                $grandTotal = (int) $lines->sum('total');
+                $latePenalty = (int) $lines->sum('penalty');
+
+                return [
+                    'teacher' => $teacher,
+                    'lines' => $lines,
+                    'total' => $grandTotal,
+                    'penalty' => $latePenalty,
+                ];
+            })
+            ->values();
 
         return view('admin.payments.guru', [
             'month' => $month,
             'year' => $year,
-            'attendances' => $attendances,
-            'enrollments' => $enrollments,
+            'summaries' => $summaries,
         ]);
     }
 
     public function updateParentPayment(Request $request, MonthlyAttendance $attendance): RedirectResponse
     {
         $validated = $request->validate([
-            'parent_payment_status' => ['required', 'in:unpaid,paid,partial'],
+            'parent_payment_status' => ['required', 'in:unpaid,paid'],
         ]);
 
         $attendance->update($validated);
@@ -212,6 +288,27 @@ class AnalysisController extends Controller
         $attendance->update($validated);
 
         return back()->with('status', 'Status gaji guru diperbarui.');
+    }
+
+    public function confirmPaymentProof(Request $request, MonthlyAttendance $attendance): RedirectResponse
+    {
+        $validated = $request->validate([
+            'action' => ['required', 'in:approve,reject'],
+        ]);
+
+        if ($validated['action'] === 'approve') {
+            $attendance->update([
+                'payment_proof_status' => 'approved',
+                'parent_payment_status' => 'paid',
+            ]);
+            return back()->with('status', 'Bukti pembayaran disetujui. Status berubah menjadi LUNAS.');
+        }
+
+        $attendance->update([
+            'payment_proof_status' => 'rejected',
+        ]);
+
+        return back()->with('status', 'Bukti pembayaran ditolak. Silakan minta upload ulang.');
     }
 
     public function updateEnrollmentDiscount(Request $request): RedirectResponse

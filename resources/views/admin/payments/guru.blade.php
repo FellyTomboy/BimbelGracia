@@ -27,73 +27,86 @@
                 </form>
             </div>
 
-            <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden">
-                <div class="p-6 text-gray-900 overflow-x-auto">
-                    <table class="min-w-full text-sm">
-                        <thead>
-                            <tr class="text-left text-gray-500">
-                                <th class="py-2">Guru</th>
-                                <th class="py-2">Program</th>
-                                <th class="py-2">Murid</th>
-                                <th class="py-2">Enrollment</th>
-                                <th class="py-2">Total</th>
-                                <th class="py-2">Status</th>
-                                <th class="py-2">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y">
-                            @foreach ($attendances as $attendance)
-                                <tr>
-                                    @php
-                                        $rate = $attendance->enrollment?->teacher_rate ?? 0;
-                                        $total = $attendance->total_lessons * $rate;
-                                    @endphp
-                                    <td class="py-2">
-                                        <x-hibernated-label :model="$attendance->enrollment?->teacher" :label="$attendance->enrollment?->teacher?->name ?? '-'" type="guru" />
-                                    </td>
-                                    <td class="py-2">
-                                        <x-hibernated-label :model="$attendance->enrollment?->program" :label="$attendance->enrollment?->program?->name ?? '-'" type="program" />
-                                    </td>
-                                    <td class="py-2">
-                                        @if ($attendance->students->count() > 0)
-                                            @foreach ($attendance->students as $student)
-                                                <x-hibernated-label :model="$student" :label="$student->name" type="murid privat" />{{ !$loop->last ? ', ' : '' }}
-                                            @endforeach
-                                        @else
-                                            -
-                                        @endif
-                                    </td>
-                                    <td class="py-2">#{{ $attendance->enrollment_id }}</td>
-                                    <td class="py-2">Rp {{ number_format($total) }}</td>
-                                    <td class="py-2">{{ $attendance->teacher_payment_status }}</td>
-                                    <td class="py-2">
-                                        <form method="POST" action="{{ route('admin.payments.guru.payment', $attendance) }}" class="flex items-center gap-2">
-                                            @csrf
-                                            <select name="teacher_payment_status" class="border-gray-300 rounded-md text-sm">
-                                                <option value="unpaid" @selected($attendance->teacher_payment_status === 'unpaid')>Belum dibayar</option>
-                                                <option value="paid" @selected($attendance->teacher_payment_status === 'paid')>Sudah dibayar</option>
-                                                <option value="held" @selected($attendance->teacher_payment_status === 'held')>Ditahan</option>
-                                            </select>
-                                            <button type="submit" class="text-indigo-600">Simpan</button>
-                                        </form>
-                                        <form method="POST" action="{{ route('admin.presensi.enrollment', $attendance) }}" class="mt-2 flex items-center gap-2">
-                                            @csrf
-                                            <select name="enrollment_id" class="border-gray-300 rounded-md text-sm" required>
-                                                @foreach ($enrollments as $enrollment)
-                                                    <option value="{{ $enrollment->id }}" @selected($attendance->enrollment_id == $enrollment->id)>
-                                                        #{{ $enrollment->id }} - {{ $enrollment->program?->name ?? '-' }} - {{ $enrollment->teacher?->name ?? '-' }} - {{ $enrollment->students->pluck('name')->implode(', ') }}
-                                                    </option>
-                                                @endforeach
-                                            </select>
-                                            <button type="submit" class="text-indigo-600">Ubah Enrollment</button>
-                                        </form>
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+            @foreach ($summaries as $summary)
+                <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden">
+                    <div class="p-4 border-b bg-gray-50 flex items-center justify-between flex-wrap gap-2">
+                        <div>
+                            <span class="font-semibold text-lg">{{ $summary['teacher']?->name ?? 'Unknown' }}</span>
+                        </div>
+                        <div class="flex items-center gap-4 text-sm">
+                            <div class="text-right">
+                                <div class="font-semibold">Total: Rp {{ number_format($summary['total']) }}</div>
+                                @if($summary['penalty'] > 0)
+                                    <div class="text-xs text-rose-600">Denda: -Rp {{ number_format($summary['penalty']) }}</div>
+                                    <div class="font-semibold text-emerald-600">Final: Rp {{ number_format($summary['total'] - $summary['penalty']) }}</div>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-4 space-y-2">
+                        @if($summary['teacher']?->bank_name || $summary['teacher']?->bank_account)
+                        <div class="bg-gray-50 rounded p-2 text-sm flex flex-wrap gap-x-6 gap-y-1">
+                            <span class="text-gray-500">Rekening:</span>
+                            <span><strong>{{ $summary['teacher']->bank_name ?? '-' }}</strong></span>
+                            <span>a/n <strong>{{ $summary['teacher']->bank_owner ?? $summary['teacher']->name }}</strong></span>
+                            <span>No. <strong>{{ $summary['teacher']->bank_account ?? '-' }}</strong></span>
+                        </div>
+                        @endif
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full text-sm">
+                                <thead>
+                                    <tr class="text-left text-gray-500">
+                                        <th class="py-1">Murid / Program</th>
+                                        <th class="py-1">Tarif</th>
+                                        <th class="py-1">Jumlah</th>
+                                        <th class="py-1">Subtotal</th>
+                                        <th class="py-1">Denda</th>
+                                        <th class="py-1">Status</th>
+                                        <th class="py-1">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y">
+                                    @foreach ($summary['lines'] as $line)
+                                        <tr>
+                                            <td class="py-1">{{ $line['label'] }}</td>
+                                            <td class="py-1">Rp {{ number_format($line['rate']) }}</td>
+                                            <td class="py-1">{{ $line['count'] }}x</td>
+                                            <td class="py-1">Rp {{ number_format($line['total']) }}</td>
+                                            <td class="py-1">{{ $line['penalty'] > 0 ? '-Rp '.number_format($line['penalty']) : '-' }}</td>
+                                            <td class="py-1">{{ $line['payment_status'] }}</td>
+                                            <td class="py-1">
+                                                <form method="POST" action="{{ route('admin.payments.guru.payment', $line['attendance_id']) }}" class="flex items-center gap-1">
+                                                    @csrf
+                                                    <select name="teacher_payment_status" class="border-gray-300 rounded-md text-xs">
+                                                        <option value="unpaid" @selected($line['payment_status'] === 'unpaid')>Belum dibayar</option>
+                                                        <option value="paid" @selected($line['payment_status'] === 'paid')>Sudah dibayar</option>
+                                                        <option value="held" @selected($line['payment_status'] === 'held')>Ditahan</option>
+                                                    </select>
+                                                    <button type="submit" class="text-indigo-600 text-xs">Simpan</button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                                <tfoot>
+                                    <tr class="font-semibold bg-gray-50">
+                                        <td colspan="3" class="py-1 text-right">Total:</td>
+                                        <td class="py-1">Rp {{ number_format($summary['total']) }}</td>
+                                        <td class="py-1">{{ $summary['penalty'] > 0 ? '-Rp '.number_format($summary['penalty']) : '-' }}</td>
+                                        <td colspan="2"></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
                 </div>
-            </div>
+            @endforeach
+
+            @if ($summaries->isEmpty())
+                <div class="bg-white shadow-sm sm:rounded-lg p-6 text-center text-gray-500">
+                    Tidak ada data pembayaran untuk periode ini.
+                </div>
+            @endif
         </div>
     </div>
 </x-app-layout>

@@ -115,6 +115,8 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('payments.ortu.payment');
             Route::post('payments/guru/{attendance}/payment', [AnalysisController::class, 'updateTeacherPayment'])
                 ->name('payments.guru.payment');
+            Route::post('payments/{attendance}/confirm-proof', [AnalysisController::class, 'confirmPaymentProof'])
+                ->name('payments.confirm-proof');
 
             Route::get('discounts', [DiscountController::class, 'index'])
                 ->name('discounts.index');
@@ -219,6 +221,7 @@ Route::middleware(['auth', 'password.force'])->group(function () {
     Route::middleware('role:murid')->prefix('murid')->name('murid.')->group(function () {
         Route::get('riwayat', [MuridHistoryController::class, 'index'])->name('history.index');
         Route::get('tagihan', [MuridBillingController::class, 'index'])->name('billing.index');
+        Route::post('tagihan/{attendance}/upload', [MuridBillingController::class, 'uploadProof'])->name('billing.upload-proof');
     });
 
     Route::get('/password/force', [PasswordForceController::class, 'edit'])

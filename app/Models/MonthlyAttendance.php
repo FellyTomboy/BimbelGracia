@@ -32,6 +32,8 @@ class MonthlyAttendance extends Model
         'created_by',
         'parent_rate',
         'teacher_rate',
+        'payment_proof',
+        'payment_proof_status',
     ];
 
     protected $casts = [
