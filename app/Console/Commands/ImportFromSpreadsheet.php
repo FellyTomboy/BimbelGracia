@@ -146,7 +146,7 @@ class ImportFromSpreadsheet extends Command
 
         foreach ($data as $row) {
             $name = $this->cleanName($row['NAMA GURU'] ?? '');
-            $phone = $this->cleanPhone($row['NO HP'] ?? '');
+            $phone = $this->cleanPhone08($row['NO HP'] ?? '');
             $major = $row['JURUSAN'] ?? '';
             $subjects = $row['MAPEL'] ?? '';
             $address = $row['ALAMAT'] ?? '';
@@ -211,7 +211,7 @@ class ImportFromSpreadsheet extends Command
         foreach ($data as $row) {
             $keys = array_keys($row);
             $name = $this->cleanName($row[$keys[0]] ?? '');
-            $phone = $this->cleanPhone($row[$keys[2] ?? ''] ?? '');
+            $phone = $this->cleanPhone08($row[$keys[2] ?? ''] ?? '');
             $address = $row[$keys[3] ?? ''] ?? '';
 
             if (empty($name)) {
@@ -272,7 +272,7 @@ class ImportFromSpreadsheet extends Command
         foreach ($data as $row) {
             $keys = array_keys($row);
             $name = $this->cleanName($row[$keys[0]] ?? '');
-            $phone = $this->cleanPhone($row[$keys[1] ?? ''] ?? '');
+            $phone = $this->cleanPhone08($row[$keys[1] ?? ''] ?? '');
 
             if (empty($name)) {
                 continue;
