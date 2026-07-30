@@ -46,7 +46,7 @@
                         <thead>
                             <tr class="text-left text-gray-500 bg-gray-50/50">
                                 <x-sortable-header label="Nama" column="students.name" />
-                                <th class="py-3 px-4 font-medium">Email</th>
+                                <th class="py-3 px-4 font-medium">No. Telepon</th>
                                 <x-sortable-header label="WA Utama" column="students.whatsapp_primary" />
                                 <th class="py-3 px-4 font-medium">WA Cadangan</th>
                                 <th class="py-3 px-4 font-medium">Aksi</th>
@@ -56,7 +56,7 @@
                             @forelse ($students as $student)
                                 <tr class="hover:bg-gray-50/50 transition-colors">
                                     <td class="py-3 px-4 font-medium text-gray-900">{{ $student->name }}</td>
-                                    <td class="py-3 px-4 text-gray-600">{{ $student->user?->email ?? '-' }}</td>
+                                    <td class="py-3 px-4 text-gray-600">{{ $student->user?->phone ?? '-' }}</td>
                                     <td class="py-3 px-4 text-gray-600">{{ $student->whatsapp_primary ?? '-' }}</td>
                                     <td class="py-3 px-4 text-gray-600">{{ $student->whatsapp_secondary ?? '-' }}</td>
                                     <td class="py-3 px-4">

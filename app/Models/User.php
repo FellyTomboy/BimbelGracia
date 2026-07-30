@@ -27,6 +27,7 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
+        'phone',
         'email',
         'password',
         'role',
@@ -57,4 +58,5 @@ class User extends Authenticatable
             'must_change_password' => 'boolean',
         ];
     }
+
 }

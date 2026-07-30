@@ -30,7 +30,7 @@ class StudentController extends Controller
 
         $students = $this->applySearch($students, $params['search'], [
             'students.name',
-            'user.email',
+            'user.phone',
             'students.whatsapp_primary',
             'students.whatsapp_secondary',
             'students.status',
@@ -65,7 +65,7 @@ class StudentController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'phone' => ['required', 'string', 'max:32', 'unique:users,phone'],
             'whatsapp_primary' => ['required', 'string', 'max:32'],
             'whatsapp_secondary' => ['nullable', 'string', 'max:32'],
             'address' => ['nullable', 'string'],
@@ -76,7 +76,7 @@ class StudentController extends Controller
 
         $user = User::create([
             'name' => $validated['name'],
-            'email' => $validated['email'],
+            'phone' => $validated['phone'],
             'role' => UserRole::Murid,
             'password' => Hash::make($defaultPassword),
             'must_change_password' => true,
@@ -105,7 +105,7 @@ class StudentController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email,'.$student->user_id],
+            'phone' => ['required', 'string', 'max:32', 'unique:users,phone,'.$student->user_id],
             'whatsapp_primary' => ['required', 'string', 'max:32'],
             'whatsapp_secondary' => ['nullable', 'string', 'max:32'],
             'address' => ['nullable', 'string'],
@@ -123,7 +123,7 @@ class StudentController extends Controller
         if ($student->user) {
             $student->user->update([
                 'name' => $validated['name'],
-                'email' => $validated['email'],
+                'phone' => $validated['phone'],
             ]);
         }
 

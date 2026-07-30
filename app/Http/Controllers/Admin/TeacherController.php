@@ -30,7 +30,7 @@ class TeacherController extends Controller
 
         $teachers = $this->applySearch($teachers, $params['search'], [
             'teachers.name',
-            'user.email',
+            'user.phone',
             'teachers.whatsapp_number',
             'teachers.major',
             'teachers.subjects',
@@ -66,7 +66,7 @@ class TeacherController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'phone' => ['required', 'string', 'max:32', 'unique:users,phone'],
             'whatsapp_number' => ['required', 'string', 'max:32'],
             'major' => ['nullable', 'string', 'max:255'],
             'subjects' => ['nullable', 'string'],
@@ -82,7 +82,7 @@ class TeacherController extends Controller
 
         $user = User::create([
             'name' => $validated['name'],
-            'email' => $validated['email'],
+            'phone' => $validated['phone'],
             'role' => UserRole::Guru,
             'password' => Hash::make($defaultPassword),
             'must_change_password' => true,
@@ -116,7 +116,7 @@ class TeacherController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email,'.$teacher->user_id],
+            'phone' => ['required', 'string', 'max:32', 'unique:users,phone,'.$teacher->user_id],
             'whatsapp_number' => ['required', 'string', 'max:32'],
             'major' => ['nullable', 'string', 'max:255'],
             'subjects' => ['nullable', 'string'],
@@ -144,7 +144,7 @@ class TeacherController extends Controller
         if ($teacher->user) {
             $teacher->user->update([
                 'name' => $validated['name'],
-                'email' => $validated['email'],
+                'phone' => $validated['phone'],
             ]);
         }
 

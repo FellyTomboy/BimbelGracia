@@ -13,6 +13,8 @@ use App\Models\EnrollmentStudentDiscount;
 use App\Models\Enrollment;
 use App\Models\MonthlyAttendance;
 use App\Models\Student;
+use App\Models\Teacher;
+use App\Services\Pdf\InvoiceService;
 use Illuminate\Support\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -350,6 +352,38 @@ class AnalysisController extends Controller
         );
 
         return back()->with('status', 'Diskon privat diperbarui.');
+    }
+
+    public function generateInvoice(Request $request, Student $student, int $month, int $year): RedirectResponse
+    {
+        $attendances = $this->baseAttendanceQuery($month, $year)
+            ->whereHas('students', fn ($q) => $q->where('students.id', $student->id))
+            ->get();
+
+        if ($attendances->isEmpty()) {
+            return back()->with('status', 'Tidak ada data absensi untuk murid ini pada periode tersebut.');
+        }
+
+        $invoiceService = app(InvoiceService::class);
+        $filename = $invoiceService->generateStudentInvoice($student, $month, $year, $attendances);
+
+        return redirect(asset('storage/' . $filename));
+    }
+
+    public function generateSalary(Request $request, Teacher $teacher, int $month, int $year): RedirectResponse
+    {
+        $attendances = $this->baseAttendanceQuery($month, $year)
+            ->whereHas('enrollment', fn ($q) => $q->where('teacher_id', $teacher->id))
+            ->get();
+
+        if ($attendances->isEmpty()) {
+            return back()->with('status', 'Tidak ada data absensi untuk guru ini pada periode tersebut.');
+        }
+
+        $invoiceService = app(InvoiceService::class);
+        $filename = $invoiceService->generateTeacherSalarySlip($teacher, $month, $year, $attendances);
+
+        return redirect(asset('storage/' . $filename));
     }
 
     public function updateClassDiscount(Request $request): RedirectResponse

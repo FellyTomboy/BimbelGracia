@@ -17,12 +17,14 @@ class AuthenticationTest extends TestCase
         $response->assertStatus(200);
     }
 
-    public function test_users_can_authenticate_using_the_login_screen(): void
+    public function test_users_can_authenticate_using_phone(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create([
+            'phone' => '6281703027942',
+        ]);
 
         $response = $this->post('/login', [
-            'email' => $user->email,
+            'phone' => '6281703027942',
             'password' => 'password',
         ]);
 
@@ -32,11 +34,25 @@ class AuthenticationTest extends TestCase
 
     public function test_users_can_not_authenticate_with_invalid_password(): void
     {
+        $user = User::factory()->create([
+            'phone' => '6281703027942',
+        ]);
+
+        $this->post('/login', [
+            'phone' => '6281703027942',
+            'password' => 'wrong-password',
+        ]);
+
+        $this->assertGuest();
+    }
+
+    public function test_users_can_not_authenticate_with_invalid_phone(): void
+    {
         $user = User::factory()->create();
 
         $this->post('/login', [
-            'email' => $user->email,
-            'password' => 'wrong-password',
+            'phone' => '6289999999999',
+            'password' => 'password',
         ]);
 
         $this->assertGuest();

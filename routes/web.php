@@ -124,6 +124,10 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('payments.guru.payment');
             Route::post('payments/{attendance}/confirm-proof', [AnalysisController::class, 'confirmPaymentProof'])
                 ->name('payments.confirm-proof');
+            Route::post('analysis/generate-invoice/{student}/{month}/{year}', [AnalysisController::class, 'generateInvoice'])
+                ->name('analysis.generate-invoice');
+            Route::post('analysis/generate-salary/{teacher}/{month}/{year}', [AnalysisController::class, 'generateSalary'])
+                ->name('analysis.generate-salary');
 
             Route::get('discounts', [DiscountController::class, 'index'])
                 ->name('discounts.index');
@@ -231,6 +235,7 @@ Route::middleware(['auth', 'password.force'])->group(function () {
         Route::post('riwayat/{attendance}/batalkan-penolakan', [MuridHistoryController::class, 'cancelReject'])->name('history.cancel-reject');
         Route::get('tagihan', [MuridBillingController::class, 'index'])->name('billing.index');
         Route::post('tagihan/{attendance}/upload', [MuridBillingController::class, 'uploadProof'])->name('billing.upload-proof');
+        Route::post('tagihan/invoice/{year}/{month}', [MuridBillingController::class, 'downloadInvoice'])->name('billing.download-invoice');
     });
 
     Route::get('/password/force', [PasswordForceController::class, 'edit'])

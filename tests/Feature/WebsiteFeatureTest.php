@@ -212,7 +212,7 @@ class WebsiteFeatureTest extends TestCase
         $user = $this->createAdmin();
 
         $response = $this->post('/login', [
-            'email' => $user->email,
+            'phone' => $user->phone,
             'password' => 'password',
         ]);
 
@@ -225,7 +225,7 @@ class WebsiteFeatureTest extends TestCase
         $this->createAdmin();
 
         $response = $this->post('/login', [
-            'email' => 'wrong@email.com',
+            'phone' => '6289999999999',
             'password' => 'wrong-password',
         ]);
 
@@ -384,7 +384,7 @@ class WebsiteFeatureTest extends TestCase
         $admin = $this->createAdmin();
         $response = $this->actingAs($admin)->post(route('admin.students.store'), [
             'name' => 'Student Baru',
-            'email' => 'student.baru@test.com',
+            'phone' => '6281234567890',
             'whatsapp_primary' => '081234567890',
             'whatsapp_secondary' => '',
             'address' => 'Alamat test',
@@ -392,7 +392,7 @@ class WebsiteFeatureTest extends TestCase
         ]);
 
         $response->assertRedirect(route('admin.students.index'));
-        $this->assertDatabaseHas('users', ['email' => 'student.baru@test.com']);
+        $this->assertDatabaseHas('users', ['phone' => '6281234567890']);
         $this->assertDatabaseHas('students', ['name' => 'Student Baru']);
     }
 
@@ -402,7 +402,7 @@ class WebsiteFeatureTest extends TestCase
         $student = $data['student'];
         $response = $this->actingAs($data['admin'])->put(route('admin.students.update', $student->id), [
             'name' => 'Student Updated',
-            'email' => $student->user->email,
+            'phone' => $student->user->phone,
             'whatsapp_primary' => '081234567891',
             'whatsapp_secondary' => '',
             'address' => 'Alamat updated',
@@ -449,7 +449,7 @@ class WebsiteFeatureTest extends TestCase
         $admin = $this->createAdmin();
         $response = $this->actingAs($admin)->post(route('admin.teachers.store'), [
             'name' => 'Guru Baru',
-            'email' => 'guru.baru@test.com',
+            'phone' => '6281234567890',
             'whatsapp_number' => '081234567890',
             'major' => 'Matematika',
             'subjects' => 'Matematika, Fisika',
@@ -458,7 +458,7 @@ class WebsiteFeatureTest extends TestCase
         ]);
 
         $response->assertRedirect(route('admin.teachers.index'));
-        $this->assertDatabaseHas('users', ['email' => 'guru.baru@test.com']);
+        $this->assertDatabaseHas('users', ['phone' => '6281234567890']);
         $this->assertDatabaseHas('teachers', ['name' => 'Guru Baru']);
     }
 

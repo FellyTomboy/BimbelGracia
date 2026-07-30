@@ -15,3 +15,7 @@ Schedule::command('snapshot:students-monthly')
 Schedule::command('snapshot:teachers-monthly')
     ->monthlyOn(1, '00:05')
     ->withoutOverlapping();
+
+Schedule::command('cleanup:old-files')
+    ->daily()
+    ->withoutOverlapping();

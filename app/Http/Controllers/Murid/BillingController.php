@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Murid;
 use App\Http\Controllers\Controller;
 use App\Models\MonthlyAttendance;
 use App\Models\Student;
+use App\Services\Pdf\InvoiceService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -61,6 +62,10 @@ class BillingController extends Controller
                     }
                 }
 
+                // Check if invoice PDF exists
+                $invoicePath = sprintf('invoice/%s/%s_%04d-%02d.pdf', $student?->id, str_replace(' ', '_', $student?->name ?? ''), (int) $year, (int) $month);
+                $hasInvoice = $student && Storage::disk('public')->exists($invoicePath);
+
                 return [
                     'period' => sprintf('%s %s', $this->monthName((int) $month), $year),
                     'year' => (int) $year,
@@ -70,6 +75,8 @@ class BillingController extends Controller
                     'has_proof' => $hasProof,
                     'proof_status' => $proofStatus,
                     'attendance_ids' => $items->pluck('id')->toArray(),
+                    'has_invoice' => $hasInvoice,
+                    'invoice_url' => $hasInvoice ? asset('storage/' . $invoicePath) : null,
                 ];
             })
             ->values();
@@ -104,6 +111,35 @@ class BillingController extends Controller
         ]);
 
         return back()->with('status', 'Bukti pembayaran berhasil diupload, menunggu konfirmasi admin.');
+    }
+
+    public function downloadInvoice(Request $request, int $year, int $month): RedirectResponse
+    {
+        $student = Student::query()
+            ->where('user_id', $request->user()?->id)
+            ->first();
+
+        if (!$student) {
+            abort(404);
+        }
+
+        $invoiceService = app(InvoiceService::class);
+
+        // Get attendances for this period
+        $attendances = MonthlyAttendance::with(['enrollment.teacher', 'enrollment.program', 'students'])
+            ->whereHas('students', fn ($sub) => $sub->where('students.id', $student->id))
+            ->whereIn('status_validation', ['terima', 'terlambat'])
+            ->where('month', $month)
+            ->where('year', $year)
+            ->get();
+
+        if ($attendances->isEmpty()) {
+            abort(404, 'Tidak ada data tagihan untuk periode ini.');
+        }
+
+        $filename = $invoiceService->generateStudentInvoice($student, $month, $year, $attendances);
+
+        return redirect(asset('storage/' . $filename));
     }
 
     private function buildTotals($attendances, ?int $studentId): array
