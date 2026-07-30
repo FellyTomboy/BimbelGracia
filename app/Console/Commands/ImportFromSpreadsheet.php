@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Enums\UserRole;
+use App\Models\ClassStudent;
 use App\Models\Enrollment;
 use App\Models\Program;
 use App\Models\Student;
@@ -19,16 +20,17 @@ class ImportFromSpreadsheet extends Command
 {
     protected $signature = 'import:spreadsheet 
         {--spreadsheet-id=1UsxOchz2rVE5NAakDhocRj6kdREJF7jbW4eM4pm64hs : Google Spreadsheet ID}
-        {--default-password=bimbelgracia2026 : Default password for all users}';
+        {--default-password=pw12345678 : Default password for all users}';
 
-    protected $description = 'Import data from Google Spreadsheet (guru, murid, les) into the database';
+    protected $description = 'Import data from Google Spreadsheet (Data Guru, Data Murid, Data Les, Data Kelas) into the database';
 
     private string $defaultPassword;
 
-    private array $teacherMap = [];   // teacher name => Teacher model
-    private array $studentMap = [];   // student name => Student model
-    private array $programMap = [];   // "teacherName::subject" => Program model
-    private array $enrollmentMap = []; // "teacherName::subject" => Enrollment model
+    private array $teacherMap = [];      // teacher name => Teacher model
+    private array $studentMap = [];      // student name => Student model
+    private array $classStudentMap = []; // class student name => ClassStudent model
+    private array $programMap = [];      // "teacherName::subject" => Program model
+    private array $enrollmentMap = [];   // "teacherName::subject" => Enrollment model
 
     public function handle(): int
     {
@@ -39,22 +41,27 @@ class ImportFromSpreadsheet extends Command
         $this->newLine();
 
         // ── Step 1: Import Teachers ──
-        $this->info('Step 1/4: Importing teachers...');
-        $teachersData = $this->fetchSheet($spreadsheetId, 'guru');
+        $this->info('Step 1/5: Importing teachers from "Data Guru"...');
+        $teachersData = $this->fetchSheet($spreadsheetId, 'Data Guru');
         $this->importTeachers($teachersData);
 
-        // ── Step 2: Import Students ──
-        $this->info('Step 2/4: Importing students...');
-        $studentsData = $this->fetchSheet($spreadsheetId, 'murid');
+        // ── Step 2: Import Private Students ──
+        $this->info('Step 2/5: Importing private students from "Data Murid"...');
+        $studentsData = $this->fetchSheet($spreadsheetId, 'Data Murid');
         $this->importStudents($studentsData);
 
-        // ── Step 3: Create Programs & Enrollments ──
-        $this->info('Step 3/4: Creating programs and enrollments from les data...');
-        $lesData = $this->fetchSheet($spreadsheetId, 'les');
+        // ── Step 3: Import Class Students ──
+        $this->info('Step 3/5: Importing class students from "Data Kelas"...');
+        $classStudentsData = $this->fetchSheet($spreadsheetId, 'Data Kelas');
+        $this->importClassStudents($classStudentsData);
+
+        // ── Step 4: Create Programs & Enrollments ──
+        $this->info('Step 4/5: Creating programs and enrollments from "Data Les"...');
+        $lesData = $this->fetchSheet($spreadsheetId, 'Data Les');
         $this->createProgramsAndEnrollments($lesData);
 
-        // ── Step 4: Assign students to enrollments ──
-        $this->info('Step 4/4: Assigning students to enrollments...');
+        // ── Step 5: Assign students to enrollments ──
+        $this->info('Step 5/5: Assigning students to enrollments...');
         $this->assignStudentsToEnrollments($lesData);
 
         $this->newLine();
@@ -63,7 +70,8 @@ class ImportFromSpreadsheet extends Command
             ['Type', 'Count'],
             [
                 ['Teachers', count($this->teacherMap)],
-                ['Students', count($this->studentMap)],
+                ['Private Students', count($this->studentMap)],
+                ['Class Students', count($this->classStudentMap)],
                 ['Programs', count($this->programMap)],
                 ['Enrollments', count($this->enrollmentMap)],
             ]
@@ -129,7 +137,8 @@ class ImportFromSpreadsheet extends Command
     }
 
     /**
-     * Import teachers from the guru sheet.
+     * Import teachers from the Data Guru sheet.
+     * Expected columns: NAMA GURU, NO HP, JURUSAN, MAPEL, ALAMAT, NAMA BANK, NOMOR REKENING, NAMA PEMILIK REKENING
      */
     private function importTeachers(array $data): void
     {
@@ -154,14 +163,13 @@ class ImportFromSpreadsheet extends Command
                 continue;
             }
 
-            $loginPhone = $this->cleanLoginPhone($phone);
-            $waPhone = $this->cleanPhone($phone);
+            $phone08 = $this->cleanPhone08($phone);
 
             $user = User::query()->firstOrCreate(
-                ['phone' => $loginPhone],
+                ['phone' => $phone08],
                 [
                     'name' => $name,
-                    'phone' => $loginPhone,
+                    'phone' => $phone08,
                     'role' => UserRole::Guru,
                     'password' => Hash::make($this->defaultPassword),
                     'must_change_password' => true,
@@ -172,8 +180,8 @@ class ImportFromSpreadsheet extends Command
                 ['user_id' => $user->id],
                 [
                     'name' => $name,
-                    'whatsapp' => $phone,
-                    'whatsapp_number' => $phone,
+                    'whatsapp' => $phone08,
+                    'whatsapp_number' => $phone08,
                     'major' => $major,
                     'subjects' => $subjects,
                     'address' => $address ?: null,
@@ -193,14 +201,14 @@ class ImportFromSpreadsheet extends Command
     }
 
     /**
-     * Import students from the murid sheet.
+     * Import private students from the Data Murid sheet.
+     * Expected columns: Nama Murid, Nama Ortu/Wali, No HP, Alamat
      */
     private function importStudents(array $data): void
     {
         $count = 0;
 
         foreach ($data as $row) {
-            // The murid sheet has format: Nama Murid, Nama Ortu/Wali, No HP, Alamat
             $keys = array_keys($row);
             $name = $this->cleanName($row[$keys[0]] ?? '');
             $phone = $this->cleanPhone($row[$keys[2] ?? ''] ?? '');
@@ -221,14 +229,13 @@ class ImportFromSpreadsheet extends Command
                 continue;
             }
 
-            $loginPhone = $this->cleanLoginPhone($phone);
-            $waPhone = $this->cleanPhone($phone);
+            $phone08 = $this->cleanPhone08($phone);
 
             $user = User::query()->firstOrCreate(
-                ['phone' => $loginPhone],
+                ['phone' => $phone08],
                 [
                     'name' => $name,
-                    'phone' => $loginPhone,
+                    'phone' => $phone08,
                     'role' => UserRole::Murid,
                     'password' => Hash::make($this->defaultPassword),
                     'must_change_password' => true,
@@ -239,9 +246,9 @@ class ImportFromSpreadsheet extends Command
                 ['user_id' => $user->id],
                 [
                     'name' => $name,
-                    'whatsapp' => $phone,
-                    'whatsapp_primary' => $phone,
-                    'whatsapp_secondary' => $phone,
+                    'whatsapp' => $phone08,
+                    'whatsapp_primary' => $phone08,
+                    'whatsapp_secondary' => $phone08,
                     'address' => $address ?: null,
                     'status' => 'active',
                 ]
@@ -251,11 +258,60 @@ class ImportFromSpreadsheet extends Command
             $count++;
         }
 
-        $this->line("  ✓ Imported {$count} students.");
+        $this->line("  ✓ Imported {$count} private students.");
     }
 
     /**
-     * Create programs and enrollments from the les sheet.
+     * Import class students from the Data Kelas sheet.
+     * Expected columns: NAMA MURID, NO HP
+     */
+    private function importClassStudents(array $data): void
+    {
+        $count = 0;
+
+        foreach ($data as $row) {
+            $keys = array_keys($row);
+            $name = $this->cleanName($row[$keys[0]] ?? '');
+            $phone = $this->cleanPhone($row[$keys[1] ?? ''] ?? '');
+
+            if (empty($name)) {
+                continue;
+            }
+
+            // Skip header-like rows
+            if (str_contains($name, 'murid') || str_contains($name, 'NAMA') || $name === 'TOTAL') {
+                continue;
+            }
+
+            // Skip if already imported
+            $normalizedName = $this->normalizeStudentName($name);
+            if (isset($this->classStudentMap[$normalizedName])) {
+                continue;
+            }
+
+            $phone08 = $this->cleanPhone08($phone);
+
+            $classStudent = ClassStudent::query()->updateOrCreate(
+                ['name' => $name],
+                [
+                    'whatsapp_primary' => $phone08,
+                    'whatsapp_secondary' => $phone08,
+                    'rate_per_meeting' => 0,
+                    'status' => 'active',
+                    'notes' => 'Diimpor dari spreadsheet Data Kelas',
+                ]
+            );
+
+            $this->classStudentMap[$normalizedName] = $classStudent;
+            $count++;
+        }
+
+        $this->line("  ✓ Imported {$count} class students.");
+    }
+
+    /**
+     * Create programs and enrollments from the Data Les sheet.
+     * Expected columns: NAMA PENGAJAR, NAMA SISWA, BIAYA ORTU PER/PERTEMUAN, GAJI GURU PER PERT
      */
     private function createProgramsAndEnrollments(array $data): void
     {
@@ -421,13 +477,13 @@ class ImportFromSpreadsheet extends Command
             return $this->studentMap[$normalizedName];
         }
 
-        $loginPhone = '08' . rand(1000000000, 9999999999);
+        $phone08 = '08' . rand(1000000000, 9999999999);
 
         $user = User::query()->firstOrCreate(
-            ['phone' => $loginPhone],
+            ['phone' => $phone08],
             [
                 'name' => $name,
-                'phone' => $loginPhone,
+                'phone' => $phone08,
                 'role' => UserRole::Murid,
                 'password' => Hash::make($this->defaultPassword),
                 'must_change_password' => true,
@@ -464,13 +520,13 @@ class ImportFromSpreadsheet extends Command
         }
 
         // Create new teacher
-        $loginPhone = '08' . rand(1000000000, 9999999999);
+        $phone08 = '08' . rand(1000000000, 9999999999);
 
         $user = User::query()->firstOrCreate(
-            ['phone' => $loginPhone],
+            ['phone' => $phone08],
             [
                 'name' => $name,
-                'phone' => $loginPhone,
+                'phone' => $phone08,
                 'role' => UserRole::Guru,
                 'password' => Hash::make($this->defaultPassword),
                 'must_change_password' => true,
@@ -514,6 +570,12 @@ class ImportFromSpreadsheet extends Command
             'jepang' => 'Bahasa Jepang',
             'mengaji' => 'Mengaji',
             'abk' => 'ABK',
+            'sd' => 'SD',
+            'tk' => 'TK',
+            'smp' => 'SMP',
+            'smk' => 'SMK',
+            'sma' => 'SMA',
+            'utbk' => 'UTBK',
         ];
 
         $lowerStudent = strtolower($studentName);
@@ -557,27 +619,9 @@ class ImportFromSpreadsheet extends Command
     }
 
     /**
-     * Clean and normalize a phone number.
+     * Clean and normalize a phone number (returns 08 format for storage).
      */
-    private function cleanPhone(string $phone): string
-    {
-        $phone = trim($phone);
-        $phone = str_replace([' ', '-', '(', ')', '+'], '', $phone);
-
-        // Handle leading 0 or 62 - always return 62 format for whatsapp
-        if (str_starts_with($phone, '0')) {
-            $phone = '62' . substr($phone, 1);
-        } elseif (!str_starts_with($phone, '62')) {
-            $phone = '62' . $phone;
-        }
-
-        return $phone;
-    }
-
-    /**
-     * Clean phone number for login (08 format).
-     */
-    private function cleanLoginPhone(string $phone): string
+    private function cleanPhone08(string $phone): string
     {
         $phone = trim($phone);
         $phone = str_replace([' ', '-', '(', ')', '+'], '', $phone);
