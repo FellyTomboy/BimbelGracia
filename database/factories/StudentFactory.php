@@ -14,7 +14,7 @@ class StudentFactory extends Factory
     {
         return [
             'user_id' => User::factory(),
-            'name' => fake()->name(),
+            'name' => [fake()->name()],
             'whatsapp' => '08123456789',
             'whatsapp_primary' => '08123456789',
             'whatsapp_secondary' => '08123456789',

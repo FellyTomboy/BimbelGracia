@@ -10,26 +10,14 @@
                     @csrf
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Nama</label>
-                        <input name="name" value="{{ old('name') }}" class="mt-1 w-full border-gray-300 rounded-md" required />
+                        <label class="block text-sm font-medium text-gray-700">Nama Murid <span class="text-gray-400 text-xs">(pisahkan dengan enter atau koma untuk lebih dari 1 nama)</span></label>
+                        <textarea name="name" rows="3" class="mt-1 w-full border-gray-300 rounded-md" placeholder="Alea&#10;Amelia&#10;Nazwa&#10;Rara" required>{{ old('name') }}</textarea>
                         @error('name')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Nomor WhatsApp (untuk login)</label>
+                        <label class="block text-sm font-medium text-gray-700">Nomor WhatsApp (untuk login dan WA)</label>
                         <input type="text" name="whatsapp" value="{{ old('whatsapp') }}" class="mt-1 w-full border-gray-300 rounded-md" placeholder="08XXXXXXXXXX" required />
                         @error('whatsapp')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
-                    </div>
-                    <div class="grid md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">WhatsApp Utama (jika beda)</label>
-                            <input name="whatsapp_primary" value="{{ old('whatsapp_primary') }}" class="mt-1 w-full border-gray-300 rounded-md" />
-                            @error('whatsapp_primary')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">WhatsApp Cadangan</label>
-                            <input name="whatsapp_secondary" value="{{ old('whatsapp_secondary') }}" class="mt-1 w-full border-gray-300 rounded-md" />
-                            @error('whatsapp_secondary')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
-                        </div>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Alamat</label>

@@ -66,7 +66,7 @@
                                     class="block px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors
                                         {{ ($selectedIndex == $index) ? 'bg-indigo-50/50 font-semibold' : '' }}">
                                     <div class="text-sm font-medium text-gray-900">
-                                        {{ $entry['student']?->name ?? 'Unknown' }}
+                                        {{ $entry['student']?->display_name ?? 'Unknown' }}
                                     </div>
                                     <div class="text-xs text-gray-500">WA: {{ $entry['contact'] }}</div>
                                     <div class="mt-1 text-[11px] text-gray-600">
@@ -85,7 +85,7 @@
                             <div class="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
                                 <div>
                                     <h3 class="text-xl font-bold text-gray-900">
-                                        {{ $selected['student']?->name ?? 'Unknown' }}
+                                        {{ $selected['student']?->display_name ?? 'Unknown' }}
                                     </h3>
                                     <p class="text-sm text-gray-500">Kontak: {{ $selected['contact'] }}</p>
                                     <p class="text-xs text-gray-600">

@@ -32,7 +32,6 @@ class StudentController extends Controller
             'students.name',
             'user.phone',
             'students.whatsapp_primary',
-            'students.whatsapp_secondary',
             'students.status',
         ]);
 
@@ -64,20 +63,20 @@ class StudentController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string'],
             'whatsapp' => ['required', 'string', 'max:32', 'unique:users,phone'],
-            'whatsapp_primary' => ['nullable', 'string', 'max:32'],
-            'whatsapp_secondary' => ['nullable', 'string', 'max:32'],
             'address' => ['nullable', 'string'],
             'status' => ['required', 'in:active,hibernasi'],
         ]);
 
         $defaultPassword = config('bimbel.default_password', '12345678');
         $phone = $validated['whatsapp'];
-        $whatsappPrimary = $validated['whatsapp_primary'] ?: $phone;
+
+        // Parse names: one per line or comma-separated
+        $names = $this->parseNames($validated['name']);
 
         $user = User::create([
-            'name' => $validated['name'],
+            'name' => $names[0],
             'phone' => $phone,
             'role' => UserRole::Murid,
             'password' => Hash::make($defaultPassword),
@@ -86,10 +85,9 @@ class StudentController extends Controller
 
         Student::create([
             'user_id' => $user->id,
-            'name' => $validated['name'],
+            'name' => $names,
             'whatsapp' => $phone,
-            'whatsapp_primary' => $whatsappPrimary,
-            'whatsapp_secondary' => $validated['whatsapp_secondary'] ?? null,
+            'whatsapp_primary' => $phone,
             'address' => $validated['address'] ?? null,
             'status' => $validated['status'],
         ]);
@@ -107,29 +105,26 @@ class StudentController extends Controller
     public function update(Request $request, Student $student): RedirectResponse
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string'],
             'whatsapp' => ['required', 'string', 'max:32', 'unique:users,phone,'.$student->user_id],
-            'whatsapp_primary' => ['nullable', 'string', 'max:32'],
-            'whatsapp_secondary' => ['nullable', 'string', 'max:32'],
             'address' => ['nullable', 'string'],
             'status' => ['required', 'in:active,hibernasi'],
         ]);
 
         $phone = $validated['whatsapp'];
-        $whatsappPrimary = $validated['whatsapp_primary'] ?: $phone;
+        $names = $this->parseNames($validated['name']);
 
         $student->update([
-            'name' => $validated['name'],
+            'name' => $names,
             'whatsapp' => $phone,
-            'whatsapp_primary' => $whatsappPrimary,
-            'whatsapp_secondary' => $validated['whatsapp_secondary'] ?? null,
+            'whatsapp_primary' => $phone,
             'address' => $validated['address'] ?? null,
             'status' => $validated['status'],
         ]);
 
         if ($student->user) {
             $student->user->update([
-                'name' => $validated['name'],
+                'name' => $names[0],
                 'phone' => $phone,
             ]);
         }
@@ -137,6 +132,31 @@ class StudentController extends Controller
         return redirect()
             ->route('admin.students.index')
             ->with('status', 'Murid berhasil diperbarui.');
+    }
+
+    /**
+     * Parse names from input string (one per line or comma-separated).
+     */
+    private function parseNames(string $input): array
+    {
+        // Split by newline first, then by comma
+        $lines = preg_split('/\r\n|\r|\n/', $input);
+        $names = [];
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if (empty($line)) {
+                continue;
+            }
+            // Also split by comma
+            $parts = explode(',', $line);
+            foreach ($parts as $part) {
+                $part = trim($part);
+                if (!empty($part)) {
+                    $names[] = $part;
+                }
+            }
+        }
+        return array_unique($names);
     }
 
     public function destroy(Student $student): RedirectResponse

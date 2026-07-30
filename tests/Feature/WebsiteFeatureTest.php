@@ -50,7 +50,7 @@ class WebsiteFeatureTest extends TestCase
         $user = $this->createUserWithRole(UserRole::Guru);
         Teacher::factory()->create([
             'user_id' => $user->id,
-            'name' => $user->name,
+            'name' => '["' . $user->name . '"]',
             'class_rate' => 50000,
             'status' => 'active',
         ]);
@@ -62,7 +62,7 @@ class WebsiteFeatureTest extends TestCase
         $user = $this->createUserWithRole(UserRole::Murid);
         Student::factory()->create([
             'user_id' => $user->id,
-            'name' => $user->name,
+            'name' => [$user->name],
             'status' => 'active',
         ]);
         return $user;
@@ -376,7 +376,7 @@ class WebsiteFeatureTest extends TestCase
         $data = $this->seedBasicData();
         $response = $this->actingAs($data['admin'])->get(route('admin.students.index'));
         $response->assertStatus(200);
-        $response->assertSee($data['student']->name);
+        $response->assertSee($data['student']->display_name);
     }
 
     public function test_admin_can_create_student(): void
@@ -393,7 +393,7 @@ class WebsiteFeatureTest extends TestCase
 
         $response->assertRedirect(route('admin.students.index'));
         $this->assertDatabaseHas('users', ['phone' => '081234567890']);
-        $this->assertDatabaseHas('students', ['name' => 'Student Baru']);
+        $this->assertDatabaseHas('students', ['name' => '["Student Baru"]']);
     }
 
     public function test_admin_can_edit_student(): void
@@ -410,7 +410,7 @@ class WebsiteFeatureTest extends TestCase
         ]);
 
         $response->assertRedirect(route('admin.students.index'));
-        $this->assertDatabaseHas('students', ['name' => 'Student Updated']);
+        $this->assertDatabaseHas('students', ['name' => '["Student Updated"]']);
     }
 
     public function test_admin_can_hibernate_student(): void

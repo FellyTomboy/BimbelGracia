@@ -82,6 +82,8 @@ class ImportFromSpreadsheet extends Command
 
     /**
      * Fetch a sheet from Google Spreadsheet as CSV and parse it.
+     * Some sheets (like Data Murid) don't have proper headers, so we handle
+     * those by detecting the first row value and using positional indices.
      */
     private function fetchSheet(string $spreadsheetId, string $sheetName): array
     {
@@ -89,7 +91,7 @@ class ImportFromSpreadsheet extends Command
 
         $this->line("  Fetching sheet: {$sheetName}...");
 
-        $response = Http::timeout(30)->get($url);
+        $response = Http::timeout(60)->get($url);
 
         if (!$response->successful()) {
             $this->warn("  Warning: Could not fetch sheet '{$sheetName}'. HTTP {$response->status()}");
@@ -101,7 +103,7 @@ class ImportFromSpreadsheet extends Command
         // Handle BOM
         $csvContent = preg_replace('/^\xEF\xBB\xBF/', '', $csvContent);
 
-        // Parse CSV
+        // Parse CSV - need to handle quoted fields properly
         $rows = array_map('str_getcsv', explode("\n", $csvContent));
         $rows = array_filter($rows, fn($row) => !empty(array_filter($row)));
 
@@ -110,7 +112,42 @@ class ImportFromSpreadsheet extends Command
             return [];
         }
 
-        // First row is header
+        // Resolve row indices: re-index from 0
+        $rows = array_values($rows);
+
+        // For sheets without proper headers, return raw rows
+        $firstRow = $rows[0];
+        $firstCell = trim($firstRow[0] ?? '');
+
+        // Detect sheets that don't have proper header rows
+        $noHeaderSheets = ['Data Murid'];
+        $isNoHeader = in_array($sheetName, $noHeaderSheets);
+
+        if ($isNoHeader) {
+            // Just return all rows directly (skip first row if it's TOTAL)
+            $startIdx = 0;
+            $firstCellUpper = strtoupper($firstCell);
+            if ($firstCellUpper === 'TOTAL' || str_contains($firstCellUpper, 'NAMA')) {
+                $startIdx = 1;
+            }
+
+            $result = [];
+            for ($i = $startIdx; $i < count($rows); $i++) {
+                $row = array_map('trim', $rows[$i]);
+                $row = array_pad($row, 10, '');
+                $row = array_slice($row, 0, 10);
+                // Skip empty rows
+                if (empty(implode('', $row))) {
+                    continue;
+                }
+                $result[] = $row;
+            }
+
+            $this->line("  Found " . count($result) . " rows (positional).");
+            return $result;
+        }
+
+        // Normal sheets: first row is header
         $headers = array_shift($rows);
         $headers = array_map('trim', $headers);
 
@@ -202,39 +239,60 @@ class ImportFromSpreadsheet extends Command
 
     /**
      * Import private students from the Data Murid sheet.
-     * Expected columns: Nama Murid, Nama Ortu/Wali, No HP, Alamat
+     * Data comes as positional array: [0]=Nama, [1]=Ortu, [2]=No HP, [3]=Alamat
+     * 
+     * Multiple students sharing the same phone number will be merged into
+     * one record with a JSON array of names.
      */
     private function importStudents(array $data): void
     {
-        $count = 0;
-
+        // Group by phone number first
+        $grouped = [];
         foreach ($data as $row) {
-            $keys = array_keys($row);
-            $name = $this->cleanName($row[$keys[0]] ?? '');
-            $phone = $this->cleanPhone08($row[$keys[2] ?? ''] ?? '');
-            $address = $row[$keys[3] ?? ''] ?? '';
+            $name = $this->cleanName($row[0] ?? '');
+            $phone = $this->cleanPhone08($row[2] ?? '');
+            $address = $row[3] ?? '';
 
             if (empty($name)) {
                 continue;
             }
 
             // Skip header-like rows
-            if (str_contains($name, 'murid') || str_contains($name, 'NAMA')) {
+            if (str_contains($name, 'murid') || str_contains($name, 'NAMA') || $name === 'TOTAL') {
                 continue;
             }
 
-            // Skip if already imported
-            $normalizedName = $this->normalizeStudentName($name);
-            if (isset($this->studentMap[$normalizedName])) {
-                continue;
-            }
-
+            // Parse names: split by comma, "dan", "and", "/", or multiple spaces
+            $parsedNames = $this->parseNameList($name);
             $phone08 = $this->cleanPhone08($phone);
+
+            if (!isset($grouped[$phone08])) {
+                $grouped[$phone08] = [
+                    'names' => [],
+                    'address' => $address,
+                ];
+            }
+
+            $grouped[$phone08]['names'] = array_merge($grouped[$phone08]['names'], $parsedNames);
+            if (!empty($address)) {
+                $grouped[$phone08]['address'] = $address;
+            }
+        }
+
+        $count = 0;
+        foreach ($grouped as $phone08 => $data) {
+            // Remove duplicate names
+            $names = array_unique($data['names']);
+            $names = array_values(array_filter($names, fn($n) => !empty($n)));
+
+            if (empty($names)) {
+                continue;
+            }
 
             $user = User::query()->firstOrCreate(
                 ['phone' => $phone08],
                 [
-                    'name' => $name,
+                    'name' => $names[0],
                     'phone' => $phone08,
                     'role' => UserRole::Murid,
                     'password' => Hash::make($this->defaultPassword),
@@ -242,23 +300,69 @@ class ImportFromSpreadsheet extends Command
                 ]
             );
 
+            // Update user name if already exists but with different name
+            if (!$user->wasRecentlyCreated && $user->name !== $names[0]) {
+                $user->update(['name' => $names[0]]);
+            }
+
             $student = Student::query()->updateOrCreate(
                 ['user_id' => $user->id],
                 [
-                    'name' => $name,
+                    'name' => $names,
                     'whatsapp' => $phone08,
                     'whatsapp_primary' => $phone08,
-                    'whatsapp_secondary' => $phone08,
-                    'address' => $address ?: null,
+                    'address' => $data['address'] ?: null,
                     'status' => 'active',
                 ]
             );
 
-            $this->studentMap[$normalizedName] = $student;
+            // Index by all names for lookup
+            foreach ($names as $n) {
+                $normalizedName = $this->normalizeStudentName($n);
+                $this->studentMap[$normalizedName] = $student;
+            }
+
             $count++;
         }
 
-        $this->line("  ✓ Imported {$count} private students.");
+        $this->line("  ✓ Imported {$count} private student records (grouped by phone).");
+    }
+
+    /**
+     * Parse a name field that may contain multiple names separated by comma, "dan", "and", "/", or spaces.
+     */
+    private function parseNameList(string $input): array
+    {
+        $input = trim($input);
+        if (empty($input)) {
+            return [];
+        }
+
+        // Replace common separators with comma
+        $input = preg_replace('/\s+(dan|and)\s+/i', ',', $input);
+        $input = str_replace(['/', '&'], ',', $input);
+
+        // Split by comma
+        $parts = explode(',', $input);
+        $names = [];
+        foreach ($parts as $part) {
+            $part = trim($part);
+            if (!empty($part)) {
+                $names[] = $part;
+            }
+        }
+
+        // If only one name and it looks like a multi-word name (e.g. "Alea Amelia Nazwa Rara"), 
+        // try to split into individual names
+        if (count($names) === 1) {
+            $words = preg_split('/\s+/', $names[0]);
+            // If more than 2 words, treat each as separate name
+            if (count($words) > 2) {
+                return $words;
+            }
+        }
+
+        return $names;
     }
 
     /**
@@ -451,6 +555,9 @@ class ImportFromSpreadsheet extends Command
 
         // Try partial match
         foreach ($this->studentMap as $key => $student) {
+            if (!is_string($key)) {
+                continue;
+            }
             $similarity = 0;
             similar_text($normalizedName, $key, $similarity);
             if ($similarity > 80) {
@@ -493,7 +600,9 @@ class ImportFromSpreadsheet extends Command
         $student = Student::query()->updateOrCreate(
             ['user_id' => $user->id],
             [
-                'name' => $name,
+                'name' => [$name],
+                'whatsapp' => $phone08,
+                'whatsapp_primary' => $phone08,
                 'status' => 'active',
             ]
         );

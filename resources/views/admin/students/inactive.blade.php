@@ -19,9 +19,7 @@
                         <thead>
                             <tr class="text-left text-gray-500">
                                 <th class="py-2">Nama</th>
-                                <th class="py-2">Email</th>
-                                <th class="py-2">WA Utama</th>
-                                <th class="py-2">WA Cadangan</th>
+                                <th class="py-2">No. Telepon</th>
                                 <th class="py-2">Status</th>
                                 <th class="py-2">Aksi</th>
                             </tr>
@@ -29,10 +27,8 @@
                         <tbody class="divide-y">
                             @foreach ($students as $student)
                                 <tr>
-                                    <td class="py-2 font-medium">{{ $student->name }}</td>
-                                    <td class="py-2">{{ $student->user?->email ?? '-' }}</td>
-                                    <td class="py-2">{{ $student->whatsapp_primary ?? '-' }}</td>
-                                    <td class="py-2">{{ $student->whatsapp_secondary ?? '-' }}</td>
+                                    <td class="py-2 font-medium">{{ $student->display_name }}</td>
+                                    <td class="py-2">{{ $student->user?->phone ?? '-' }}</td>
                                     <td class="py-2">hibernasi</td>
                                     <td class="py-2">
                                         <form method="POST" action="{{ route('admin.students.restore', $student->id) }}">

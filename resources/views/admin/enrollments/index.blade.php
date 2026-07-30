@@ -47,7 +47,7 @@
                             @forelse ($enrollments as $enrollment)
                                 <tr class="hover:bg-gray-50/50 transition-colors">
                                     <td class="py-3 px-4 font-medium text-gray-900">
-                                        {{ $enrollment->students->pluck('name')->implode(', ') ?: '-' }}
+                                        {{ $enrollment->students->map->display_name->implode(', ') ?: '-' }}
                                     </td>
                                     <td class="py-3 px-4 text-gray-600">{{ $enrollment->teacher?->name ?? '-' }}</td>
                                     <td class="py-3 px-4 text-gray-600">{{ $enrollment->program?->name ?? '-' }}</td>

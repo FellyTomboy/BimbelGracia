@@ -31,7 +31,7 @@
                 <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden">
                     <div class="p-4 border-b bg-gray-50 flex items-center justify-between">
                         <div>
-                            <span class="font-semibold text-lg">{{ $summary['student']?->name ?? 'Unknown' }}</span>
+                            <span class="font-semibold text-lg">{{ $summary['student']?->display_name ?? 'Unknown' }}</span>
                         </div>
                         <span class="font-semibold">Total: Rp {{ number_format($summary['total']) }}</span>
                     </div>

@@ -63,7 +63,7 @@ class BillingController extends Controller
                 }
 
                 // Check if invoice PDF exists
-                $invoicePath = sprintf('invoice/%s/%s_%04d-%02d.pdf', $student?->id, str_replace(' ', '_', $student?->name ?? ''), (int) $year, (int) $month);
+                $invoicePath = sprintf('invoice/%s/%s_%04d-%02d.pdf', $student?->id, str_replace(' ', '_', $student?->display_name ?? ''), (int) $year, (int) $month);
                 $hasInvoice = $student && Storage::disk('public')->exists($invoicePath);
 
                 return [

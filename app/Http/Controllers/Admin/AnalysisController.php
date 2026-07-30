@@ -123,7 +123,7 @@ class AnalysisController extends Controller
                     ->groupBy(fn (array $row) => $row['enrollment']->id)
                     ->map(function (Collection $enrollmentItems) {
                         $row = $enrollmentItems->first();
-                        $studentName = $enrollmentItems->pluck('student')->filter()->pluck('name')->unique()->implode(', ');
+                        $studentName = $enrollmentItems->pluck('student')->filter()->unique('id')->map->display_name->implode(', ');
                         $programName = $row['program']?->name ?? '-';
                         $rate = $row['teacher_rate'];
                         $totalCount = $enrollmentItems->count();
@@ -230,7 +230,7 @@ class AnalysisController extends Controller
                     ->groupBy(fn (array $row) => $row['enrollment']->id)
                     ->map(function (Collection $enrollmentItems) {
                         $row = $enrollmentItems->first();
-                        $studentName = $enrollmentItems->pluck('student')->filter()->pluck('name')->unique()->implode(', ');
+                        $studentName = $enrollmentItems->pluck('student')->filter()->unique('id')->map->display_name->implode(', ');
                         $programName = $row['program']?->name ?? '-';
                         $rate = $row['teacher_rate'];
                         $totalCount = $enrollmentItems->count();
@@ -499,7 +499,7 @@ class AnalysisController extends Controller
 
         $index = 1;
         foreach ($students as $studentSummary) {
-            $lines->push(sprintf('%d. *%s*', $index, $studentSummary['student']?->name ?? 'Murid'));
+                $lines->push(sprintf('%d. *%s*', $index, $studentSummary['student']?->display_name ?? 'Murid'));
             foreach ($studentSummary['lines'] as $line) {
                 $lines->push(
                     sprintf(
@@ -547,7 +547,7 @@ class AnalysisController extends Controller
         $studentNames = $students
             ->pluck('student')
             ->filter()
-            ->pluck('name')
+            ->pluck('display_name')
             ->implode(', ');
 
         $lines = collect([
@@ -559,7 +559,7 @@ class AnalysisController extends Controller
 
         $index = 1;
         foreach ($students as $studentSummary) {
-            $studentName = $studentSummary['student']?->name ?? 'Murid';
+            $studentName = $studentSummary['student']?->display_name ?? 'Murid';
             $lines->push(sprintf(
                 '%d. *%s*: *Rp %s* x *%d* = *Rp %s*',
                 $index,

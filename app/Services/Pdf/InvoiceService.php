@@ -45,7 +45,7 @@ class InvoiceService
             'grandTotal' => $grandTotal,
         ]);
 
-        $filename = sprintf('invoice/%s/%s_%04d-%02d.pdf', $student->id, str_replace(' ', '_', $student->name), $year, $month);
+        $filename = sprintf('invoice/%s/%s_%04d-%02d.pdf', $student->id, str_replace(' ', '_', $student->display_name), $year, $month);
         Storage::disk('public')->put($filename, $pdf->output());
 
         return $filename;
@@ -57,7 +57,7 @@ class InvoiceService
     public function generateTeacherSalarySlip(\App\Models\Teacher $teacher, int $month, int $year, Collection $attendances): string
     {
         $rows = $attendances->map(function (MonthlyAttendance $attendance) {
-            $studentNames = $attendance->students->pluck('name')->implode(', ');
+            $studentNames = $attendance->students->map->display_name->implode(', ');
             $rate = $attendance->enrollment?->teacher_rate ?? 0;
             $totalCount = 1;
             $lateCount = $attendance->status_validation === 'terlambat' ? 1 : 0;

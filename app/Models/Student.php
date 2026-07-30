@@ -26,6 +26,7 @@ class Student extends Model
     ];
 
     protected $casts = [
+        'name' => 'array',
         'status' => 'string',
     ];
 
@@ -42,6 +43,28 @@ class Student extends Model
     public function setWhatsappSecondaryAttribute(?string $value): void
     {
         $this->attributes['whatsapp_secondary'] = $this->normalizeWhatsapp($value);
+    }
+
+    /**
+     * Get the first name from the name array, or return the name as-is if it's a string.
+     */
+    public function getFirstNameAttribute(): string
+    {
+        if (is_array($this->name)) {
+            return $this->name[0] ?? (string) json_encode($this->name);
+        }
+        return $this->name;
+    }
+
+    /**
+     * Get the name as a comma-separated list (for display).
+     */
+    public function getDisplayNameAttribute(): string
+    {
+        if (is_array($this->name)) {
+            return implode(', ', $this->name);
+        }
+        return $this->name;
     }
 
     public function user(): BelongsTo

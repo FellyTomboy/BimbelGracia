@@ -297,7 +297,7 @@ class ExportController extends Controller
             ->map(function (Student $student) {
                 return [
                     $student->id,
-                    $student->name,
+                    $student->display_name,
                     $student->whatsapp_primary,
                     $student->whatsapp_secondary,
                     $student->address,
@@ -354,7 +354,7 @@ class ExportController extends Controller
                     $enrollment->program?->name,
                     $enrollment->program?->type,
                     $enrollment->teacher?->name,
-                    $enrollment->students->pluck('name')->implode(', '),
+                    $enrollment->students->map->display_name->implode(', '),
                     $enrollment->parent_rate,
                     $enrollment->teacher_rate,
                     $enrollment->validation_status,
@@ -392,7 +392,7 @@ class ExportController extends Controller
                 $teacherRate = $attendance->enrollment?->teacher_rate ?? 0;
                 $parentTotal = $attendance->students
                     ->sum(fn ($student) => (int) ($student->pivot?->total_present ?? 0) * $parentRate);
-                $studentNames = $attendance->students->pluck('name')->implode(', ');
+                $studentNames = $attendance->students->map->display_name->implode(', ');
                 return [
                     $attendance->id,
                     $attendance->lesson_date?->format('d M Y') ?? '-',
@@ -518,7 +518,7 @@ class ExportController extends Controller
                 $teacherRate = $attendance->enrollment?->teacher_rate ?? 0;
                 $parentTotal = $attendance->students
                     ->sum(fn ($student) => (int) ($student->pivot?->total_present ?? 0) * $parentRate);
-                $studentNames = $attendance->students->pluck('name')->implode(', ');
+                $studentNames = $attendance->students->map->display_name->implode(', ');
                 return [
                     $attendance->id,
                     $attendance->lesson_date?->format('d M Y') ?? '-',
