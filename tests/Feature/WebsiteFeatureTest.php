@@ -384,15 +384,15 @@ class WebsiteFeatureTest extends TestCase
         $admin = $this->createAdmin();
         $response = $this->actingAs($admin)->post(route('admin.students.store'), [
             'name' => 'Student Baru',
-            'phone' => '6281234567890',
-            'whatsapp_primary' => '081234567890',
+            'whatsapp' => '081234567890',
+            'whatsapp_primary' => '',
             'whatsapp_secondary' => '',
             'address' => 'Alamat test',
             'status' => 'active',
         ]);
 
         $response->assertRedirect(route('admin.students.index'));
-        $this->assertDatabaseHas('users', ['phone' => '6281234567890']);
+        $this->assertDatabaseHas('users', ['phone' => '081234567890']);
         $this->assertDatabaseHas('students', ['name' => 'Student Baru']);
     }
 
@@ -402,8 +402,8 @@ class WebsiteFeatureTest extends TestCase
         $student = $data['student'];
         $response = $this->actingAs($data['admin'])->put(route('admin.students.update', $student->id), [
             'name' => 'Student Updated',
-            'phone' => $student->user->phone,
-            'whatsapp_primary' => '081234567891',
+            'whatsapp' => $student->user->phone,
+            'whatsapp_primary' => '',
             'whatsapp_secondary' => '',
             'address' => 'Alamat updated',
             'status' => 'active',
@@ -449,8 +449,7 @@ class WebsiteFeatureTest extends TestCase
         $admin = $this->createAdmin();
         $response = $this->actingAs($admin)->post(route('admin.teachers.store'), [
             'name' => 'Guru Baru',
-            'phone' => '6281234567890',
-            'whatsapp_number' => '081234567890',
+            'whatsapp' => '081234567890',
             'major' => 'Matematika',
             'subjects' => 'Matematika, Fisika',
             'class_rate' => 50000,
@@ -458,7 +457,7 @@ class WebsiteFeatureTest extends TestCase
         ]);
 
         $response->assertRedirect(route('admin.teachers.index'));
-        $this->assertDatabaseHas('users', ['phone' => '6281234567890']);
+        $this->assertDatabaseHas('users', ['phone' => '081234567890']);
         $this->assertDatabaseHas('teachers', ['name' => 'Guru Baru']);
     }
 

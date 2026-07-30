@@ -80,7 +80,7 @@
                                 <label class="block text-xs uppercase tracking-wide text-gray-500">Template WA</label>
                                 <textarea class="mt-2 w-full border-gray-300 rounded-md text-sm" rows="6" readonly>{{ $summary['message'] }}</textarea>
                                 @if ($summary['contact'] !== 'unknown')
-                                    <a href="https://wa.me/{{ $summary['contact'] }}?text={{ urlencode($summary['message']) }}" class="inline-flex mt-3 items-center px-4 py-2 rounded-md bg-emerald-600 text-white text-sm" target="_blank" rel="noopener">Kirim WA</a>
+                                    <a href="https://wa.me/{{ App\Helpers\WhatsappHelper::toWaFormat($summary['contact']) }}?text={{ urlencode($summary['message']) }}" class="inline-flex mt-3 items-center px-4 py-2 rounded-md bg-emerald-600 text-white text-sm" target="_blank" rel="noopener">Kirim WA</a>
                                 @endif
                             </div>
                         </div>

@@ -20,7 +20,7 @@ class WebsiteDatasetSeeder extends Seeder
         // 1. ADMIN
         // ──────────────────────────────────────────────
         User::query()->firstOrCreate(
-            ['phone' => '0817-0302-7942'],
+            ['phone' => '081703027942'],
             [
                 'name' => 'Admin Bimbel',
                 'email' => 'mybimbelgracia@gmail.com',

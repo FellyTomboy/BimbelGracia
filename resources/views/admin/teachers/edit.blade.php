@@ -16,26 +16,21 @@
                         @error('name')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Nomor Telepon Login</label>
-                        <input type="text" name="phone" value="{{ old('phone', $teacher->user?->phone) }}" class="mt-1 w-full border-gray-300 rounded-md" placeholder="0817-0302-7942" required />
-                        @error('phone')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                        <label class="block text-sm font-medium text-gray-700">Nomor WhatsApp (untuk login)</label>
+                        <input type="text" name="whatsapp" value="{{ old('whatsapp', $teacher->user?->phone) }}" class="mt-1 w-full border-gray-300 rounded-md" placeholder="081703027942" required />
+                        @error('whatsapp')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
                     </div>
                     <div class="grid md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">WhatsApp</label>
-                            <input name="whatsapp_number" value="{{ old('whatsapp_number', $teacher->whatsapp_number) }}" class="mt-1 w-full border-gray-300 rounded-md" required />
-                            @error('whatsapp_number')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
-                        </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Jurusan</label>
                             <input name="major" value="{{ old('major', $teacher->major) }}" class="mt-1 w-full border-gray-300 rounded-md" />
                             @error('major')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
                         </div>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Mapel</label>
-                        <textarea name="subjects" class="mt-1 w-full border-gray-300 rounded-md">{{ old('subjects', $teacher->subjects) }}</textarea>
-                        @error('subjects')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Mapel</label>
+                            <textarea name="subjects" class="mt-1 w-full border-gray-300 rounded-md">{{ old('subjects', $teacher->subjects) }}</textarea>
+                            @error('subjects')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                        </div>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Alamat</label>

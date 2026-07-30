@@ -65,18 +65,20 @@ class StudentController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'phone' => ['required', 'string', 'max:32', 'unique:users,phone'],
-            'whatsapp_primary' => ['required', 'string', 'max:32'],
+            'whatsapp' => ['required', 'string', 'max:32', 'unique:users,phone'],
+            'whatsapp_primary' => ['nullable', 'string', 'max:32'],
             'whatsapp_secondary' => ['nullable', 'string', 'max:32'],
             'address' => ['nullable', 'string'],
             'status' => ['required', 'in:active,hibernasi'],
         ]);
 
         $defaultPassword = config('bimbel.default_password', '12345678');
+        $phone = $validated['whatsapp'];
+        $whatsappPrimary = $validated['whatsapp_primary'] ?: $phone;
 
         $user = User::create([
             'name' => $validated['name'],
-            'phone' => $validated['phone'],
+            'phone' => $phone,
             'role' => UserRole::Murid,
             'password' => Hash::make($defaultPassword),
             'must_change_password' => true,
@@ -85,7 +87,8 @@ class StudentController extends Controller
         Student::create([
             'user_id' => $user->id,
             'name' => $validated['name'],
-            'whatsapp_primary' => $validated['whatsapp_primary'],
+            'whatsapp' => $phone,
+            'whatsapp_primary' => $whatsappPrimary,
             'whatsapp_secondary' => $validated['whatsapp_secondary'] ?? null,
             'address' => $validated['address'] ?? null,
             'status' => $validated['status'],
@@ -105,16 +108,20 @@ class StudentController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'phone' => ['required', 'string', 'max:32', 'unique:users,phone,'.$student->user_id],
-            'whatsapp_primary' => ['required', 'string', 'max:32'],
+            'whatsapp' => ['required', 'string', 'max:32', 'unique:users,phone,'.$student->user_id],
+            'whatsapp_primary' => ['nullable', 'string', 'max:32'],
             'whatsapp_secondary' => ['nullable', 'string', 'max:32'],
             'address' => ['nullable', 'string'],
             'status' => ['required', 'in:active,hibernasi'],
         ]);
 
+        $phone = $validated['whatsapp'];
+        $whatsappPrimary = $validated['whatsapp_primary'] ?: $phone;
+
         $student->update([
             'name' => $validated['name'],
-            'whatsapp_primary' => $validated['whatsapp_primary'],
+            'whatsapp' => $phone,
+            'whatsapp_primary' => $whatsappPrimary,
             'whatsapp_secondary' => $validated['whatsapp_secondary'] ?? null,
             'address' => $validated['address'] ?? null,
             'status' => $validated['status'],
@@ -123,7 +130,7 @@ class StudentController extends Controller
         if ($student->user) {
             $student->user->update([
                 'name' => $validated['name'],
-                'phone' => $validated['phone'],
+                'phone' => $phone,
             ]);
         }
 

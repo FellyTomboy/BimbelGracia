@@ -66,8 +66,7 @@ class TeacherController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'phone' => ['required', 'string', 'max:32', 'unique:users,phone'],
-            'whatsapp_number' => ['required', 'string', 'max:32'],
+            'whatsapp' => ['required', 'string', 'max:32', 'unique:users,phone'],
             'major' => ['nullable', 'string', 'max:255'],
             'subjects' => ['nullable', 'string'],
             'address' => ['nullable', 'string'],
@@ -79,10 +78,11 @@ class TeacherController extends Controller
         ]);
 
         $defaultPassword = config('bimbel.default_password', '12345678');
+        $phone = $validated['whatsapp'];
 
         $user = User::create([
             'name' => $validated['name'],
-            'phone' => $validated['phone'],
+            'phone' => $phone,
             'role' => UserRole::Guru,
             'password' => Hash::make($defaultPassword),
             'must_change_password' => true,
@@ -91,7 +91,8 @@ class TeacherController extends Controller
         Teacher::create([
             'user_id' => $user->id,
             'name' => $validated['name'],
-            'whatsapp_number' => $validated['whatsapp_number'],
+            'whatsapp' => $phone,
+            'whatsapp_number' => $phone,
             'major' => $validated['major'] ?? null,
             'subjects' => $validated['subjects'] ?? null,
             'address' => $validated['address'] ?? null,
@@ -116,8 +117,7 @@ class TeacherController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'phone' => ['required', 'string', 'max:32', 'unique:users,phone,'.$teacher->user_id],
-            'whatsapp_number' => ['required', 'string', 'max:32'],
+            'whatsapp' => ['required', 'string', 'max:32', 'unique:users,phone,'.$teacher->user_id],
             'major' => ['nullable', 'string', 'max:255'],
             'subjects' => ['nullable', 'string'],
             'address' => ['nullable', 'string'],
@@ -128,9 +128,12 @@ class TeacherController extends Controller
             'status' => ['required', 'in:active,hibernasi'],
         ]);
 
+        $phone = $validated['whatsapp'];
+
         $teacher->update([
             'name' => $validated['name'],
-            'whatsapp_number' => $validated['whatsapp_number'],
+            'whatsapp' => $phone,
+            'whatsapp_number' => $phone,
             'major' => $validated['major'] ?? null,
             'subjects' => $validated['subjects'] ?? null,
             'address' => $validated['address'] ?? null,
@@ -144,7 +147,7 @@ class TeacherController extends Controller
         if ($teacher->user) {
             $teacher->user->update([
                 'name' => $validated['name'],
-                'phone' => $validated['phone'],
+                'phone' => $phone,
             ]);
         }
 

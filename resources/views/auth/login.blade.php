@@ -8,7 +8,7 @@
         <!-- Phone Number -->
         <div>
             <x-input-label for="phone" :value="__('Nomor Telepon')" />
-            <x-text-input id="phone" class="block mt-1 w-full" type="text" name="phone" :value="old('phone')" placeholder="0817-0302-7942" required autofocus autocomplete="username" />
+                            <x-text-input id="phone" class="block mt-1 w-full" type="text" name="phone" :value="old('phone')" placeholder="081703027942" required autofocus autocomplete="username" />
             <x-input-error :messages="$errors->get('phone')" class="mt-2" />
         </div>
 

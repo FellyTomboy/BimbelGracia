@@ -154,13 +154,14 @@ class ImportFromSpreadsheet extends Command
                 continue;
             }
 
-            $phone = $this->cleanPhone($phone);
+            $loginPhone = $this->cleanLoginPhone($phone);
+            $waPhone = $this->cleanPhone($phone);
 
             $user = User::query()->firstOrCreate(
-                ['phone' => $phone],
+                ['phone' => $loginPhone],
                 [
                     'name' => $name,
-                    'phone' => $phone,
+                    'phone' => $loginPhone,
                     'role' => UserRole::Guru,
                     'password' => Hash::make($this->defaultPassword),
                     'must_change_password' => true,
@@ -220,13 +221,14 @@ class ImportFromSpreadsheet extends Command
                 continue;
             }
 
-            $phone = $this->cleanPhone($phone);
+            $loginPhone = $this->cleanLoginPhone($phone);
+            $waPhone = $this->cleanPhone($phone);
 
             $user = User::query()->firstOrCreate(
-                ['phone' => $phone],
+                ['phone' => $loginPhone],
                 [
                     'name' => $name,
-                    'phone' => $phone,
+                    'phone' => $loginPhone,
                     'role' => UserRole::Murid,
                     'password' => Hash::make($this->defaultPassword),
                     'must_change_password' => true,
@@ -419,13 +421,13 @@ class ImportFromSpreadsheet extends Command
             return $this->studentMap[$normalizedName];
         }
 
-        $phone = '62' . rand(80000000000, 89999999999);
+        $loginPhone = '08' . rand(1000000000, 9999999999);
 
         $user = User::query()->firstOrCreate(
-            ['phone' => $phone],
+            ['phone' => $loginPhone],
             [
                 'name' => $name,
-                'phone' => $phone,
+                'phone' => $loginPhone,
                 'role' => UserRole::Murid,
                 'password' => Hash::make($this->defaultPassword),
                 'must_change_password' => true,
@@ -462,13 +464,13 @@ class ImportFromSpreadsheet extends Command
         }
 
         // Create new teacher
-        $phone = '62' . rand(80000000000, 89999999999);
+        $loginPhone = '08' . rand(1000000000, 9999999999);
 
         $user = User::query()->firstOrCreate(
-            ['phone' => $phone],
+            ['phone' => $loginPhone],
             [
                 'name' => $name,
-                'phone' => $phone,
+                'phone' => $loginPhone,
                 'role' => UserRole::Guru,
                 'password' => Hash::make($this->defaultPassword),
                 'must_change_password' => true,
@@ -562,11 +564,29 @@ class ImportFromSpreadsheet extends Command
         $phone = trim($phone);
         $phone = str_replace([' ', '-', '(', ')', '+'], '', $phone);
 
-        // Handle leading 0 or 62
+        // Handle leading 0 or 62 - always return 62 format for whatsapp
         if (str_starts_with($phone, '0')) {
             $phone = '62' . substr($phone, 1);
         } elseif (!str_starts_with($phone, '62')) {
             $phone = '62' . $phone;
+        }
+
+        return $phone;
+    }
+
+    /**
+     * Clean phone number for login (08 format).
+     */
+    private function cleanLoginPhone(string $phone): string
+    {
+        $phone = trim($phone);
+        $phone = str_replace([' ', '-', '(', ')', '+'], '', $phone);
+
+        // Ensure it starts with 0
+        if (str_starts_with($phone, '62')) {
+            $phone = '0' . substr($phone, 2);
+        } elseif (!str_starts_with($phone, '0')) {
+            $phone = '0' . $phone;
         }
 
         return $phone;
