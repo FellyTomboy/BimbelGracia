@@ -16,7 +16,7 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Nomor WhatsApp (untuk login)</label>
-                        <input type="text" name="whatsapp" value="{{ old('whatsapp') }}" class="mt-1 w-full border-gray-300 rounded-md" placeholder="081703027942" required />
+                        <input type="text" name="whatsapp" value="{{ old('whatsapp') }}" class="mt-1 w-full border-gray-300 rounded-md" placeholder="08XXXXXXXXXX" required />
                         @error('whatsapp')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
                     </div>
                     <div class="grid md:grid-cols-2 gap-4">
