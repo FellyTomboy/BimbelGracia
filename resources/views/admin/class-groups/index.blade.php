@@ -2,7 +2,7 @@
     <x-slot name="header">
         <div class="flex items-center justify-between">
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">Kelas Bersama</h2>
-            <a href="{{ route('admin.class-groups.create') }}" class="px-4 py-2 rounded-md bg-slate-900 text-white text-sm">Tambah Kelas</a>
+            <a href="{{ route('admin.class-groups.create') }}" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-medium shadow-sm hover:bg-indigo-700 transition-all">Tambah Kelas</a>
         </div>
     </x-slot>
 

@@ -13,7 +13,7 @@
         <p class="mt-1 text-sm text-gray-500 max-w-sm">{{ $description }}</p>
     @endif
     @if ($action && $actionUrl)
-        <a href="{{ $actionUrl }}" class="mt-4 inline-flex items-center px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition-colors">
+        <a href="{{ $actionUrl }}" class="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-medium shadow-sm hover:bg-indigo-700 transition-all">
             {{ $action }}
         </a>
     @endif

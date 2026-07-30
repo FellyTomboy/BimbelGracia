@@ -40,30 +40,6 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Kehadiran Murid</label>
-                        @error('student_totals')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
-                        <div class="mt-2 space-y-3">
-                            @foreach ($enrollments as $enrollment)
-                                <div class="space-y-2 border border-gray-200 rounded-xl p-4" data-enrollment-section="{{ $enrollment->id }}">
-                                    <p class="text-xs font-semibold text-gray-500">#{{ $enrollment->id }} - {{ $enrollment->program?->name ?? '-' }}</p>
-                                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                        @foreach ($enrollment->students as $student)
-                                            <label class="flex items-center justify-between gap-3 text-sm p-3 rounded-lg bg-gray-50">
-                                                <span class="font-medium text-gray-700">{{ $student->name }}</span>
-                                                <select name="student_totals[{{ $student->id }}]" class="w-24 rounded-xl border-gray-200 text-sm" required>
-                                                    <option value="0" @selected(old('student_totals.'.$student->id, '0') == '0')>Tidak Hadir</option>
-                                                    <option value="1" @selected(old('student_totals.'.$student->id) == '1')>Hadir</option>
-                                                </select>
-                                            </label>
-                                        @endforeach
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                        <p class="mt-2 text-xs text-gray-500">Pilih Hadir/Tidak Hadir untuk setiap murid.</p>
-                    </div>
-
-                    <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Keterangan</label>
                         <textarea name="notes" class="mt-1 w-full rounded-xl border-gray-200 text-sm" rows="3">{{ old('notes') }}</textarea>
                         @error('notes')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
@@ -77,23 +53,4 @@
             </div>
         </div>
     </div>
-
-    <script>
-        const enrollmentSelect = document.getElementById('enrollment-select');
-        const sections = document.querySelectorAll('[data-enrollment-section]');
-
-        const syncSections = () => {
-            const activeId = enrollmentSelect.value;
-            sections.forEach((section) => {
-                const isActive = section.dataset.enrollmentSection === activeId;
-                section.classList.toggle('hidden', !isActive);
-                section.querySelectorAll('input, select').forEach((input) => {
-                    input.disabled = !isActive;
-                });
-            });
-        };
-
-        enrollmentSelect.addEventListener('change', syncSections);
-        syncSections();
-    </script>
 </x-app-layout>

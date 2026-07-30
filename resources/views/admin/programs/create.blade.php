@@ -37,12 +37,12 @@
                     <div class="grid md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Default Harga Ortu</label>
-                            <input type="number" name="default_parent_rate" value="{{ old('default_parent_rate', 0) }}" class="mt-1 w-full border-gray-300 rounded-md" required />
+                            <input type="number" name="default_parent_rate" value="{{ old('default_parent_rate', 0) }}" step="5000" class="mt-1 w-full border-gray-300 rounded-md" required />
                             @error('default_parent_rate')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Default Gaji Guru</label>
-                            <input type="number" name="default_teacher_rate" value="{{ old('default_teacher_rate', 0) }}" class="mt-1 w-full border-gray-300 rounded-md" required />
+                            <input type="number" name="default_teacher_rate" value="{{ old('default_teacher_rate', 0) }}" step="5000" class="mt-1 w-full border-gray-300 rounded-md" required />
                             @error('default_teacher_rate')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
                         </div>
                     </div>

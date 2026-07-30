@@ -27,6 +27,9 @@ class MonthlyAttendance extends Model
         'status_validation',
         'parent_payment_status',
         'teacher_payment_status',
+        'parent_review_status',
+        'parent_reviewed_at',
+        'parent_rejection_reason',
         'validated_at',
         'validated_by',
         'created_by',
@@ -44,6 +47,7 @@ class MonthlyAttendance extends Model
         'status_validation' => 'string',
         'parent_payment_status' => 'string',
         'teacher_payment_status' => 'string',
+        'parent_reviewed_at' => 'datetime',
         'parent_rate' => 'integer',
         'teacher_rate' => 'integer',
     ];

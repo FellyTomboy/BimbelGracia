@@ -40,6 +40,17 @@
                         <span class="text-gray-500 font-semibold">Pending</span>
                     @endif
                 </p>
+                <p><span class="font-semibold">Notifikasi Ortu:</span>
+                    @if ($attendance->parent_review_status === 'pending')
+                        <span class="text-amber-600 font-semibold">Menunggu konfirmasi</span>
+                    @elseif ($attendance->parent_review_status === 'rejected')
+                        <span class="text-rose-600 font-semibold">Sudah dikonfirmasi ditolak</span>
+                    @elseif ($attendance->parent_review_status === 'dismissed')
+                        <span class="text-gray-500 font-semibold">Tidak dikonfirmasi</span>
+                    @else
+                        <span class="text-gray-500 font-semibold">-</span>
+                    @endif
+                </p>
 
                 @if ($attendance->image)
                     <div>
@@ -101,6 +112,25 @@
                     <button type="submit" class="px-4 py-2 rounded-md bg-slate-900 text-white">Simpan</button>
                 </form>
             </div>
+
+            @if ($attendance->parent_review_status === 'pending')
+                <div class="bg-white shadow-sm sm:rounded-lg p-6 space-y-4 border border-amber-200">
+                    <div>
+                        <h3 class="font-semibold text-gray-900">Konfirmasi Penolakan Ortu</h3>
+                        <p class="text-sm text-gray-500 mt-1">Orangtua sudah menolak presensi ini. Pilih salah satu tindakan di bawah untuk memutuskan status final.</p>
+                    </div>
+                    <div class="flex flex-wrap gap-3">
+                        <form method="POST" action="{{ route('admin.notifications.confirm', $attendance) }}">
+                            @csrf
+                            <button type="submit" class="px-4 py-2 rounded-md bg-rose-600 text-white text-sm font-medium hover:bg-rose-700">Konfirmasi Ditolak</button>
+                        </form>
+                        <form method="POST" action="{{ route('admin.notifications.dismiss', $attendance) }}">
+                            @csrf
+                            <button type="submit" class="px-4 py-2 rounded-md bg-gray-100 text-gray-700 text-sm font-medium hover:bg-gray-200">Tidak Dikonfirmasi</button>
+                        </form>
+                    </div>
+                </div>
+            @endif
         </div>
     </div>
 </x-app-layout>

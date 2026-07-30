@@ -29,7 +29,7 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Tarif per Pertemuan</label>
-                        <input type="number" name="rate_per_meeting" value="{{ old('rate_per_meeting', $classStudent->rate_per_meeting) }}" min="0" class="mt-1 w-full border-gray-300 rounded-md" required />
+                        <input type="number" name="rate_per_meeting" value="{{ old('rate_per_meeting', $classStudent->rate_per_meeting) }}" min="0" step="5000" class="mt-1 w-full border-gray-300 rounded-md" required />
                         @error('rate_per_meeting')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
                     </div>
                     <div>

@@ -7,7 +7,7 @@
                 <p class="text-sm text-gray-500 mt-0.5">Kelola program bimbel</p>
             </div>
             <div class="flex items-center gap-3">
-                <a href="{{ route('admin.programs.inactive') }}" class="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-all">Data tidak aktif</a>
+                <a href="{{ route('admin.programs.inactive') }}" class="inline-flex items-center px-4 py-2 rounded-xl border border-slate-300 bg-slate-100 text-sm font-medium text-slate-800 shadow-sm hover:bg-slate-200 hover:border-slate-400 transition-all">Data tidak aktif</a>
                 <a href="{{ route('admin.programs.create') }}" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition-all shadow-sm">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                     Tambah Program
@@ -35,8 +35,8 @@
                         <thead>
                             <tr class="text-left text-gray-500 bg-gray-50/50">
                                 <x-sortable-header label="Nama" column="programs.name" />
-                                <th class="py-3 px-4 font-medium">Tarif Ortu</th>
-                                <th class="py-3 px-4 font-medium">Tarif Guru</th>
+                                <x-sortable-header label="Tarif Ortu" column="default_parent_rate" />
+                                <x-sortable-header label="Tarif Guru" column="default_teacher_rate" />
                                 <x-sortable-header label="Status" column="programs.status" />
                                 <th class="py-3 px-4 font-medium">Aksi</th>
                             </tr>
@@ -45,8 +45,8 @@
                             @forelse ($programs as $program)
                                 <tr class="hover:bg-gray-50/50 transition-colors">
                                     <td class="py-3 px-4 font-medium text-gray-900">{{ $program->name }}</td>
-                                    <td class="py-3 px-4 text-gray-600">Rp {{ number_format($program->parent_rate) }}</td>
-                                    <td class="py-3 px-4 text-gray-600">Rp {{ number_format($program->teacher_rate) }}</td>
+                                    <td class="py-3 px-4 text-gray-600">Rp {{ number_format($program->default_parent_rate) }}</td>
+                                    <td class="py-3 px-4 text-gray-600">Rp {{ number_format($program->default_teacher_rate) }}</td>
                                     <td class="py-3 px-4">
                                         @if ($program->status === 'active')
                                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">Aktif</span>

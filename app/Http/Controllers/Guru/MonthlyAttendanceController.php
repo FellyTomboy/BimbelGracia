@@ -53,8 +53,6 @@ class MonthlyAttendanceController extends Controller
             'lesson_date' => ['required', 'date', 'before_or_equal:today'],
             'notes' => ['nullable', 'string'],
             'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:5120'],
-            'student_totals' => ['required', 'array'],
-            'student_totals.*' => ['required', 'integer', 'min:0', 'max:1'],
         ]);
 
         $enrollment = Enrollment::with(['students', 'program'])
@@ -85,10 +83,9 @@ class MonthlyAttendanceController extends Controller
             'created_by' => $request->user()->id,
         ]);
 
+        // All students are marked as present (teacher fills attendance only when student attends)
         $attendance->students()->sync(
-            collect($validated['student_totals'])
-                ->mapWithKeys(fn ($total, $studentId) => [(int) $studentId => ['total_present' => (int) $total]])
-                ->all()
+            $enrollment->students->mapWithKeys(fn ($student) => [$student->id => ['total_present' => 1]])
         );
 
         $enrollment->update(['validation_status' => 1]);
@@ -131,8 +128,6 @@ class MonthlyAttendanceController extends Controller
             'lesson_date' => ['required', 'date', 'before_or_equal:today'],
             'notes' => ['nullable', 'string'],
             'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:5120'],
-            'student_totals' => ['required', 'array'],
-            'student_totals.*' => ['required', 'integer', 'min:0', 'max:1'],
         ]);
 
         $lessonDate = Carbon::parse($validated['lesson_date']);
@@ -156,13 +151,10 @@ class MonthlyAttendanceController extends Controller
 
         $attendance->update($updateData);
 
+        // All students are marked as present (teacher fills attendance only when student attends)
         $attendance->load('enrollment.students');
-        $studentTotals = collect($validated['student_totals']);
-
         $attendance->students()->sync(
-            $studentTotals
-                ->mapWithKeys(fn ($total, $studentId) => [(int) $studentId => ['total_present' => (int) $total]])
-                ->all()
+            $attendance->enrollment->students->mapWithKeys(fn ($student) => [$student->id => ['total_present' => 1]])
         );
 
         return redirect()

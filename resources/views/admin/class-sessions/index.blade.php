@@ -4,7 +4,7 @@
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">Jadwal Kelas</h2>
             <div class="flex items-center gap-3">
                 <a href="{{ route('admin.class-sessions.calendar') }}" class="px-4 py-2 rounded-md border text-sm">Kalender</a>
-                <a href="{{ route('admin.class-sessions.create') }}" class="px-4 py-2 rounded-md bg-slate-900 text-white text-sm">Tambah Jadwal</a>
+                <a href="{{ route('admin.class-sessions.create') }}" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-medium shadow-sm hover:bg-indigo-700 transition-all">Tambah Jadwal</a>
             </div>
         </div>
     </x-slot>

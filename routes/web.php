@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\BankAccountController;
 use App\Http\Controllers\Admin\ClassReportController;
 use App\Http\Controllers\Admin\ClassStudentController;
 use App\Http\Controllers\Admin\ClassStudentSessionController;
+use App\Http\Controllers\Admin\AttendanceReviewController;
 use App\Http\Controllers\Admin\DiscountController;
 use App\Http\Controllers\Admin\ExportController;
 use App\Http\Controllers\Admin\FinanceController;
@@ -96,6 +97,12 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('presensi.enrollment');
             Route::post('presensi/{attendance}/validate', [AdminAttendanceController::class, 'validateAttendance'])
                 ->name('presensi.validate');
+            Route::get('notifikasi-presensi', [AttendanceReviewController::class, 'index'])
+                ->name('notifications.index');
+            Route::post('notifikasi-presensi/{attendance}/confirm', [AttendanceReviewController::class, 'confirm'])
+                ->name('notifications.confirm');
+            Route::post('notifikasi-presensi/{attendance}/dismiss', [AttendanceReviewController::class, 'dismiss'])
+                ->name('notifications.dismiss');
 
             Route::get('analysis/ortu', [AnalysisController::class, 'ortu'])
                 ->name('analysis.ortu');
@@ -220,6 +227,8 @@ Route::middleware(['auth', 'password.force'])->group(function () {
 
     Route::middleware('role:murid')->prefix('murid')->name('murid.')->group(function () {
         Route::get('riwayat', [MuridHistoryController::class, 'index'])->name('history.index');
+        Route::post('riwayat/{attendance}/tolak', [MuridHistoryController::class, 'reject'])->name('history.reject');
+        Route::post('riwayat/{attendance}/batalkan-penolakan', [MuridHistoryController::class, 'cancelReject'])->name('history.cancel-reject');
         Route::get('tagihan', [MuridBillingController::class, 'index'])->name('billing.index');
         Route::post('tagihan/{attendance}/upload', [MuridBillingController::class, 'uploadProof'])->name('billing.upload-proof');
     });

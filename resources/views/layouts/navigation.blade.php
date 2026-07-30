@@ -17,20 +17,20 @@
                     </x-nav-link>
                     @if (auth()->user()?->role?->value === 'admin')
                         @php
-                            $menuLengkapActive = request()->routeIs('admin.students.*', 'admin.teachers.*', 'admin.programs.*', 'admin.enrollments.*', 'admin.lesson-offers.*', 'admin.presensi.*', 'admin.class-students.*', 'admin.class-student-sessions.*', 'admin.analysis.ortu', 'admin.analysis.ortu-kelas', 'admin.analysis.guru', 'admin.payments.*', 'admin.discounts.*', 'admin.class-reports.*', 'admin.history.*', 'admin.finance.*', 'admin.export.*');
+                            $menuLengkapActive = request()->routeIs('admin.students.*', 'admin.teachers.*', 'admin.programs.*', 'admin.enrollments.*', 'admin.lesson-offers.*', 'admin.presensi.*', 'admin.notifications.*', 'admin.class-students.*', 'admin.class-student-sessions.*', 'admin.analysis.ortu', 'admin.analysis.ortu-kelas', 'admin.analysis.guru', 'admin.payments.*', 'admin.discounts.*', 'admin.class-reports.*', 'admin.history.*', 'admin.finance.*', 'admin.export.*');
                             $dropdownBase = 'inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 focus:outline-none transition duration-150 ease-in-out';
                         @endphp
                         <x-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">
                             {{ __('Admin') }}
                         </x-nav-link>
-                        <div class="relative" id="menu-lengkap-wrapper">
-                            <button onclick="toggleMenuLengkap()" class="{{ $dropdownBase }} {{ $menuLengkapActive ? 'border-indigo-400 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
+                        <div id="menu-lengkap-wrapper" class="relative flex items-center">
+                            <button onclick="toggleMenuLengkap()" class="relative {{ $dropdownBase }} gap-1 {{ $menuLengkapActive ? 'border-indigo-400 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
                                 {{ __('Menu Lengkap') }}
-                                <svg class="ms-1 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <svg class="h-4 w-4 shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                                     <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.27a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
                                 </svg>
                             </button>
-                            <div id="menu-lengkap-dropdown" class="absolute left-0 mt-2 w-56 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-50 py-2 hidden">
+                            <div id="menu-lengkap-dropdown" class="fixed w-56 max-h-[calc(100vh-1rem)] overflow-y-auto overscroll-contain bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-50 py-2 hidden" style="top:0;left:0;">
                                 <div class="relative" data-submenu="data-master">
                                     <span onclick="toggleSubmenu('data-master')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center justify-between">
                                         Data Master
@@ -92,21 +92,6 @@
                                 </div>
                             </div>
                         </div>
-                        <script>
-                            function toggleMenuLengkap() {
-                                document.getElementById('menu-lengkap-dropdown').classList.toggle('hidden');
-                            }
-                            function toggleSubmenu(id) {
-                                const el = document.querySelector('[data-submenu-content="' + id + '"]');
-                                el.classList.toggle('hidden');
-                            }
-                            document.addEventListener('click', function(e) {
-                                const wrapper = document.getElementById('menu-lengkap-wrapper');
-                                if (!wrapper.contains(e.target)) {
-                                    document.getElementById('menu-lengkap-dropdown').classList.add('hidden');
-                                }
-                            });
-                        </script>
                     @endif
                     @if (auth()->user()?->role?->value === 'guru')
                         @php
@@ -115,16 +100,14 @@
                             $guruOffer = request()->routeIs('guru.tawaran.*');
                             $dropdownBase = $dropdownBase ?? 'inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 focus:outline-none transition duration-150 ease-in-out';
                         @endphp
-                        <x-dropdown align="left" width="56">
-                            <x-slot name="trigger">
-                                <button class="{{ $dropdownBase }} {{ ($guruAktif || $guruFinance || $guruOffer) ? 'border-indigo-400 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
-                                    {{ __('Menu Guru') }}
-                                    <svg class="ms-1 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.27a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-                                    </svg>
-                                </button>
-                            </x-slot>
-                            <x-slot name="content">
+                        <div id="guru-menu-wrapper" class="relative flex items-center">
+                            <button onclick="toggleFixedDropdown('guru-menu-wrapper', 'guru-menu-dropdown', 224)" class="relative {{ $dropdownBase }} gap-1 {{ ($guruAktif || $guruFinance || $guruOffer) ? 'border-indigo-400 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
+                                {{ __('Menu Guru') }}
+                                <svg class="h-4 w-4 shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.27a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                            <div id="guru-menu-dropdown" class="fixed w-56 max-h-[calc(100vh-1rem)] overflow-y-auto overscroll-contain bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-50 py-2 hidden" style="top:0;left:0;">
                                 <x-dropdown-link :href="route('guru.presensi.index')">
                                     {{ __('Presensi') }}
                                 </x-dropdown-link>
@@ -137,39 +120,135 @@
                                 <x-dropdown-link :href="route('guru.tawaran.index')">
                                     {{ __('Tawaran Les') }}
                                 </x-dropdown-link>
-                            </x-slot>
-                        </x-dropdown>
+                            </div>
+                        </div>
                     @endif
                     @if (auth()->user()?->role?->value === 'murid')
                         @php
                             $muridActive = request()->routeIs('murid.history.*', 'murid.billing.*');
                             $dropdownBase = $dropdownBase ?? 'inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 focus:outline-none transition duration-150 ease-in-out';
                         @endphp
-                        <x-dropdown align="left" width="56">
-                            <x-slot name="trigger">
-                                <button class="{{ $dropdownBase }} {{ $muridActive ? 'border-indigo-400 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
-                                    {{ __('Menu Murid') }}
-                                    <svg class="ms-1 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.27a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-                                    </svg>
-                                </button>
-                            </x-slot>
-                            <x-slot name="content">
+                        <div id="murid-menu-wrapper" class="relative flex items-center">
+                            <button onclick="toggleFixedDropdown('murid-menu-wrapper', 'murid-menu-dropdown', 224)" class="relative {{ $dropdownBase }} gap-1 {{ $muridActive ? 'border-indigo-400 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
+                                {{ __('Menu Murid') }}
+                                <svg class="h-4 w-4 shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.27a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                            <div id="murid-menu-dropdown" class="fixed w-56 max-h-[calc(100vh-1rem)] overflow-y-auto overscroll-contain bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-50 py-2 hidden" style="top:0;left:0;">
                                 <x-dropdown-link :href="route('murid.history.index')">
-                                    {{ __('Riwayat Les') }}
+                                    {{ __('Presensi Les') }}
                                 </x-dropdown-link>
                                 <x-dropdown-link :href="route('murid.billing.index')">
                                     {{ __('Tagihan') }}
                                 </x-dropdown-link>
-                            </x-slot>
-                        </x-dropdown>
+                            </div>
+                        </div>
                     @endif
                 </div>
             </div>
 
+            <script>
+                const fixedDropdowns = [
+                    { wrapperId: 'menu-lengkap-wrapper', dropdownId: 'menu-lengkap-dropdown', width: 224 },
+                    { wrapperId: 'guru-menu-wrapper', dropdownId: 'guru-menu-dropdown', width: 224 },
+                    { wrapperId: 'murid-menu-wrapper', dropdownId: 'murid-menu-dropdown', width: 224 },
+                ];
+
+                function positionFixedDropdown(wrapperId, dropdownId, dropdownWidth) {
+                    const wrapper = document.getElementById(wrapperId);
+                    const dropdown = document.getElementById(dropdownId);
+                    const trigger = wrapper ? wrapper.querySelector('button') : null;
+
+                    if (!trigger || !dropdown) {
+                        return;
+                    }
+
+                    const rect = trigger.getBoundingClientRect();
+                    const viewportPadding = 8;
+                    const desiredLeft = rect.left;
+                    const maxLeft = window.innerWidth - dropdownWidth - viewportPadding;
+                    const left = Math.max(viewportPadding, Math.min(desiredLeft, maxLeft));
+                    const top = rect.bottom + 8;
+                    const maxHeight = Math.max(160, window.innerHeight - top - viewportPadding);
+
+                    dropdown.style.left = `${left}px`;
+                    dropdown.style.top = `${top}px`;
+                    dropdown.style.maxHeight = `${maxHeight}px`;
+                }
+
+                function toggleFixedDropdown(wrapperId, dropdownId, dropdownWidth) {
+                    const dropdown = document.getElementById(dropdownId);
+
+                    if (!dropdown) {
+                        return;
+                    }
+
+                    if (dropdown.classList.contains('hidden')) {
+                        positionFixedDropdown(wrapperId, dropdownId, dropdownWidth);
+                        dropdown.classList.remove('hidden');
+                    } else {
+                        dropdown.classList.add('hidden');
+                    }
+                }
+
+                function toggleMenuLengkap() {
+                    toggleFixedDropdown('menu-lengkap-wrapper', 'menu-lengkap-dropdown', 224);
+                }
+
+                function toggleSubmenu(id) {
+                    const el = document.querySelector('[data-submenu-content="' + id + '"]');
+                    if (el) {
+                        el.classList.toggle('hidden');
+                    }
+                }
+
+                window.addEventListener('resize', function() {
+                    fixedDropdowns.forEach(function(config) {
+                        const dropdown = document.getElementById(config.dropdownId);
+                        if (dropdown && !dropdown.classList.contains('hidden')) {
+                            positionFixedDropdown(config.wrapperId, config.dropdownId, config.width);
+                        }
+                    });
+                });
+
+                document.addEventListener('click', function(e) {
+                    fixedDropdowns.forEach(function(config) {
+                        const wrapper = document.getElementById(config.wrapperId);
+                        const dropdown = document.getElementById(config.dropdownId);
+                        if (wrapper && dropdown && !wrapper.contains(e.target)) {
+                            dropdown.classList.add('hidden');
+                        }
+                    });
+                });
+            </script>
+
             <!-- Settings Dropdown -->
-            <div class="hidden sm:flex sm:items-center sm:ms-6">
-                <x-dropdown align="right" width="48">
+            @php
+                $pendingNotificationsCount = 0;
+                if (auth()->user()?->role?->value === 'admin') {
+                    $pendingNotificationsCount = \App\Models\MonthlyAttendance::query()
+                        ->where('parent_review_status', 'pending')
+                        ->count();
+                }
+            @endphp
+
+            <div class="flex items-center gap-2 sm:gap-3">
+                @if (auth()->user()?->role?->value === 'admin')
+                    <a href="{{ route('admin.notifications.index') }}" class="relative inline-flex items-center justify-center w-10 h-10 rounded-full border border-gray-200 bg-white text-gray-600 hover:text-gray-900 hover:border-gray-300 hover:bg-gray-50 transition-colors" title="Notifikasi Presensi">
+                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                        </svg>
+                        @if ($pendingNotificationsCount > 0)
+                            <span class="absolute -top-1 -right-1 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-rose-600 text-white text-[10px] font-semibold leading-none ring-2 ring-white">
+                                {{ $pendingNotificationsCount > 9 ? '9+' : $pendingNotificationsCount }}
+                            </span>
+                        @endif
+                    </a>
+                @endif
+
+                <div class="hidden sm:flex sm:items-center sm:ms-2">
+                    <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
                         <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150">
                             <div>{{ Auth::user()->name }}</div>
@@ -198,11 +277,23 @@
                             </x-dropdown-link>
                         </form>
                     </x-slot>
-                </x-dropdown>
-            </div>
+                    </x-dropdown>
+                </div>
 
             <!-- Hamburger -->
             <div class="-me-2 flex items-center sm:hidden">
+                @if (auth()->user()?->role?->value === 'admin')
+                    <a href="{{ route('admin.notifications.index') }}" class="relative inline-flex items-center justify-center w-10 h-10 mr-1 rounded-full border border-gray-200 bg-white text-gray-600 hover:text-gray-900 hover:border-gray-300 hover:bg-gray-50 transition-colors" title="Notifikasi Presensi">
+                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                        </svg>
+                        @if ($pendingNotificationsCount > 0)
+                            <span class="absolute -top-1 -right-1 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-rose-600 text-white text-[10px] font-semibold leading-none ring-2 ring-white">
+                                {{ $pendingNotificationsCount > 9 ? '9+' : $pendingNotificationsCount }}
+                            </span>
+                        @endif
+                    </a>
+                @endif
                 <button @click="open = ! open" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 focus:text-gray-500 transition duration-150 ease-in-out">
                     <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
                         <path :class="{'hidden': open, 'inline-flex': ! open }" class="inline-flex" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
@@ -294,7 +385,7 @@
             @endif
             @if (auth()->user()?->role?->value === 'murid')
                 <x-responsive-nav-link :href="route('murid.history.index')" :active="request()->routeIs('murid.history.*')">
-                    {{ __('Riwayat Les') }}
+                    {{ __('Presensi Les') }}
                 </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('murid.billing.index')" :active="request()->routeIs('murid.billing.*')">
                     {{ __('Tagihan') }}

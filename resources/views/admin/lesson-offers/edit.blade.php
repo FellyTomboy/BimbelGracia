@@ -55,7 +55,7 @@
                                 </div>
                             @endforeach
                         </div>
-                        <button type="button" id="add_schedule" class="mt-2 text-sm text-indigo-600 font-medium">+ Tambah jadwal</button>
+                        <button type="button" id="add_schedule" class="mt-3 inline-flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700 shadow-sm hover:bg-indigo-100 transition-all">+ Tambah jadwal</button>
                         @error('schedules')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
                         @error('schedules.*.day')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
                         @error('schedules.*.time')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror

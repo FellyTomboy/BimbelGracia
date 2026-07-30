@@ -121,11 +121,24 @@
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ $line['count'] }}x</td>
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">Rp {{ number_format($line['total']) }}</td>
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                                    @if (($line['discount']['amount'] ?? 0) > 0)
-                                                        <span class="text-rose-600">-Rp {{ number_format($line['discount']['amount']) }}</span>
-                                                    @else
-                                                        <span class="text-gray-400">-</span>
-                                                    @endif
+                                                    <form method="POST" action="{{ route('admin.analysis.ortu-discount') }}" class="flex items-center gap-1">
+                                                        @csrf
+                                                        <input type="hidden" name="month" value="{{ $month }}">
+                                                        <input type="hidden" name="year" value="{{ $year }}">
+                                                        <input type="hidden" name="enrollment_id" value="{{ $line['enrollment_id'] }}">
+                                                        <input type="hidden" name="student_id" value="{{ $line['student_id'] }}">
+                                                        <select name="discount_type" class="text-xs rounded-lg border-gray-200 w-16 py-1 px-1">
+                                                            <option value="none" {{ !$line['discount']['type'] ? 'selected' : '' }}>Tidak</option>
+                                                            <option value="percent" {{ $line['discount']['type'] === 'percent' ? 'selected' : '' }}>%</option>
+                                                            <option value="amount" {{ $line['discount']['type'] === 'amount' ? 'selected' : '' }}>Rp</option>
+                                                            <option value="final" {{ $line['discount']['type'] === 'final' ? 'selected' : '' }}>Final</option>
+                                                        </select>
+                                                        <input type="number" name="discount_value" value="{{ $line['discount']['value'] ?? '' }}" min="0" class="text-xs rounded-lg border-gray-200 w-20 py-1 px-1" placeholder="0" />
+                                                        <button type="submit" class="text-xs px-2 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-700 transition-colors">Simpan</button>
+                                                        @if (($line['discount']['amount'] ?? 0) > 0)
+                                                            <span class="text-rose-600 text-xs font-medium">-Rp {{ number_format($line['discount']['amount']) }}</span>
+                                                        @endif
+                                                    </form>
                                                 </td>
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">Rp {{ number_format($line['total_after'] ?? $line['total']) }}</td>
                                             </tr>

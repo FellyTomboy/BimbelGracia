@@ -32,6 +32,7 @@
                                 <th class="py-2">Murid</th>
                                 <th class="py-2">Enrollment</th>
                                 <th class="py-2">Status</th>
+                                <th class="py-2">Notifikasi</th>
                                 <th class="py-2">Aksi</th>
                             </tr>
                         </thead>
@@ -64,6 +65,17 @@
                                             <span class="text-rose-600 font-semibold">Ditolak</span>
                                         @else
                                             <span class="text-gray-500 font-semibold">Pending</span>
+                                        @endif
+                                    </td>
+                                    <td class="py-2">
+                                        @if ($attendance->parent_review_status === 'pending')
+                                            <span class="text-amber-600 font-semibold">Menunggu konfirmasi ortu</span>
+                                        @elseif ($attendance->parent_review_status === 'rejected')
+                                            <span class="text-rose-600 font-semibold">Sudah ditolak</span>
+                                        @elseif ($attendance->parent_review_status === 'dismissed')
+                                            <span class="text-gray-500 font-semibold">Tidak dikonfirmasi</span>
+                                        @else
+                                            <span class="text-gray-400">-</span>
                                         @endif
                                     </td>
                                     <td class="py-2 flex gap-2">

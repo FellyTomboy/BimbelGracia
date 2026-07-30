@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Murid;
 use App\Http\Controllers\Controller;
 use App\Models\MonthlyAttendance;
 use App\Models\Student;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -34,6 +35,50 @@ class HistoryController extends Controller
             'student' => $student,
             'attendances' => $attendances,
         ]);
+    }
+
+    public function reject(Request $request, MonthlyAttendance $attendance): RedirectResponse
+    {
+        $student = Student::query()
+            ->where('user_id', $request->user()?->id)
+            ->first();
+
+        abort_unless($student && $attendance->students()->whereKey($student->id)->exists(), 403);
+
+        if ($attendance->parent_review_status === 'pending') {
+            return back()->with('status', 'Penolakan presensi sudah dikirim dan menunggu konfirmasi admin.');
+        }
+
+        $validated = $request->validate([
+            'rejection_reason' => ['required', 'string', 'max:1000'],
+        ]);
+
+        $attendance->update([
+            'parent_review_status' => 'pending',
+            'parent_reviewed_at' => now(),
+            'parent_rejection_reason' => $validated['rejection_reason'],
+        ]);
+
+        return back()->with('status', 'Penolakan presensi terkirim. Silakan hubungi admin untuk konfirmasi penolakan.');
+    }
+
+    public function cancelReject(Request $request, MonthlyAttendance $attendance): RedirectResponse
+    {
+        $student = Student::query()
+            ->where('user_id', $request->user()?->id)
+            ->first();
+
+        abort_unless($student && $attendance->students()->whereKey($student->id)->exists(), 403);
+
+        abort_unless($attendance->parent_review_status === 'pending', 404);
+
+        $attendance->update([
+            'parent_review_status' => null,
+            'parent_reviewed_at' => null,
+            'parent_rejection_reason' => null,
+        ]);
+
+        return back()->with('status', 'Penolakan presensi dibatalkan. Antrian konfirmasi admin telah dihapus.');
     }
 
     private function resolvePeriod(Request $request): array

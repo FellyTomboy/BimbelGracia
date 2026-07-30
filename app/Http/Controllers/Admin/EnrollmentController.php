@@ -11,6 +11,7 @@ use App\Models\Student;
 use App\Models\Teacher;
 use App\Services\MonthlySnapshotSyncService;
 use App\Traits\SearchAndSort;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -26,7 +27,7 @@ class EnrollmentController extends Controller
     {
         $params = $this->getSearchSortParams($request);
 
-        $enrollments = Enrollment::with(['program', 'teacher', 'students']);
+        $enrollments = Enrollment::query()->with(['program', 'teacher', 'students']);
 
         $enrollments = $this->applySearch($enrollments, $params['search'], [
             'program.name',
@@ -34,9 +35,7 @@ class EnrollmentController extends Controller
             'enrollments.status',
         ]);
 
-        $enrollments = $this->applySort($enrollments, $params['sort'], $params['direction'], [
-            'enrollments.parent_rate', 'enrollments.teacher_rate', 'enrollments.validation_status', 'enrollments.status', 'enrollments.created_at',
-        ]);
+        $enrollments = $this->applyEnrollmentSort($enrollments, $params['sort'], $params['direction']);
 
         $enrollments = $enrollments->paginate(20)->withQueryString();
 
@@ -166,6 +165,53 @@ class EnrollmentController extends Controller
         return redirect()
             ->route('admin.enrollments.index')
             ->with('status', 'Enrollment berhasil dipulihkan.');
+    }
+
+    private function applyEnrollmentSort(Builder $query, ?string $sort, ?string $direction): Builder
+    {
+        $direction = $direction === 'asc' ? 'asc' : 'desc';
+
+        if (! $sort) {
+            return $query->latest();
+        }
+
+        return match ($sort) {
+            'students.name' => $query
+                ->select('enrollments.*')
+                ->selectSub(
+                    Student::withTrashed()
+                        ->selectRaw('MIN(name)')
+                        ->join('enrollment_student', 'students.id', '=', 'enrollment_student.student_id')
+                        ->whereColumn('enrollment_student.enrollment_id', 'enrollments.id'),
+                    'student_sort_name'
+                )
+                ->orderBy('student_sort_name', $direction)
+                ->orderByDesc('enrollments.created_at'),
+            'teachers.name' => $query
+                ->select('enrollments.*')
+                ->selectSub(
+                    Teacher::withTrashed()
+                        ->select('name')
+                        ->whereColumn('teachers.id', 'enrollments.teacher_id')
+                        ->limit(1),
+                    'teacher_sort_name'
+                )
+                ->orderBy('teacher_sort_name', $direction)
+                ->orderByDesc('enrollments.created_at'),
+            'programs.name' => $query
+                ->select('enrollments.*')
+                ->selectSub(
+                    Program::withTrashed()
+                        ->select('name')
+                        ->whereColumn('programs.id', 'enrollments.program_id')
+                        ->limit(1),
+                    'program_sort_name'
+                )
+                ->orderBy('program_sort_name', $direction)
+                ->orderByDesc('enrollments.created_at'),
+            'enrollments.parent_rate', 'enrollments.teacher_rate', 'enrollments.validation_status', 'enrollments.status', 'enrollments.created_at' => $query->orderBy($sort, $direction),
+            default => $query->latest(),
+        };
     }
 
 }

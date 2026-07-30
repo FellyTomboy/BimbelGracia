@@ -1,13 +1,20 @@
 <x-app-layout>
     <x-slot name="header">
         <div>
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Riwayat Les Murid</h2>
-            <p class="text-sm text-gray-500 mt-0.5">Riwayat les dan tagihan per periode</p>
+            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Presensi Les</h2>
+            <p class="text-sm text-gray-500 mt-0.5">Daftar presensi les yang dicatat guru. Tolak jika ada data yang tidak sesuai.</p>
         </div>
     </x-slot>
 
     <div class="py-8">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+            @if (session('status'))
+                <div class="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-xl text-sm flex items-start gap-2">
+                    <svg class="w-5 h-5 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86l-7.5 13A2 2 0 004.5 20h15a2 2 0 001.71-3.14l-7.5-13a2 2 0 00-3.42 0z"/></svg>
+                    <div>{{ session('status') }}</div>
+                </div>
+            @endif
+
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
                 <form method="GET" action="{{ route('murid.history.index') }}" class="flex items-end gap-4">
                     <div>
@@ -27,47 +34,58 @@
                     <table class="min-w-full text-sm">
                         <thead>
                             <tr class="text-left text-gray-500 bg-gray-50/50">
-                                <th class="py-3 px-4 font-medium">Periode</th>
                                 <th class="py-3 px-4 font-medium">Program</th>
                                 <th class="py-3 px-4 font-medium">Guru</th>
-                                <th class="py-3 px-4 font-medium">Total Pertemuan</th>
-                                <th class="py-3 px-4 font-medium">Biaya / Pertemuan</th>
-                                <th class="py-3 px-4 font-medium">Total Tagihan</th>
-                                <th class="py-3 px-4 font-medium">Status Pembayaran</th>
+                                <th class="py-3 px-4 font-medium">Tanggal Les</th>
+                                <th class="py-3 px-4 font-medium">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-50">
                             @forelse ($attendances as $attendance)
-                                @php
-                                    $student = $attendance->students->firstWhere('id', $student?->id ?? 0);
-                                    $present = (int) ($student?->pivot?->total_present ?? 0);
-                                    $rate = $attendance->enrollment?->parent_rate ?? 0;
-                                    $total = $present * $rate;
-                                @endphp
                                 <tr class="hover:bg-gray-50/50 transition-colors">
-                                    <td class="py-3 px-4 text-gray-900">{{ sprintf('%02d', $attendance->month) }}/{{ $attendance->year }}</td>
                                     <td class="py-3 px-4">
                                         <x-hibernated-label :model="$attendance->enrollment?->program" :label="$attendance->enrollment?->program?->name ?? '-'" type="program" />
                                     </td>
                                     <td class="py-3 px-4">
                                         <x-hibernated-label :model="$attendance->enrollment?->teacher" :label="$attendance->enrollment?->teacher?->name ?? '-'" type="guru" />
                                     </td>
-                                    <td class="py-3 px-4 text-gray-900 font-medium">{{ $present }}</td>
-                                    <td class="py-3 px-4 text-gray-600">Rp {{ number_format($rate) }}</td>
-                                    <td class="py-3 px-4 text-gray-900 font-medium">Rp {{ number_format($total) }}</td>
                                     <td class="py-3 px-4">
-                                        @if ($attendance->parent_payment_status === 'paid')
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">Lunas</span>
-                                        @elseif ($attendance->parent_payment_status === 'partial')
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">Cicil</span>
+                                        {{ $attendance->lesson_date?->format('d/m/Y') ?? '-' }}
+                                    </td>
+                                    <td class="py-3 px-4">
+                                        @if ($attendance->parent_review_status === 'pending')
+                                            <div class="inline-flex flex-col gap-2">
+                                                <div class="inline-flex flex-col gap-1">
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">Menunggu Admin</span>
+                                                    <span class="text-xs text-gray-500">Penolakan sudah dikirim, menunggu konfirmasi admin.</span>
+                                                </div>
+                                                <form method="POST" action="{{ route('murid.history.cancel-reject', $attendance) }}" onsubmit="return confirm('Batalkan penolakan presensi ini? Entri akan dihapus dari antrian konfirmasi admin.')">
+                                                    @csrf
+                                                    <button type="submit" class="inline-flex items-center px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 text-xs font-medium hover:bg-gray-200 transition-colors">
+                                                        Batalkan Penolakan
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        @elseif ($attendance->parent_review_status === 'rejected')
+                                            <div class="inline-flex flex-col gap-1">
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-50 text-rose-700 border border-rose-200">Ditolak</span>
+                                                <span class="text-xs text-gray-500">Hubungi admin untuk konfirmasi.</span>
+                                            </div>
+                                        @elseif ($attendance->parent_review_status === 'dismissed')
+                                            <div class="inline-flex flex-col gap-1">
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-50 text-gray-700 border border-gray-200">Tidak Dikonfirmasi</span>
+                                                <span class="text-xs text-gray-500">Admin tidak mengonfirmasi penolakan.</span>
+                                            </div>
                                         @else
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-50 text-gray-600 border border-gray-200">{{ $attendance->parent_payment_status ?? 'Belum' }}</span>
+                                            <button type="button" onclick="openRejectModal({{ $attendance->id }})" class="inline-flex items-center px-3 py-1.5 rounded-lg bg-rose-600 text-white text-xs font-medium hover:bg-rose-700 transition-colors">
+                                                Tolak Presensi
+                                            </button>
                                         @endif
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7">
+                                    <td colspan="4">
                                         <x-empty-state icon="📚" title="Belum ada riwayat" description="Belum ada data les untuk periode ini." />
                                     </td>
                                 </tr>
@@ -78,4 +96,69 @@
             </div>
         </div>
     </div>
+
+    <!-- Reject Modal -->
+    <div id="rejectModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="closeRejectModal()"></div>
+            <div class="relative inline-block bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:max-w-lg sm:w-full">
+                <form id="rejectForm" method="POST" action="">
+                    @csrf
+                    <div class="px-6 pt-6 pb-4">
+                        <div class="flex items-start gap-4">
+                            <div class="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-rose-100">
+                                <svg class="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86l-7.5 13A2 2 0 004.5 20h15a2 2 0 001.71-3.14l-7.5-13a2 2 0 00-3.42 0z"/>
+                                </svg>
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="text-lg font-semibold text-gray-900" id="modal-title">Tolak Presensi</h3>
+                                <p class="text-sm text-gray-500 mt-1">Anda akan menolak presensi ini. Berikan alasan penolakan agar admin dapat memprosesnya.</p>
+                                <div class="mt-4">
+                                    <label for="rejection_reason" class="block text-sm font-medium text-gray-700 mb-1">Alasan Penolakan <span class="text-rose-500">*</span></label>
+                                    <textarea
+                                        name="rejection_reason"
+                                        id="rejection_reason"
+                                        rows="4"
+                                        class="w-full rounded-xl border-gray-200 text-sm focus:border-rose-400 focus:ring-rose-400"
+                                        placeholder="Contoh: Saya tidak hadir pada tanggal tersebut..."
+                                        required
+                                        maxlength="1000"
+                                    ></textarea>
+                                    <p class="text-xs text-gray-400 mt-1">Maksimal 1000 karakter</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="px-6 py-4 bg-gray-50 flex items-center justify-end gap-3 rounded-b-2xl">
+                        <button type="button" onclick="closeRejectModal()" class="px-4 py-2 rounded-lg bg-white text-gray-700 text-sm font-medium border border-gray-200 hover:bg-gray-50 transition-colors">
+                            Batal
+                        </button>
+                        <button type="submit" class="px-4 py-2 rounded-lg bg-rose-600 text-white text-sm font-medium hover:bg-rose-700 transition-colors">
+                            Kirim Penolakan
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openRejectModal(attendanceId) {
+            document.getElementById('rejectForm').action = '{{ route("murid.history.reject", "REPLACE_ID") }}'.replace('REPLACE_ID', attendanceId);
+            document.getElementById('rejectModal').classList.remove('hidden');
+            document.getElementById('rejection_reason').value = '';
+        }
+
+        function closeRejectModal() {
+            document.getElementById('rejectModal').classList.add('hidden');
+        }
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeRejectModal();
+            }
+        });
+    </script>
 </x-app-layout>

@@ -4,7 +4,7 @@
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">Rekening Bimbel</h2>
             <div class="flex items-center gap-3">
                 <a href="{{ route('admin.bank-accounts.inactive') }}" class="px-4 py-2 rounded-md border text-sm">Data tidak aktif</a>
-                <a href="{{ route('admin.bank-accounts.create') }}" class="px-4 py-2 rounded-md bg-slate-900 text-white text-sm">Tambah Rekening</a>
+                <a href="{{ route('admin.bank-accounts.create') }}" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-medium shadow-sm hover:bg-indigo-700 transition-all">Tambah Rekening</a>
             </div>
         </div>
     </x-slot>

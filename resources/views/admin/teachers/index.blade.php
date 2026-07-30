@@ -7,7 +7,7 @@
                 <p class="text-sm text-gray-500 mt-0.5">Kelola data guru pengajar</p>
             </div>
             <div class="flex items-center gap-3">
-                <a href="{{ route('admin.teachers.inactive') }}" class="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-all">Data tidak aktif</a>
+                <a href="{{ route('admin.teachers.inactive') }}" class="inline-flex items-center px-4 py-2 rounded-xl border border-slate-300 bg-slate-100 text-sm font-medium text-slate-800 shadow-sm hover:bg-slate-200 hover:border-slate-400 transition-all">Data tidak aktif</a>
                 <a href="{{ route('admin.teachers.create') }}" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition-all shadow-sm">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                     Tambah Guru
@@ -47,7 +47,7 @@
                                 <tr class="hover:bg-gray-50/50 transition-colors">
                                     <td class="py-3 px-4 font-medium text-gray-900">{{ $teacher->name }}</td>
                                     <td class="py-3 px-4 text-gray-600">{{ $teacher->user?->email ?? '-' }}</td>
-                                    <td class="py-3 px-4 text-gray-600">{{ $teacher->whatsapp ?? '-' }}</td>
+                                    <td class="py-3 px-4 text-gray-600">{{ $teacher->whatsapp_number ?? $teacher->whatsapp ?? '-' }}</td>
                                     <td class="py-3 px-4 text-gray-600">
                                         @if ($teacher->bank_name)
                                             <span class="text-xs">{{ $teacher->bank_name }} {{ $teacher->bank_account }}</span>

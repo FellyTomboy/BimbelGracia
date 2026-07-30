@@ -33,25 +33,6 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Kehadiran Murid</label>
-                        @php
-                            $attendanceStudents = $attendance->students->keyBy('id');
-                        @endphp
-                        <div class="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                            @foreach ($attendance->enrollment->students as $student)
-                                <label class="flex items-center justify-between gap-3 text-sm">
-                                    <span>{{ $student->name }}</span>
-                                    <select name="student_totals[{{ $student->id }}]" class="w-24 border-gray-300 rounded-md" required>
-                                        <option value="0" @selected(old('student_totals.'.$student->id, $attendanceStudents->get($student->id)?->pivot?->total_present ?? 0) == 0)>Tidak Hadir</option>
-                                        <option value="1" @selected(old('student_totals.'.$student->id, $attendanceStudents->get($student->id)?->pivot?->total_present ?? 0) == 1)>Hadir</option>
-                                    </select>
-                                </label>
-                            @endforeach
-                        </div>
-                        @error('student_totals')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
-                    </div>
-
-                    <div>
                         <label class="block text-sm font-medium text-gray-700">Keterangan</label>
                         <textarea name="notes" class="mt-1 w-full border-gray-300 rounded-md">{{ old('notes', $attendance->notes) }}</textarea>
                         @error('notes')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror

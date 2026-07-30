@@ -38,12 +38,12 @@
                     <div class="grid md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Harga Ortu / Pertemuan</label>
-                            <input type="number" name="parent_rate" id="parent-rate" value="{{ old('parent_rate', $enrollment->parent_rate) }}" class="mt-1 w-full border-gray-300 rounded-md" required />
+                            <input type="number" name="parent_rate" id="parent-rate" value="{{ old('parent_rate', $enrollment->parent_rate) }}" step="5000" class="mt-1 w-full border-gray-300 rounded-md" required />
                             @error('parent_rate')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Gaji Guru / Pertemuan</label>
-                            <input type="number" name="teacher_rate" id="teacher-rate" value="{{ old('teacher_rate', $enrollment->teacher_rate) }}" class="mt-1 w-full border-gray-300 rounded-md" required />
+                            <input type="number" name="teacher_rate" id="teacher-rate" value="{{ old('teacher_rate', $enrollment->teacher_rate) }}" step="5000" class="mt-1 w-full border-gray-300 rounded-md" required />
                             @error('teacher_rate')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
                         </div>
                     </div>

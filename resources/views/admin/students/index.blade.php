@@ -7,12 +7,12 @@
                 <p class="text-sm text-gray-500 mt-0.5">Kelola data murid bimbel</p>
             </div>
             <div class="flex items-center gap-3">
-                <a href="{{ route('admin.students.inactive') }}" class="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-all">Data tidak aktif</a>
+                <a href="{{ route('admin.students.inactive') }}" class="inline-flex items-center px-4 py-2 rounded-xl border border-slate-300 bg-slate-100 text-sm font-medium text-slate-800 shadow-sm hover:bg-slate-200 hover:border-slate-400 transition-all">Data tidak aktif</a>
                 <form method="POST" action="{{ route('admin.finance.snapshot.students') }}" class="flex items-center gap-2">
                     @csrf
                     <input type="number" name="month" value="{{ now()->month }}" min="1" max="12" class="w-20 rounded-xl border-gray-200 text-sm" aria-label="Bulan" />
                     <input type="number" name="year" value="{{ now()->year }}" min="2020" max="2100" class="w-24 rounded-xl border-gray-200 text-sm" aria-label="Tahun" />
-                    <button type="submit" class="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-all">Snapshot</button>
+                    <button type="submit" class="inline-flex items-center px-4 py-2 rounded-xl border border-slate-300 bg-slate-100 text-sm font-medium text-slate-800 shadow-sm hover:bg-slate-200 hover:border-slate-400 transition-all">Snapshot</button>
                 </form>
                 <a href="{{ route('admin.students.create') }}" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition-all shadow-sm">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
@@ -49,7 +49,6 @@
                                 <th class="py-3 px-4 font-medium">Email</th>
                                 <x-sortable-header label="WA Utama" column="students.whatsapp_primary" />
                                 <th class="py-3 px-4 font-medium">WA Cadangan</th>
-                                <x-sortable-header label="Status" column="students.status" />
                                 <th class="py-3 px-4 font-medium">Aksi</th>
                             </tr>
                         </thead>
@@ -60,13 +59,6 @@
                                     <td class="py-3 px-4 text-gray-600">{{ $student->user?->email ?? '-' }}</td>
                                     <td class="py-3 px-4 text-gray-600">{{ $student->whatsapp_primary ?? '-' }}</td>
                                     <td class="py-3 px-4 text-gray-600">{{ $student->whatsapp_secondary ?? '-' }}</td>
-                                    <td class="py-3 px-4">
-                                        @if ($student->status === 'active')
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">Aktif</span>
-                                        @else
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-50 text-gray-600 border border-gray-200">{{ $student->status }}</span>
-                                        @endif
-                                    </td>
                                     <td class="py-3 px-4">
                                         <div class="flex items-center gap-2">
                                             <a href="{{ route('admin.students.edit', $student) }}" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors">
@@ -84,7 +76,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6">
+                                    <td colspan="5">
                                         <x-empty-state icon="👨‍🎓" title="Belum ada murid" description="Tambahkan murid baru untuk memulai." action="Tambah Murid" actionUrl="{{ route('admin.students.create') }}" />
                                     </td>
                                 </tr>
