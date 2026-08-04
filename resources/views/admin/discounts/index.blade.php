@@ -66,7 +66,7 @@
                                             <x-hibernated-label :model="$enrollment->teacher" :label="$enrollment->teacher?->name ?? '-'" type="guru" />
                                         </td>
                                         <td class="py-2">
-                                            {{ $enrollment->students->map->display_name->implode(', ') ?: '-' }}
+                                            {{ $enrollment->students->map->name->implode(', ') ?: '-' }}
                                         </td>
                                     </tr>
                                 @endforeach

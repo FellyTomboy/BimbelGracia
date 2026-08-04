@@ -3,20 +3,18 @@
 namespace Database\Factories;
 
 use App\Models\ParentModel;
-use App\Models\Student;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
-class StudentFactory extends Factory
+class ParentModelFactory extends Factory
 {
-    protected $model = Student::class;
+    protected $model = ParentModel::class;
 
     public function definition(): array
     {
         return [
-            'parent_id' => ParentModel::factory(),
+            'user_id' => User::factory(),
             'name' => fake()->name(),
-            'address' => fake()->address(),
-            'status' => 'active',
         ];
     }
 }

@@ -17,9 +17,8 @@ class HistoryController extends Controller
     {
         [$month, $year] = $this->resolvePeriod($request);
 
-        $student = Student::query()
-            ->where('user_id', $request->user()?->id)
-            ->first();
+        $parent = $request->user()?->parent;
+        $student = $parent?->students()->first();
 
         $attendances = MonthlyAttendance::with(['enrollment.teacher', 'enrollment.program', 'students'])
             ->when($student, fn ($query) => $query->whereHas('students', fn ($sub) => $sub->where('students.id', $student->id)))
@@ -39,9 +38,8 @@ class HistoryController extends Controller
 
     public function reject(Request $request, MonthlyAttendance $attendance): RedirectResponse
     {
-        $student = Student::query()
-            ->where('user_id', $request->user()?->id)
-            ->first();
+        $parent = $request->user()?->parent;
+        $student = $parent?->students()->first();
 
         abort_unless($student && $attendance->students()->whereKey($student->id)->exists(), 403);
 
@@ -64,9 +62,8 @@ class HistoryController extends Controller
 
     public function cancelReject(Request $request, MonthlyAttendance $attendance): RedirectResponse
     {
-        $student = Student::query()
-            ->where('user_id', $request->user()?->id)
-            ->first();
+        $parent = $request->user()?->parent;
+        $student = $parent?->students()->first();
 
         abort_unless($student && $attendance->students()->whereKey($student->id)->exists(), 403);
 

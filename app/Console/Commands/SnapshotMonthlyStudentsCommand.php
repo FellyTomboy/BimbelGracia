@@ -12,14 +12,13 @@ class SnapshotMonthlyStudentsCommand extends Command
 {
     protected $signature = 'snapshot:students-monthly {--month=} {--year=}';
 
-    protected $description = 'Snapshot monthly student counts and class attendance';
+    protected $description = 'Snapshot monthly student counts';
 
     public function handle(MonthlySnapshotSyncService $snapshotSyncService): int
     {
         [$month, $year] = $this->resolveTargetPeriod();
 
         $snapshotSyncService->syncStudentSnapshotsForPeriod($month, $year);
-        $snapshotSyncService->syncClassStudentsForPeriod($month, $year);
 
         $this->info(sprintf('Snapshot murid berhasil disimpan untuk %02d/%04d.', $month, $year));
 

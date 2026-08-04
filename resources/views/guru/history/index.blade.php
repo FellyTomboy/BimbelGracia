@@ -51,7 +51,7 @@
                                     <td class="py-3 px-4">
                                         @if ($attendance->students->count() > 0)
                                             @foreach ($attendance->students as $student)
-                                                <x-hibernated-label :model="$student" :label="$student->display_name" type="murid privat" />{{ !$loop->last ? ', ' : '' }}
+                                                <x-hibernated-label :model="$student" :label="$student->name" type="murid privat" />{{ !$loop->last ? ', ' : '' }}
                                             @endforeach
                                         @else
                                             <span class="text-gray-400">-</span>

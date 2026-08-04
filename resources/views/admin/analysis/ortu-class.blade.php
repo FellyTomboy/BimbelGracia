@@ -39,7 +39,7 @@
                             <div class="text-sm text-gray-700 space-y-2">
                                 @foreach ($summary['students'] as $studentSummary)
                                     <div class="border rounded-md p-3 space-y-2">
-                                        <p class="font-semibold">{{ $studentSummary['student']?->display_name ?? 'Murid' }}</p>
+                                        <p class="font-semibold">{{ $studentSummary['student']?->name ?? 'Murid' }}</p>
                                         <div class="flex justify-between">
                                             <span>Pertemuan</span>
                                             <span>{{ $studentSummary['count'] }} x {{ number_format($studentSummary['rate']) }} = {{ number_format($studentSummary['total']) }}</span>

@@ -12,7 +12,7 @@
                         <select name="student_id" class="mt-1 w-full border-gray-300 rounded-md">
                             <option value="">Semua</option>
                             @foreach ($students as $student)
-                                <option value="{{ $student->id }}" @selected($studentId == $student->id)>{{ $student->display_name }}</option>
+                                <option value="{{ $student->id }}" @selected($studentId == $student->id)>{{ $student->name }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -57,7 +57,7 @@
                                     <td class="py-2">
                                         @if ($attendance->students->count() > 0)
                                             @foreach ($attendance->students as $student)
-                                                <x-hibernated-label :model="$student" :label="$student->display_name" type="murid privat" />{{ !$loop->last ? ', ' : '' }}
+                                                <x-hibernated-label :model="$student" :label="$student->name" type="murid privat" />{{ !$loop->last ? ', ' : '' }}
                                             @endforeach
                                         @else
                                             -

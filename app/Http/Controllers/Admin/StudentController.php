@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
+use App\Models\ParentModel;
 use App\Models\Student;
 use App\Models\User;
 use App\Services\MonthlySnapshotSyncService;
@@ -26,12 +27,10 @@ class StudentController extends Controller
     {
         $params = $this->getSearchSortParams($request);
 
-        $students = Student::with(['user', 'teachers']);
+        $students = Student::with(['parent.user', 'teachers']);
 
         $students = $this->applySearch($students, $params['search'], [
             'students.name',
-            'user.phone',
-            'students.whatsapp_primary',
             'students.status',
         ]);
 
@@ -48,7 +47,7 @@ class StudentController extends Controller
     {
         $students = Student::withTrashed()
             ->where('status', 'hibernasi')
-            ->with(['user', 'teachers'])
+            ->with(['parent.user', 'teachers'])
             ->latest('deleted_at')
             ->get();
 
@@ -72,25 +71,30 @@ class StudentController extends Controller
         $defaultPassword = config('bimbel.default_password', '12345678');
         $phone = $validated['whatsapp'];
 
-        // Parse names: one per line or comma-separated
-        $names = $this->parseNames($validated['name']);
+        DB::transaction(function () use ($validated, $phone, $defaultPassword) {
+            // Create user with role parent
+            $user = User::create([
+                'name' => $validated['name'],
+                'phone' => $phone,
+                'role' => UserRole::Parent,
+                'password' => Hash::make($defaultPassword),
+                'must_change_password' => true,
+            ]);
 
-        $user = User::create([
-            'name' => $names[0],
-            'phone' => $phone,
-            'role' => UserRole::Murid,
-            'password' => Hash::make($defaultPassword),
-            'must_change_password' => true,
-        ]);
+            // Create parent record
+            $parent = ParentModel::create([
+                'user_id' => $user->id,
+                'name' => $validated['name'],
+            ]);
 
-        Student::create([
-            'user_id' => $user->id,
-            'name' => $names,
-            'whatsapp' => $phone,
-            'whatsapp_primary' => $phone,
-            'address' => $validated['address'] ?? null,
-            'status' => $validated['status'],
-        ]);
+            // Create student linked to parent
+            Student::create([
+                'parent_id' => $parent->id,
+                'name' => $validated['name'],
+                'address' => $validated['address'] ?? null,
+                'status' => $validated['status'],
+            ]);
+        });
 
         return redirect()
             ->route('admin.students.index')
@@ -99,6 +103,7 @@ class StudentController extends Controller
 
     public function edit(Student $student): View
     {
+        $student->load('parent.user');
         return view('admin.students.edit', compact('student'));
     }
 
@@ -106,57 +111,37 @@ class StudentController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string'],
-            'whatsapp' => ['required', 'string', 'max:32', 'unique:users,phone,'.$student->user_id],
+            'whatsapp' => ['required', 'string', 'max:32', 'unique:users,phone,'.($student->parent?->user_id ?? 'NULL')],
             'address' => ['nullable', 'string'],
             'status' => ['required', 'in:active,hibernasi'],
         ]);
 
         $phone = $validated['whatsapp'];
-        $names = $this->parseNames($validated['name']);
 
-        $student->update([
-            'name' => $names,
-            'whatsapp' => $phone,
-            'whatsapp_primary' => $phone,
-            'address' => $validated['address'] ?? null,
-            'status' => $validated['status'],
-        ]);
-
-        if ($student->user) {
-            $student->user->update([
-                'name' => $names[0],
-                'phone' => $phone,
+        DB::transaction(function () use ($student, $validated, $phone) {
+            $student->update([
+                'name' => $validated['name'],
+                'address' => $validated['address'] ?? null,
+                'status' => $validated['status'],
             ]);
-        }
+
+            if ($student->parent) {
+                $student->parent->update([
+                    'name' => $validated['name'],
+                ]);
+
+                if ($student->parent->user) {
+                    $student->parent->user->update([
+                        'name' => $validated['name'],
+                        'phone' => $phone,
+                    ]);
+                }
+            }
+        });
 
         return redirect()
             ->route('admin.students.index')
             ->with('status', 'Murid berhasil diperbarui.');
-    }
-
-    /**
-     * Parse names from input string (one per line or comma-separated).
-     */
-    private function parseNames(string $input): array
-    {
-        // Split by newline first, then by comma
-        $lines = preg_split('/\r\n|\r|\n/', $input);
-        $names = [];
-        foreach ($lines as $line) {
-            $line = trim($line);
-            if (empty($line)) {
-                continue;
-            }
-            // Also split by comma
-            $parts = explode(',', $line);
-            foreach ($parts as $part) {
-                $part = trim($part);
-                if (!empty($part)) {
-                    $names[] = $part;
-                }
-            }
-        }
-        return array_unique($names);
     }
 
     public function destroy(Student $student): RedirectResponse

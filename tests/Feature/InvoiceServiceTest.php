@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\UserRole;
 use App\Models\Enrollment;
 use App\Models\MonthlyAttendance;
+use App\Models\ParentModel;
 use App\Models\Program;
 use App\Models\Student;
 use App\Models\Teacher;
@@ -22,8 +23,9 @@ class InvoiceServiceTest extends TestCase
     {
         Storage::fake('public');
 
-        $user = User::factory()->create(['role' => UserRole::Murid]);
-        $student = Student::factory()->create(['user_id' => $user->id]);
+        $user = User::factory()->create(['role' => UserRole::Parent]);
+        $parent = ParentModel::factory()->create(['user_id' => $user->id]);
+        $student = Student::factory()->create(['parent_id' => $parent->id]);
 
         $teacher = Teacher::factory()->create();
         $program = Program::factory()->create();

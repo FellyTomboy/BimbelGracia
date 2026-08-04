@@ -8,5 +8,5 @@ enum UserRole: string
 {
     case Admin = 'admin';
     case Guru = 'guru';
-    case Murid = 'murid';
+    case Parent = 'parent';
 }

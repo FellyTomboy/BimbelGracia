@@ -53,8 +53,8 @@
                         <tbody class="divide-y divide-gray-50">
                             @forelse ($students as $student)
                                 <tr class="hover:bg-gray-50/50 transition-colors">
-                                    <td class="py-3 px-4 font-medium text-gray-900">{{ $student->display_name }}</td>
-                                    <td class="py-3 px-4 text-gray-600">{{ $student->user?->phone ?? '-' }}</td>
+                                    <td class="py-3 px-4 font-medium text-gray-900">{{ $student->name }}</td>
+                                    <td class="py-3 px-4 text-gray-600">{{ $student->parent?->user?->phone ?? '-' }}</td>
                                     <td class="py-3 px-4">
                                         <div class="flex items-center gap-2">
                                             <a href="{{ route('admin.students.edit', $student) }}" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors">

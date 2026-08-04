@@ -17,9 +17,8 @@ class BillingController extends Controller
 {
     public function index(Request $request): View
     {
-        $student = Student::query()
-            ->where('user_id', $request->user()?->id)
-            ->first();
+        $parent = $request->user()?->parent;
+        $student = $parent?->students()->first();
 
         // Get all attendances for this student across all time
         $attendances = MonthlyAttendance::with(['enrollment.teacher', 'enrollment.program', 'students'])
@@ -63,7 +62,7 @@ class BillingController extends Controller
                 }
 
                 // Check if invoice PDF exists
-                $invoicePath = sprintf('invoice/%s/%s_%04d-%02d.pdf', $student?->id, str_replace(' ', '_', $student?->display_name ?? ''), (int) $year, (int) $month);
+                $invoicePath = sprintf('invoice/%s/%s_%04d-%02d.pdf', $student?->id, str_replace(' ', '_', $student?->name ?? ''), (int) $year, (int) $month);
                 $hasInvoice = $student && Storage::disk('public')->exists($invoicePath);
 
                 return [
@@ -90,9 +89,8 @@ class BillingController extends Controller
 
     public function uploadProof(Request $request, MonthlyAttendance $attendance): RedirectResponse
     {
-        $student = Student::query()
-            ->where('user_id', $request->user()?->id)
-            ->first();
+        $parent = $request->user()?->parent;
+        $student = $parent?->students()->first();
 
         // Verify this student is associated with this attendance
         if (! $student || ! $attendance->students->contains($student->id)) {
@@ -115,9 +113,8 @@ class BillingController extends Controller
 
     public function downloadInvoice(Request $request, int $year, int $month): RedirectResponse
     {
-        $student = Student::query()
-            ->where('user_id', $request->user()?->id)
-            ->first();
+        $parent = $request->user()?->parent;
+        $student = $parent?->students()->first();
 
         if (!$student) {
             abort(404);

@@ -16,60 +16,19 @@ class Student extends Model
     use HasFactory, SoftDeletes, FormatsWhatsappNumber, Auditable;
 
     protected $fillable = [
-        'user_id',
+        'parent_id',
         'name',
-        'whatsapp',
-        'whatsapp_primary',
-        'whatsapp_secondary',
         'address',
         'status',
     ];
 
     protected $casts = [
-        'name' => 'array',
         'status' => 'string',
     ];
 
-    public function setWhatsappAttribute(?string $value): void
+    public function parent(): BelongsTo
     {
-        $this->attributes['whatsapp'] = $this->normalizeWhatsapp($value);
-    }
-
-    public function setWhatsappPrimaryAttribute(?string $value): void
-    {
-        $this->attributes['whatsapp_primary'] = $this->normalizeWhatsapp($value);
-    }
-
-    public function setWhatsappSecondaryAttribute(?string $value): void
-    {
-        $this->attributes['whatsapp_secondary'] = $this->normalizeWhatsapp($value);
-    }
-
-    /**
-     * Get the first name from the name array, or return the name as-is if it's a string.
-     */
-    public function getFirstNameAttribute(): string
-    {
-        if (is_array($this->name)) {
-            return $this->name[0] ?? (string) json_encode($this->name);
-        }
-        return $this->name;
-    }
-
-    /**
-     * Get the name as a comma-separated list (for display).
-     */
-    public function getDisplayNameAttribute(): string
-    {
-        if (is_array($this->name)) {
-            return implode(', ', $this->name);
-        }
-        return $this->name;
-    }
-
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(ParentModel::class, 'parent_id');
     }
 
     public function teachers(): BelongsToMany

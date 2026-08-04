@@ -1,10 +1,9 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="flex items-center justify-between">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Jadwal Murid Kelas Bersama</h2>
+            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Jadwal Kelas Bersama</h2>
             <div class="flex items-center gap-3">
                 <a href="{{ route('admin.class-student-sessions.index') }}" class="px-4 py-2 rounded-md border text-sm">Kalender</a>
-                <a href="{{ route('admin.class-student-sessions.create') }}" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-medium shadow-sm hover:bg-indigo-700 transition-all">Tambah Jadwal</a>
             </div>
         </div>
     </x-slot>
@@ -22,32 +21,37 @@
                         <thead>
                             <tr class="text-left text-gray-500">
                                 <th class="py-2">Tanggal</th>
-                                <th class="py-2">Jam</th>
+                                <th class="py-2">Program</th>
+                                <th class="py-2">Guru</th>
                                 <th class="py-2">Murid</th>
-                                <th class="py-2">Catatan</th>
-                                <th class="py-2">Aksi</th>
+                                <th class="py-2">Status</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y">
-                            @foreach ($sessions as $session)
+                            @foreach ($attendances as $attendance)
                                 <tr>
-                                    <td class="py-2">{{ $session->session_date->format('d M Y') }}</td>
+                                    <td class="py-2">{{ $attendance->lesson_date?->format('d M Y') ?? '-' }}</td>
                                     <td class="py-2">
-                                        {{ $session->start_time?->format('H:i') ?? '-' }} - {{ $session->end_time?->format('H:i') ?? '-' }}
+                                        <x-hibernated-label :model="$attendance->enrollment?->program" :label="$attendance->enrollment?->program?->name ?? '-'" type="program" />
                                     </td>
                                     <td class="py-2">
-                                        @foreach ($session->students as $student)
-                                            <x-hibernated-label :model="$student" :label="$student->name" type="murid kelas" /><br>
+                                        <x-hibernated-label :model="$attendance->enrollment?->teacher" :label="$attendance->enrollment?->teacher?->name ?? '-'" type="guru" />
+                                    </td>
+                                    <td class="py-2">
+                                        @foreach ($attendance->students as $student)
+                                            <x-hibernated-label :model="$student" :label="$student->name" type="murid privat" /><br>
                                         @endforeach
                                     </td>
-                                    <td class="py-2">{{ $session->notes ?? '-' }}</td>
-                                    <td class="py-2 flex gap-2">
-                                        <a href="{{ route('admin.class-student-sessions.edit', $session) }}" class="text-indigo-600">Edit</a>
-                                        <form method="POST" action="{{ route('admin.class-student-sessions.destroy', $session) }}" onsubmit="return confirm('Hapus jadwal ini?')">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="text-rose-600">Hapus</button>
-                                        </form>
+                                    <td class="py-2">
+                                        @if ($attendance->status_validation === 'terima')
+                                            <span class="text-emerald-600 font-semibold">Diterima</span>
+                                        @elseif ($attendance->status_validation === 'terlambat')
+                                            <span class="text-amber-600 font-semibold">Terlambat</span>
+                                        @elseif ($attendance->status_validation === 'ditolak')
+                                            <span class="text-rose-600 font-semibold">Ditolak</span>
+                                        @else
+                                            <span class="text-gray-500 font-semibold">Pending</span>
+                                        @endif
                                     </td>
                                 </tr>
                             @endforeach

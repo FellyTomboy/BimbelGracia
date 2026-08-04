@@ -6,9 +6,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\BankAccount;
-use App\Models\ClassStudent;
-use App\Models\ClassStudentDiscount;
-use App\Models\ClassStudentSession;
 use App\Models\EnrollmentStudentDiscount;
 use App\Models\Enrollment;
 use App\Models\MonthlyAttendance;
@@ -32,8 +29,7 @@ class AnalysisController extends Controller
 
         $privatSummaries = $rows
             ->groupBy(function (array $row) {
-                return $row['student']->whatsapp_primary
-                    ?? $row['student']->whatsapp
+                return $row['student']->parent?->user?->phone
                     ?? 'unknown';
             })
             ->map(function (Collection $items, string $contact) use ($month, $year, $discounts) {
@@ -99,7 +95,58 @@ class AnalysisController extends Controller
     public function ortuKelas(Request $request): View
     {
         [$month, $year] = $this->resolvePeriod($request);
-        $classSummaries = $this->classParentSummaries($month, $year);
+
+        $attendances = MonthlyAttendance::with([
+            'enrollment.program',
+            'enrollment.teacher',
+            'students.parent.user',
+        ])
+            ->whereHas('enrollment.program', fn ($q) => $q->where('name', 'like', 'Kelas%'))
+            ->whereIn('status_validation', ['terima', 'terlambat'])
+            ->where('month', $month)
+            ->where('year', $year)
+            ->orderBy('enrollment_id')
+            ->get();
+
+        $rows = $this->attendanceRows($attendances);
+
+        $classSummaries = $rows
+            ->groupBy(function (array $row) {
+                return $row['student']->parent?->user?->phone
+                    ?? 'unknown';
+            })
+            ->map(function (Collection $items, string $contact) use ($month, $year) {
+                $students = $items
+                    ->groupBy(fn (array $row) => $row['student']->id)
+                    ->map(function (Collection $studentItems) {
+                        $student = $studentItems->first()['student'];
+                        $count = $studentItems->sum('total_present');
+                        $rate = (int) ($studentItems->first()['parent_rate'] ?? 0);
+                        $total = $count * $rate;
+
+                        return [
+                            'student' => $student,
+                            'count' => $count,
+                            'rate' => $rate,
+                            'total' => $total,
+                            'total_after' => $total,
+                            'discount' => null,
+                            'class_student_id' => $student?->id,
+                        ];
+                    })
+                    ->values();
+
+                $grandTotal = $students->sum('total_after');
+                $message = $this->buildClassParentMessage($students, $month, $year, $grandTotal);
+
+                return [
+                    'contact' => $contact,
+                    'students' => $students,
+                    'total' => $grandTotal,
+                    'message' => $message,
+                ];
+            })
+            ->values();
 
         return view('admin.analysis.ortu-class', [
             'month' => $month,
@@ -123,7 +170,7 @@ class AnalysisController extends Controller
                     ->groupBy(fn (array $row) => $row['enrollment']->id)
                     ->map(function (Collection $enrollmentItems) {
                         $row = $enrollmentItems->first();
-                        $studentName = $enrollmentItems->pluck('student')->filter()->unique('id')->map->display_name->implode(', ');
+                        $studentName = $enrollmentItems->pluck('student')->filter()->unique('id')->map->name->implode(', ');
                         $programName = $row['program']?->name ?? '-';
                         $rate = $row['teacher_rate'];
                         $totalCount = $enrollmentItems->count();
@@ -230,7 +277,7 @@ class AnalysisController extends Controller
                     ->groupBy(fn (array $row) => $row['enrollment']->id)
                     ->map(function (Collection $enrollmentItems) {
                         $row = $enrollmentItems->first();
-                        $studentName = $enrollmentItems->pluck('student')->filter()->unique('id')->map->display_name->implode(', ');
+                        $studentName = $enrollmentItems->pluck('student')->filter()->unique('id')->map->name->implode(', ');
                         $programName = $row['program']?->name ?? '-';
                         $rate = $row['teacher_rate'];
                         $totalCount = $enrollmentItems->count();
@@ -386,44 +433,6 @@ class AnalysisController extends Controller
         return redirect(asset('storage/' . $filename));
     }
 
-    public function updateClassDiscount(Request $request): RedirectResponse
-    {
-        $validated = $request->validate([
-            'month' => ['required', 'integer', 'min:1', 'max:12'],
-            'year' => ['required', 'integer', 'min:2020', 'max:2100'],
-            'class_student_id' => ['required', 'integer', 'exists:class_students,id'],
-            'discount_type' => ['required', 'in:none,percent,final,amount'],
-            'discount_value' => ['nullable', 'integer', 'min:0'],
-        ]);
-
-        $type = $validated['discount_type'];
-        $value = $validated['discount_value'];
-
-        if ($type === 'none' || $value === null || $value === 0) {
-            ClassStudentDiscount::query()
-                ->where('class_student_id', $validated['class_student_id'])
-                ->where('month', $validated['month'])
-                ->where('year', $validated['year'])
-                ->delete();
-
-            return back()->with('status', 'Diskon kelas dihapus.');
-        }
-
-        ClassStudentDiscount::updateOrCreate(
-            [
-                'class_student_id' => $validated['class_student_id'],
-                'month' => $validated['month'],
-                'year' => $validated['year'],
-            ],
-            [
-                'discount_type' => $type,
-                'discount_value' => $value,
-            ]
-        );
-
-        return back()->with('status', 'Diskon kelas diperbarui.');
-    }
-
     private function baseAttendanceQuery(int $month, int $year)
     {
         return MonthlyAttendance::query()
@@ -499,7 +508,7 @@ class AnalysisController extends Controller
 
         $index = 1;
         foreach ($students as $studentSummary) {
-                $lines->push(sprintf('%d. *%s*', $index, $studentSummary['student']?->display_name ?? 'Murid'));
+            $lines->push(sprintf('%d. *%s*', $index, $studentSummary['student']?->name ?? 'Murid'));
             foreach ($studentSummary['lines'] as $line) {
                 $lines->push(
                     sprintf(
@@ -547,7 +556,7 @@ class AnalysisController extends Controller
         $studentNames = $students
             ->pluck('student')
             ->filter()
-            ->pluck('display_name')
+            ->pluck('name')
             ->implode(', ');
 
         $lines = collect([
@@ -559,7 +568,7 @@ class AnalysisController extends Controller
 
         $index = 1;
         foreach ($students as $studentSummary) {
-            $studentName = $studentSummary['student']?->display_name ?? 'Murid';
+            $studentName = $studentSummary['student']?->name ?? 'Murid';
             $lines->push(sprintf(
                 '%d. *%s*: *Rp %s* x *%d* = *Rp %s*',
                 $index,
@@ -599,7 +608,7 @@ class AnalysisController extends Controller
         return $lines->implode("\n");
     }
 
-    private function buildTeacherMessage(?\App\Models\Teacher $teacher, Collection $lines, int $month, int $year, int $grandTotal, int $latePenalty = 0, int $lateCountTotal = 0, int $finalTotal = 0): string
+    private function buildTeacherMessage(?Teacher $teacher, Collection $lines, int $month, int $year, int $grandTotal, int $latePenalty = 0, int $lateCountTotal = 0, int $finalTotal = 0): string
     {
         $linesText = $lines->values()->map(function (array $line, int $index): string {
             return sprintf(
@@ -670,67 +679,6 @@ class AnalysisController extends Controller
         return $lines;
     }
 
-    private function classParentSummaries(int $month, int $year): Collection
-    {
-        $discounts = $this->classDiscountsByPeriod($month, $year);
-        $classSessions = ClassStudentSession::with('students')
-            ->whereMonth('session_date', $month)
-            ->whereYear('session_date', $year)
-            ->get();
-
-        // Flatten: each session can have multiple students via pivot
-        $rows = $classSessions->flatMap(function (ClassStudentSession $session) {
-            return $session->students->map(function ($student) use ($session) {
-                return [
-                    'session' => $session,
-                    'student' => $student,
-                ];
-            });
-        });
-
-        return $rows
-            ->groupBy(function (array $row) {
-                $student = $row['student'];
-                return $student?->whatsapp_primary
-                    ?? $student?->whatsapp_secondary
-                    ?? 'unknown';
-            })
-            ->map(function (Collection $items, string $contact) use ($month, $year, $discounts) {
-                $students = $items
-                    ->groupBy(fn (array $row) => $row['student']->id)
-                    ->map(function (Collection $studentItems) use ($discounts) {
-                        $student = $studentItems->first()['student'];
-                        $count = $studentItems->count();
-                        $rate = (int) ($student?->rate_per_meeting ?? 0);
-                        $total = $count * $rate;
-                        $discountModel = $discounts[$student?->id ?? 0] ?? null;
-                        $discount = $this->resolveDiscount($total, $discountModel?->discount_type, $discountModel?->discount_value);
-
-                        return [
-                            'student' => $student,
-                            'count' => $count,
-                            'rate' => $rate,
-                            'total' => $total,
-                            'total_after' => $discount['total'],
-                            'discount' => $discount,
-                            'class_student_id' => $student?->id,
-                        ];
-                    })
-                    ->values();
-
-                $grandTotal = $students->sum('total_after');
-                $message = $this->buildClassParentMessage($students, $month, $year, $grandTotal);
-
-                return [
-                    'contact' => $contact,
-                    'students' => $students,
-                    'total' => $grandTotal,
-                    'message' => $message,
-                ];
-            })
-            ->values();
-    }
-
     private function resolveDiscount(int $baseTotal, ?string $type, ?int $value): array
     {
         $type = $type ? strtolower($type) : null;
@@ -781,15 +729,6 @@ class AnalysisController extends Controller
             ->where('year', $year)
             ->get()
             ->keyBy(fn (EnrollmentStudentDiscount $discount) => $this->discountKey($discount->enrollment_id, $discount->student_id));
-    }
-
-    private function classDiscountsByPeriod(int $month, int $year): Collection
-    {
-        return ClassStudentDiscount::query()
-            ->where('month', $month)
-            ->where('year', $year)
-            ->get()
-            ->keyBy('class_student_id');
     }
 
     private function discountKey(?int $enrollmentId, ?int $studentId): string

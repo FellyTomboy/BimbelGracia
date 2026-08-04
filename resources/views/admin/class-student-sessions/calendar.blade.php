@@ -1,9 +1,8 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="flex items-center justify-between">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Kalender Murid Kelas</h2>
+            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Kalender Kelas</h2>
             <div class="flex items-center gap-3">
-                <a href="{{ route('admin.class-student-sessions.create') }}" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-medium shadow-sm hover:bg-indigo-700 transition-all">Tambah Jadwal</a>
                 <a href="{{ route('admin.class-student-sessions.table') }}" class="px-4 py-2 rounded-md border text-sm">Tabel</a>
             </div>
         </div>
@@ -12,7 +11,7 @@
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
             <div class="bg-white shadow-sm sm:rounded-lg">
-                <form method="GET" action="{{ route('admin.class-student-sessions.index') }}" class="p-6 grid md:grid-cols-4 gap-4">
+                <form method="GET" action="{{ route('admin.class-student-sessions.index') }}" class="p-6 grid md:grid-cols-3 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Bulan</label>
                         <input type="number" name="month" value="{{ $month }}" min="1" max="12" class="mt-1 w-full border-gray-300 rounded-md" required />
@@ -20,15 +19,6 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Tahun</label>
                         <input type="number" name="year" value="{{ $year }}" min="2020" max="2100" class="mt-1 w-full border-gray-300 rounded-md" required />
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Murid</label>
-                        <select name="class_student_id" class="mt-1 w-full border-gray-300 rounded-md">
-                            <option value="">Semua</option>
-                            @foreach ($students as $student)
-                                <option value="{{ $student->id }}" @selected($classStudentId == $student->id)>{{ $student->name }}</option>
-                            @endforeach
-                        </select>
                     </div>
                     <div class="flex items-end">
                         <div class="flex items-center gap-3">
@@ -42,8 +32,6 @@
             <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden">
                 <div class="p-6 text-gray-900 overflow-x-auto">
                     @php
-                        // Grouping supaya 1 blok per tanggal + jam sesi + catatan,
-                        // isi blok berupa semua murid dalam session tersebut.
                         $startOffset = $firstDayOfWeek - 1;
                         $totalCells = $startOffset + $daysInMonth;
                         $rows = (int) ceil($totalCells / 7);
@@ -74,23 +62,31 @@
                                                 <div class="text-xs font-semibold text-gray-500">{{ $day }}</div>
                                                 <div class="mt-2 space-y-2">
                                                     @foreach ($items as $block)
-                                                        @php $session = $block['session']; @endphp
+                                                        @php $attendance = $block['attendance']; @endphp
                                                         <div class="rounded-md border border-gray-200 p-2 text-xs">
-                                                            <div class="font-semibold">{{ $session->start_time?->format('H:i') ?? '-' }} - {{ $session->end_time?->format('H:i') ?? '-' }}</div>
+                                                            <div class="font-semibold text-indigo-700">{{ $attendance->enrollment?->program?->name ?? '-' }}</div>
+                                                            <div class="text-gray-500">{{ $attendance->enrollment?->teacher?->name ?? '-' }}</div>
                                                             <ul class="mt-1 space-y-1">
                                                                 @foreach ($block['students'] as $student)
                                                                 <li class="flex items-center gap-2">
-                                                                    <x-hibernated-label :model="$student" :label="$student->name" type="murid kelas" />
+                                                                    <x-hibernated-label :model="$student" :label="$student->name" type="murid privat" />
                                                                     @if (($student->status ?? '') === 'hibernasi')
                                                                         <span class="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">Hibernasi</span>
                                                                     @endif
                                                                 </li>
                                                                 @endforeach
                                                             </ul>
-                                                            @if ($session->notes)
-                                                            <div class="mt-1 text-gray-500">{{ $session->notes }}</div>
-                                                            @endif
-                                                            <a href="{{ route('admin.class-student-sessions.edit', $session) }}" class="mt-1 inline-block text-indigo-600">Edit</a>
+                                                            <div class="mt-1 text-gray-500">Status: 
+                                                                @if ($attendance->status_validation === 'terima')
+                                                                    <span class="text-emerald-600">Diterima</span>
+                                                                @elseif ($attendance->status_validation === 'terlambat')
+                                                                    <span class="text-amber-600">Terlambat</span>
+                                                                @elseif ($attendance->status_validation === 'ditolak')
+                                                                    <span class="text-rose-600">Ditolak</span>
+                                                                @else
+                                                                    <span class="text-gray-400">Pending</span>
+                                                                @endif
+                                                            </div>
                                                         </div>
                                                     @endforeach
                                                     @if ($items->isEmpty())

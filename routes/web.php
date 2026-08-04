@@ -3,7 +3,6 @@
 use App\Http\Controllers\Admin\AnalysisController;
 use App\Http\Controllers\Admin\BankAccountController;
 use App\Http\Controllers\Admin\ClassReportController;
-use App\Http\Controllers\Admin\ClassStudentController;
 use App\Http\Controllers\Admin\ClassStudentSessionController;
 use App\Http\Controllers\Admin\AttendanceReviewController;
 use App\Http\Controllers\Admin\DiscountController;
@@ -79,13 +78,8 @@ Route::middleware(['auth', 'password.force'])->group(function () {
             Route::post('bank-accounts/{bankAccount}/restore', [BankAccountController::class, 'restore'])
                 ->name('bank-accounts.restore');
 
-            Route::resource('class-students', ClassStudentController::class)->except(['show']);
-            Route::get('class-students/inactive', [ClassStudentController::class, 'inactive'])
-                ->name('class-students.inactive');
-            Route::post('class-students/{classStudent}/restore', [ClassStudentController::class, 'restore'])
-                ->name('class-students.restore');
-
-            Route::resource('class-student-sessions', ClassStudentSessionController::class)->except(['show']);
+            Route::get('class-student-sessions', [ClassStudentSessionController::class, 'index'])
+                ->name('class-student-sessions.index');
             Route::get('class-student-sessions/table', [ClassStudentSessionController::class, 'table'])
                 ->name('class-student-sessions.table');
 
@@ -110,8 +104,6 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('analysis.ortu-discount');
             Route::get('analysis/ortu-kelas', [AnalysisController::class, 'ortuKelas'])
                 ->name('analysis.ortu-kelas');
-            Route::post('analysis/ortu-kelas/discount', [AnalysisController::class, 'updateClassDiscount'])
-                ->name('analysis.ortu-class-discount');
             Route::get('analysis/guru', [AnalysisController::class, 'guru'])
                 ->name('analysis.guru');
             Route::get('payments/ortu', [AnalysisController::class, 'paymentsOrtu'])
@@ -227,9 +219,9 @@ Route::middleware(['auth', 'password.force'])->group(function () {
 
     Route::get('/murid', function () {
         return view('murid.dashboard');
-    })->middleware('role:murid')->name('murid.dashboard');
+    })->middleware('role:parent')->name('murid.dashboard');
 
-    Route::middleware('role:murid')->prefix('murid')->name('murid.')->group(function () {
+    Route::middleware('role:parent')->prefix('murid')->name('murid.')->group(function () {
         Route::get('riwayat', [MuridHistoryController::class, 'index'])->name('history.index');
         Route::post('riwayat/{attendance}/tolak', [MuridHistoryController::class, 'reject'])->name('history.reject');
         Route::post('riwayat/{attendance}/batalkan-penolakan', [MuridHistoryController::class, 'cancelReject'])->name('history.cancel-reject');

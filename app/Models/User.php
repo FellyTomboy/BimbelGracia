@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Traits\Auditable;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -57,6 +58,11 @@ class User extends Authenticatable
             'role' => UserRole::class,
             'must_change_password' => 'boolean',
         ];
+    }
+
+    public function parent(): HasOne
+    {
+        return $this->hasOne(ParentModel::class);
     }
 
 }

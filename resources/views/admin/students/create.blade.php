@@ -10,8 +10,8 @@
                     @csrf
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Nama Murid <span class="text-gray-400 text-xs">(pisahkan dengan enter atau koma untuk lebih dari 1 nama)</span></label>
-                        <textarea name="name" rows="3" class="mt-1 w-full border-gray-300 rounded-md" placeholder="Alea&#10;Amelia&#10;Nazwa&#10;Rara" required>{{ old('name') }}</textarea>
+                        <label class="block text-sm font-medium text-gray-700">Nama Murid</label>
+                        <input type="text" name="name" value="{{ old('name') }}" class="mt-1 w-full border-gray-300 rounded-md" placeholder="Nama murid" required />
                         @error('name')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
                     </div>
                     <div>

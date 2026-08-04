@@ -1,13 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\ClassStudent;
-use App\Models\Teacher;
+use App\Models\MonthlyAttendance;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class ClassReportController extends Controller
@@ -16,44 +16,41 @@ class ClassReportController extends Controller
     {
         [$month, $year] = $this->resolvePeriod($request);
 
-        $studentRows = DB::table('class_student_sessions')
-            ->join('class_student_session_student', 'class_student_sessions.id', '=', 'class_student_session_student.class_student_session_id')
-            ->where('class_student_sessions.session_date', '>=', Carbon::create($year, $month, 1)->startOfMonth())
-            ->where('class_student_sessions.session_date', '<=', Carbon::create($year, $month, 1)->endOfMonth())
-            ->selectRaw('class_student_session_student.class_student_id, COUNT(*) as total')
-            ->groupBy('class_student_session_student.class_student_id')
+        $monthStart = Carbon::create($year, $month, 1)->startOfMonth();
+        $monthEnd = Carbon::create($year, $month, 1)->endOfMonth();
+
+        $attendances = MonthlyAttendance::with([
+            'enrollment.program',
+            'enrollment.teacher',
+            'students',
+        ])
+            ->whereHas('enrollment.program', fn ($q) => $q->where('name', 'like', 'Kelas%'))
+            ->whereBetween('lesson_date', [$monthStart, $monthEnd])
+            ->whereIn('status_validation', ['terima', 'terlambat'])
             ->get();
 
-        $studentTotals = $studentRows->pluck('total', 'class_student_id');
-        $students = ClassStudent::query()
-            ->whereIn('id', $studentTotals->keys())
-            ->orderBy('name')
-            ->get();
+        $studentTotals = [];
+        foreach ($attendances as $attendance) {
+            foreach ($attendance->students as $student) {
+                $id = $student->id;
+                if (!isset($studentTotals[$id])) {
+                    $studentTotals[$id] = [
+                        'name' => $student->name,
+                        'total' => 0,
+                        'program' => $attendance->enrollment?->program?->name ?? '-',
+                        'teacher' => $attendance->enrollment?->teacher?->name ?? '-',
+                    ];
+                }
+                $studentTotals[$id]['total'] += (int) ($student->pivot?->total_present ?? 0);
+            }
+        }
 
-        $teacherRows = DB::table('enrollment_attendances')
-            ->join('enrollments', 'enrollment_attendances.enrollment_id', '=', 'enrollments.id')
-            ->join('programs', 'enrollments.program_id', '=', 'programs.id')
-            ->whereIn('enrollment_attendances.status_validation', ['terima', 'terlambat'])
-            ->where('enrollment_attendances.month', $month)
-            ->where('enrollment_attendances.year', $year)
-            ->where('programs.type', 'kelas')
-            ->selectRaw('enrollments.teacher_id, COUNT(*) as total')
-            ->groupBy('enrollments.teacher_id')
-            ->get();
-
-        $teacherTotals = $teacherRows->pluck('total', 'teacher_id');
-        $teachers = Teacher::query()
-            ->whereIn('id', $teacherTotals->keys())
-            ->orderBy('name')
-            ->get();
+        $rows = collect($studentTotals)->values();
 
         return view('admin.class-reports.index', [
             'month' => $month,
             'year' => $year,
-            'students' => $students,
-            'studentTotals' => $studentTotals,
-            'teachers' => $teachers,
-            'teacherTotals' => $teacherTotals,
+            'rows' => $rows,
         ]);
     }
 

@@ -297,9 +297,8 @@ class ExportController extends Controller
             ->map(function (Student $student) {
                 return [
                     $student->id,
-                    $student->display_name,
-                    $student->whatsapp_primary,
-                    $student->whatsapp_secondary,
+                    $student->name,
+                    $student->parent?->user?->phone ?? '-',
                     $student->address,
                     $student->status,
                     $student->deleted_at ? 'hibernasi' : 'active',
@@ -309,7 +308,7 @@ class ExportController extends Controller
             ->all();
 
         return [
-            ['id', 'name', 'whatsapp_primary', 'whatsapp_secondary', 'address', 'status', 'state', 'created_at'],
+            ['id', 'name', 'whatsapp', 'address', 'status', 'state', 'created_at'],
             $rows,
         ];
     }
@@ -354,7 +353,7 @@ class ExportController extends Controller
                     $enrollment->program?->name,
                     $enrollment->program?->type,
                     $enrollment->teacher?->name,
-                    $enrollment->students->map->display_name->implode(', '),
+                    $enrollment->students->map->name->implode(', '),
                     $enrollment->parent_rate,
                     $enrollment->teacher_rate,
                     $enrollment->validation_status,
@@ -392,7 +391,7 @@ class ExportController extends Controller
                 $teacherRate = $attendance->enrollment?->teacher_rate ?? 0;
                 $parentTotal = $attendance->students
                     ->sum(fn ($student) => (int) ($student->pivot?->total_present ?? 0) * $parentRate);
-                $studentNames = $attendance->students->map->display_name->implode(', ');
+                $studentNames = $attendance->students->map->name->implode(', ');
                 return [
                     $attendance->id,
                     $attendance->lesson_date?->format('d M Y') ?? '-',
@@ -518,7 +517,7 @@ class ExportController extends Controller
                 $teacherRate = $attendance->enrollment?->teacher_rate ?? 0;
                 $parentTotal = $attendance->students
                     ->sum(fn ($student) => (int) ($student->pivot?->total_present ?? 0) * $parentRate);
-                $studentNames = $attendance->students->map->display_name->implode(', ');
+                $studentNames = $attendance->students->map->name->implode(', ');
                 return [
                     $attendance->id,
                     $attendance->lesson_date?->format('d M Y') ?? '-',

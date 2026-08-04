@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Models\ClassStudent;
 use App\Models\Student;
 use App\Models\Teacher;
 use Carbon\Carbon;
@@ -28,7 +27,6 @@ class MonthlySnapshotSyncService
     {
         $this->syncStudentSnapshotsForPeriod($month, $year);
         $this->syncTeacherSnapshotsForPeriod($month, $year);
-        $this->syncClassStudents($month, $year);
     }
 
     /**
@@ -41,16 +39,11 @@ class MonthlySnapshotSyncService
             ->whereNull('students.deleted_at')
             ->count();
 
-        $classStudentsCount = ClassStudent::query()
-            ->where('status', 'active')
-            ->whereNull('deleted_at')
-            ->count();
-
         DB::table('monthly_student_snapshots')->updateOrInsert(
             ['year' => $year, 'month' => $month],
             [
                 'private_students_count' => $privateStudentsCount,
-                'class_students_count' => $classStudentsCount,
+                'class_students_count' => 0,
                 'updated_at' => now(),
                 'created_at' => now(),
             ]
@@ -75,41 +68,5 @@ class MonthlySnapshotSyncService
                 'created_at' => now(),
             ]
         );
-    }
-
-    /**
-     * Sync individual attendance counts for class students.
-     */
-    public function syncClassStudents(int $month, int $year): void
-    {
-        $this->syncClassStudentsForPeriod($month, $year);
-    }
-
-    /**
-     * Sync class student monthly attendance rows for a specific month/year.
-     */
-    public function syncClassStudentsForPeriod(int $month, int $year): void
-    {
-        $students = ClassStudent::all();
-
-        foreach ($students as $student) {
-            $totalPresent = $student->sessions()
-                ->whereMonth('session_date', $month)
-                ->whereYear('session_date', $year)
-                ->count();
-
-            DB::table('class_student_monthly_attendances')->updateOrInsert(
-                [
-                    'class_student_id' => $student->id,
-                    'month' => $month,
-                    'year' => $year,
-                ],
-                [
-                    'total_present' => $totalPresent,
-                    'updated_at' => now(),
-                    'created_at' => now(),
-                ]
-            );
-        }
     }
 }

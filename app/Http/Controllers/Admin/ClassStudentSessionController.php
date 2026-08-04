@@ -5,10 +5,8 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\ClassStudent;
-use App\Models\ClassStudentSession;
+use App\Models\MonthlyAttendance;
 use Carbon\Carbon;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -17,141 +15,69 @@ class ClassStudentSessionController extends Controller
     public function index(Request $request): View
     {
         [$month, $year] = $this->resolvePeriod($request);
-        $studentId = $request->input('class_student_id');
 
         $start = Carbon::create($year, $month, 1)->startOfMonth();
         $end = Carbon::create($year, $month, 1)->endOfMonth();
 
-        $sessions = ClassStudentSession::with('students')
-            ->whereBetween('session_date', [$start, $end])
-            ->when($studentId, function ($query) use ($studentId) {
-                $query->whereHas('students', fn ($q) => $q->where('class_students.id', $studentId));
-            })
-            ->orderBy('session_date')
-            ->orderBy('start_time')
+        $attendances = MonthlyAttendance::with([
+            'enrollment.program',
+            'enrollment.teacher',
+            'students',
+        ])
+            ->whereHas('enrollment.program', fn ($q) => $q->where('name', 'like', 'Kelas%'))
+            ->whereBetween('lesson_date', [$start, $end])
+            ->orderBy('lesson_date')
+            ->orderBy('created_at')
             ->get();
 
-        $sessionsByDate = $sessions
-            ->groupBy(fn ($session) => $session->session_date->format('Y-m-d'))
+        $sessionsByDate = $attendances
+            ->groupBy(fn ($attendance) => $attendance->lesson_date->format('Y-m-d'))
             ->map(function ($items) {
                 return $items
-                    ->groupBy(function ($session) {
+                    ->groupBy(function ($attendance) {
                         return implode('|', [
-                            $session->session_date->format('Y-m-d'),
-                            $session->start_time?->format('H:i') ?? '',
-                            $session->end_time?->format('H:i') ?? '',
-                            (string) ($session->notes ?? ''),
+                            $attendance->lesson_date->format('Y-m-d'),
+                            $attendance->enrollment?->program?->name ?? '',
+                            $attendance->enrollment?->teacher?->name ?? '',
                         ]);
                     })
                     ->map(function ($groupedItems) {
                         $first = $groupedItems->first();
 
                         return [
-                            'session' => $first,
+                            'attendance' => $first,
+                            'enrollment' => $first->enrollment,
                             'students' => $groupedItems
-                                ->flatMap(fn ($session) => $session->students)
+                                ->flatMap(fn ($attendance) => $attendance->students)
                                 ->unique('id')
                                 ->values(),
                         ];
                     })
                     ->values();
             });
-        $students = ClassStudent::orderBy('name')->get();
 
         return view('admin.class-student-sessions.calendar', [
             'month' => $month,
             'year' => $year,
-            'classStudentId' => $studentId,
             'start' => $start,
             'daysInMonth' => $start->daysInMonth,
             'firstDayOfWeek' => $start->dayOfWeekIso,
             'sessionsByDate' => $sessionsByDate,
-            'students' => $students,
         ]);
     }
 
     public function table(): View
     {
-        $sessions = ClassStudentSession::with('students')
-            ->latest('session_date')
+        $attendances = MonthlyAttendance::with([
+            'enrollment.program',
+            'enrollment.teacher',
+            'students',
+        ])
+            ->whereHas('enrollment.program', fn ($q) => $q->where('name', 'like', 'Kelas%'))
+            ->latest('lesson_date')
             ->get();
 
-        return view('admin.class-student-sessions.table', compact('sessions'));
-    }
-
-
-    public function create(): View
-    {
-        $students = ClassStudent::orderBy('name')->get();
-
-        return view('admin.class-student-sessions.create', compact('students'));
-    }
-
-    public function store(Request $request): RedirectResponse
-    {
-        $validated = $request->validate([
-            'class_student_ids' => ['required', 'array', 'min:1'],
-            'class_student_ids.*' => ['required', 'exists:class_students,id'],
-            'session_date' => ['required', 'date'],
-            'start_time' => ['required', 'date_format:H:i'],
-            'end_time' => ['nullable', 'date_format:H:i'],
-            'notes' => ['nullable', 'string'],
-        ]);
-
-        // Simpan 1 record session
-        $session = ClassStudentSession::create([
-            'session_date' => $validated['session_date'],
-            'start_time' => $validated['start_time'],
-            'end_time' => $validated['end_time'],
-            'notes' => $validated['notes'],
-        ]);
-
-        // Hubungkan ke banyak murid via pivot
-        $session->students()->attach($validated['class_student_ids']);
-
-        return redirect()->route('admin.class-student-sessions.index')
-            ->with('status', 'Jadwal blok berhasil dibuat.');
-    }
-
-    public function edit(ClassStudentSession $classStudentSession): View
-    {
-        $students = ClassStudent::orderBy('name')->get();
-
-        return view('admin.class-student-sessions.edit', compact('classStudentSession', 'students'));
-    }
-
-    public function update(Request $request, ClassStudentSession $classStudentSession): RedirectResponse
-    {
-        $validated = $request->validate([
-            'class_student_ids' => ['required', 'array', 'min:1'],
-            'class_student_ids.*' => ['required', 'exists:class_students,id'],
-            'session_date' => ['required', 'date'],
-            'start_time' => ['required', 'date_format:H:i'],
-            'end_time' => ['nullable', 'date_format:H:i'],
-            'notes' => ['nullable', 'string'],
-        ]);
-
-        $classStudentSession->update([
-            'session_date' => $validated['session_date'],
-            'start_time' => $validated['start_time'],
-            'end_time' => $validated['end_time'],
-            'notes' => $validated['notes'],
-        ]);
-
-        // Sinkronisasi data murid (tambah yang baru, hapus yang tidak dipilih lagi)
-        $classStudentSession->students()->sync($validated['class_student_ids']);
-
-        return redirect()->route('admin.class-student-sessions.index')
-            ->with('status', 'Jadwal berhasil diperbarui.');
-    }
-
-    public function destroy(ClassStudentSession $classStudentSession): RedirectResponse
-    {
-        $classStudentSession->delete();
-
-        return redirect()
-            ->route('admin.class-student-sessions.index')
-            ->with('status', 'Jadwal murid kelas berhasil dihapus.');
+        return view('admin.class-student-sessions.table', compact('attendances'));
     }
 
     private function resolvePeriod(Request $request): array

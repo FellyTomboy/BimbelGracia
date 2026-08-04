@@ -18,7 +18,7 @@
                             <option value="">Pilih enrollment</option>
                             @foreach ($enrollments as $enrollment)
                                 <option value="{{ $enrollment->id }}" @selected(old('enrollment_id', $enrollments->first()?->id) == $enrollment->id)>
-                                    #{{ $enrollment->id }} - {{ $enrollment->program?->name ?? '-' }} - {{ $enrollment->students->map->display_name->implode(', ') }}
+                                    #{{ $enrollment->id }} - {{ $enrollment->program?->name ?? '-' }} - {{ $enrollment->students->map->name->implode(', ') }}
                                 </option>
                             @endforeach
                         </select>

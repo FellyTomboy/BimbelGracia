@@ -294,7 +294,7 @@ class ImportFromSpreadsheet extends Command
                 [
                     'name' => $names[0],
                     'phone' => $phone08,
-                    'role' => UserRole::Murid,
+                    'role' => UserRole::Parent,
                     'password' => Hash::make($this->defaultPassword),
                     'must_change_password' => true,
                 ]
@@ -305,12 +305,18 @@ class ImportFromSpreadsheet extends Command
                 $user->update(['name' => $names[0]]);
             }
 
-            $student = Student::query()->updateOrCreate(
+            // Create parent record if not exists
+            $parent = \App\Models\ParentModel::query()->firstOrCreate(
                 ['user_id' => $user->id],
                 [
-                    'name' => $names,
-                    'whatsapp' => $phone08,
-                    'whatsapp_primary' => $phone08,
+                    'name' => $names[0],
+                ]
+            );
+
+            $student = Student::query()->updateOrCreate(
+                ['parent_id' => $parent->id],
+                [
+                    'name' => implode(', ', $names),
                     'address' => $data['address'] ?: null,
                     'status' => 'active',
                 ]
@@ -591,23 +597,29 @@ class ImportFromSpreadsheet extends Command
             [
                 'name' => $name,
                 'phone' => $phone08,
-                'role' => UserRole::Murid,
+                'role' => UserRole::Parent,
                 'password' => Hash::make($this->defaultPassword),
                 'must_change_password' => true,
             ]
         );
 
-        $student = Student::query()->updateOrCreate(
-            ['user_id' => $user->id],
-            [
-                'name' => [$name],
-                'whatsapp' => $phone08,
-                'whatsapp_primary' => $phone08,
-                'status' => 'active',
-            ]
-        );
+            // Create parent record if not exists
+            $parent = \App\Models\ParentModel::query()->firstOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'name' => $name,
+                ]
+            );
 
-        $this->studentMap[$normalizedName] = $student;
+            $student = Student::query()->updateOrCreate(
+                ['parent_id' => $parent->id],
+                [
+                    'name' => $name,
+                    'status' => 'active',
+                ]
+            );
+
+            $this->studentMap[$normalizedName] = $student;
 
         return $student;
     }

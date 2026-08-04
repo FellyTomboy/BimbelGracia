@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Invoice - {{ $student->display_name }}</title>
+    <title>Invoice - {{ $student->name }}</title>
     <style>
         body { font-family: 'DejaVu Sans', sans-serif; font-size: 12px; color: #333; }
         .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #4f46e5; padding-bottom: 15px; }
@@ -28,7 +28,7 @@
 
     <div class="info">
         <table>
-            <tr><td class="label">Nama Murid</td><td>: {{ $student->display_name }}</td></tr>
+            <tr><td class="label">Nama Murid</td><td>: {{ $student->name }}</td></tr>
             <tr><td class="label">Periode</td><td>: {{ $monthName }} {{ $year }}</td></tr>
             <tr><td class="label">Tanggal</td><td>: {{ now()->format('d/m/Y') }}</td></tr>
         </table>
