@@ -70,8 +70,8 @@
                 <h3 class="text-lg font-semibold">Kelas</h3>
                 <button onclick="closeModal('modal-kelas')" class="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors">&times;</button>
             </div>
-            <a href="{{ route('admin.class-students.index') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50 text-gray-700 font-medium transition-colors">🏫 Murid Kelas</a>
-            <a href="{{ route('admin.class-student-sessions.index') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50 text-gray-700 font-medium transition-colors">📅 Jadwal Murid</a>
+            <a href="{{ route('admin.class-student-sessions.index') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50 text-gray-700 font-medium transition-colors">🏫 Kalender Kelas</a>
+            <a href="{{ route('admin.class-student-sessions.table') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50 text-gray-700 font-medium transition-colors">📅 Tabel Kelas</a>
             <a href="{{ route('admin.analysis.ortu-kelas') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50 text-gray-700 font-medium transition-colors">💬 WA Ortu Kelas</a>
         </div>
     </div>

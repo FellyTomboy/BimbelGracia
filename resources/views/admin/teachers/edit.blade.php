@@ -71,6 +71,27 @@
                     </div>
                 </form>
             </div>
+
+            {{-- Change Password --}}
+            <div class="bg-white shadow-sm sm:rounded-lg mt-6">
+                <form method="POST" action="{{ route('admin.teachers.change-password', $teacher->id) }}" class="p-6 space-y-4">
+                    @csrf
+
+                    <h3 class="font-semibold text-lg">Ubah Password</h3>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Password Baru</label>
+                        <input type="password" name="password" class="mt-1 w-full border-gray-300 rounded-md" required minlength="6" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Konfirmasi Password Baru</label>
+                        <input type="password" name="password_confirmation" class="mt-1 w-full border-gray-300 rounded-md" required minlength="6" />
+                    </div>
+
+                    <button type="submit" class="px-4 py-2 rounded-md bg-amber-600 text-white">Ubah Password</button>
+                </form>
+            </div>
         </div>
     </div>
 </x-app-layout>
