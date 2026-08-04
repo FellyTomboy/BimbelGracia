@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\AnalysisController;
 use App\Http\Controllers\Admin\BankAccountController;
 use App\Http\Controllers\Admin\ClassReportController;
 use App\Http\Controllers\Admin\ClassStudentSessionController;
+use App\Http\Controllers\Admin\ParentController;
 use App\Http\Controllers\Admin\AttendanceReviewController;
 use App\Http\Controllers\Admin\DiscountController;
 use App\Http\Controllers\Admin\ExportController;
@@ -19,8 +20,8 @@ use App\Http\Controllers\Guru\LessonOfferController as GuruLessonOfferController
 use App\Http\Controllers\Guru\MonthlyAttendanceController as GuruAttendanceController;
 use App\Http\Controllers\Guru\HistoryController as GuruHistoryController;
 use App\Http\Controllers\Guru\SalaryProjectionController as GuruSalaryProjectionController;
-use App\Http\Controllers\Murid\BillingController as MuridBillingController;
-use App\Http\Controllers\Murid\HistoryController as MuridHistoryController;
+use App\Http\Controllers\Parent\BillingController as ParentBillingController;
+use App\Http\Controllers\Parent\HistoryController as ParentHistoryController;
 use App\Http\Controllers\PasswordForceController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
@@ -77,6 +78,16 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('bank-accounts.inactive');
             Route::post('bank-accounts/{bankAccount}/restore', [BankAccountController::class, 'restore'])
                 ->name('bank-accounts.restore');
+
+            Route::resource('parents', ParentController::class)->except(['show']);
+            Route::delete('parents/{parent}/students/{student}', [ParentController::class, 'removeStudent'])
+                ->name('parents.remove-student');
+            Route::post('parents/{parent}/add-student', [ParentController::class, 'addStudent'])
+                ->name('parents.add-student');
+            Route::post('parents/{parent}/change-password', [ParentController::class, 'changePassword'])
+                ->name('parents.change-password');
+            Route::post('teachers/{teacher}/change-password', [TeacherController::class, 'changePassword'])
+                ->name('teachers.change-password');
 
             Route::get('class-student-sessions', [ClassStudentSessionController::class, 'index'])
                 ->name('class-student-sessions.index');
@@ -176,22 +187,6 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('export.attendances.monthly.excel');
             Route::get('export/attendances/monthly/pdf', [ExportController::class, 'attendancesMonthlyPdf'])
                 ->name('export.attendances.monthly.pdf');
-            Route::get('export/class-groups', [ExportController::class, 'classGroups'])
-                ->name('export.class-groups');
-            Route::get('export/class-groups/excel', [ExportController::class, 'classGroupsExcel'])
-                ->name('export.class-groups.excel');
-            Route::get('export/class-groups/pdf', [ExportController::class, 'classGroupsPdf'])
-                ->name('export.class-groups.pdf');
-            Route::get('export/class-sessions', [ExportController::class, 'classSessions'])
-                ->name('export.class-sessions');
-            Route::get('export/class-sessions/excel', [ExportController::class, 'classSessionsExcel'])
-                ->name('export.class-sessions.excel');
-            Route::get('export/class-sessions/pdf', [ExportController::class, 'classSessionsPdf'])
-                ->name('export.class-sessions.pdf');
-            Route::get('export/class-sessions/monthly/excel', [ExportController::class, 'classSessionsMonthlyExcel'])
-                ->name('export.class-sessions.monthly.excel');
-            Route::get('export/class-sessions/monthly/pdf', [ExportController::class, 'classSessionsMonthlyPdf'])
-                ->name('export.class-sessions.monthly.pdf');
             Route::get('export/audit', [ExportController::class, 'auditLogs'])
                 ->name('export.audit');
             Route::get('export/audit/excel', [ExportController::class, 'auditLogsExcel'])
@@ -217,17 +212,17 @@ Route::middleware(['auth', 'password.force'])->group(function () {
         Route::get('proyeksi-gaji', [GuruSalaryProjectionController::class, 'index'])->name('salary-projection.index');
     });
 
-    Route::get('/murid', function () {
-        return view('murid.dashboard');
-    })->middleware('role:parent')->name('murid.dashboard');
+    Route::get('/parent', function () {
+        return view('parent.dashboard');
+    })->middleware('role:parent')->name('parent.dashboard');
 
-    Route::middleware('role:parent')->prefix('murid')->name('murid.')->group(function () {
-        Route::get('riwayat', [MuridHistoryController::class, 'index'])->name('history.index');
-        Route::post('riwayat/{attendance}/tolak', [MuridHistoryController::class, 'reject'])->name('history.reject');
-        Route::post('riwayat/{attendance}/batalkan-penolakan', [MuridHistoryController::class, 'cancelReject'])->name('history.cancel-reject');
-        Route::get('tagihan', [MuridBillingController::class, 'index'])->name('billing.index');
-        Route::post('tagihan/{attendance}/upload', [MuridBillingController::class, 'uploadProof'])->name('billing.upload-proof');
-        Route::post('tagihan/invoice/{year}/{month}', [MuridBillingController::class, 'downloadInvoice'])->name('billing.download-invoice');
+    Route::middleware('role:parent')->prefix('parent')->name('parent.')->group(function () {
+        Route::get('riwayat', [ParentHistoryController::class, 'index'])->name('history.index');
+        Route::post('riwayat/{attendance}/tolak', [ParentHistoryController::class, 'reject'])->name('history.reject');
+        Route::post('riwayat/{attendance}/batalkan-penolakan', [ParentHistoryController::class, 'cancelReject'])->name('history.cancel-reject');
+        Route::get('tagihan', [ParentBillingController::class, 'index'])->name('billing.index');
+        Route::post('tagihan/{attendance}/upload', [ParentBillingController::class, 'uploadProof'])->name('billing.upload-proof');
+        Route::post('tagihan/invoice/{year}/{month}', [ParentBillingController::class, 'downloadInvoice'])->name('billing.download-invoice');
     });
 
     Route::get('/password/force', [PasswordForceController::class, 'edit'])

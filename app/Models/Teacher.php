@@ -60,16 +60,6 @@ class Teacher extends Model
         return $this->hasMany(Enrollment::class);
     }
 
-    public function classGroups(): HasMany
-    {
-        return $this->hasMany(ClassGroup::class);
-    }
-
-    public function classSessions(): HasMany
-    {
-        return $this->hasMany(ClassSession::class);
-    }
-
     protected static function booted()
     {
         static::saved(function () {

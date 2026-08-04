@@ -5,16 +5,13 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Enums\UserRole;
-use App\Models\ClassStudent;
-use App\Models\Enrollment;
-use App\Models\Program;
+use App\Models\ParentModel;
 use App\Models\Student;
 use App\Models\Teacher;
 use App\Models\User;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Str;
 
 class ImportFromSpreadsheet extends Command
 {
@@ -22,15 +19,9 @@ class ImportFromSpreadsheet extends Command
         {--spreadsheet-id=1UsxOchz2rVE5NAakDhocRj6kdREJF7jbW4eM4pm64hs : Google Spreadsheet ID}
         {--default-password=pw12345678 : Default password for all users}';
 
-    protected $description = 'Import data from Google Spreadsheet (Data Guru, Data Murid, Data Les, Data Kelas) into the database';
+    protected $description = 'Import teachers and students from Google Spreadsheet (Data Guru, Data Murid, Data Kelas)';
 
     private string $defaultPassword;
-
-    private array $teacherMap = [];      // teacher name => Teacher model
-    private array $studentMap = [];      // student name => Student model
-    private array $classStudentMap = []; // class student name => ClassStudent model
-    private array $programMap = [];      // "teacherName::subject" => Program model
-    private array $enrollmentMap = [];   // "teacherName::subject" => Enrollment model
 
     public function handle(): int
     {
@@ -41,49 +32,26 @@ class ImportFromSpreadsheet extends Command
         $this->newLine();
 
         // ── Step 1: Import Teachers ──
-        $this->info('Step 1/5: Importing teachers from "Data Guru"...');
+        $this->info('Step 1/2: Importing teachers from "Data Guru"...');
         $teachersData = $this->fetchSheet($spreadsheetId, 'Data Guru');
-        $this->importTeachers($teachersData);
+        $teacherCount = $this->importTeachers($teachersData);
+        $this->line("  ✓ Imported {$teacherCount} teachers.");
 
-        // ── Step 2: Import Private Students ──
-        $this->info('Step 2/5: Importing private students from "Data Murid"...');
-        $studentsData = $this->fetchSheet($spreadsheetId, 'Data Murid');
-        $this->importStudents($studentsData);
-
-        // ── Step 3: Import Class Students ──
-        $this->info('Step 3/5: Importing class students from "Data Kelas"...');
-        $classStudentsData = $this->fetchSheet($spreadsheetId, 'Data Kelas');
-        $this->importClassStudents($classStudentsData);
-
-        // ── Step 4: Create Programs & Enrollments ──
-        $this->info('Step 4/5: Creating programs and enrollments from "Data Les"...');
-        $lesData = $this->fetchSheet($spreadsheetId, 'Data Les');
-        $this->createProgramsAndEnrollments($lesData);
-
-        // ── Step 5: Assign students to enrollments ──
-        $this->info('Step 5/5: Assigning students to enrollments...');
-        $this->assignStudentsToEnrollments($lesData);
+        // ── Step 2: Import Students (Privat + Kelas) ──
+        $this->info('Step 2/2: Importing students from "Data Murid" and "Data Kelas"...');
+        $muridData = $this->fetchSheet($spreadsheetId, 'Data Murid');
+        $kelasData = $this->fetchSheet($spreadsheetId, 'Data Kelas');
+        $studentCount = $this->importStudents($muridData, $kelasData);
+        $this->line("  ✓ Imported {$studentCount} student records.");
 
         $this->newLine();
         $this->info('✓ Import completed successfully!');
-        $this->table(
-            ['Type', 'Count'],
-            [
-                ['Teachers', count($this->teacherMap)],
-                ['Private Students', count($this->studentMap)],
-                ['Class Students', count($this->classStudentMap)],
-                ['Programs', count($this->programMap)],
-                ['Enrollments', count($this->enrollmentMap)],
-            ]
-        );
 
         return Command::SUCCESS;
     }
 
     /**
      * Fetch a sheet from Google Spreadsheet as CSV and parse it.
-     * Some sheets (like Data Murid) don't have proper headers, so we handle
-     * those by detecting the first row value and using positional indices.
      */
     private function fetchSheet(string $spreadsheetId, string $sheetName): array
     {
@@ -103,7 +71,7 @@ class ImportFromSpreadsheet extends Command
         // Handle BOM
         $csvContent = preg_replace('/^\xEF\xBB\xBF/', '', $csvContent);
 
-        // Parse CSV - need to handle quoted fields properly
+        // Parse CSV
         $rows = array_map('str_getcsv', explode("\n", $csvContent));
         $rows = array_filter($rows, fn($row) => !empty(array_filter($row)));
 
@@ -112,20 +80,12 @@ class ImportFromSpreadsheet extends Command
             return [];
         }
 
-        // Resolve row indices: re-index from 0
         $rows = array_values($rows);
 
-        // For sheets without proper headers, return raw rows
-        $firstRow = $rows[0];
-        $firstCell = trim($firstRow[0] ?? '');
-
-        // Detect sheets that don't have proper header rows
-        $noHeaderSheets = ['Data Murid'];
-        $isNoHeader = in_array($sheetName, $noHeaderSheets);
-
-        if ($isNoHeader) {
-            // Just return all rows directly (skip first row if it's TOTAL)
+        // Data Murid uses positional format (no headers)
+        if ($sheetName === 'Data Murid') {
             $startIdx = 0;
+            $firstCell = trim($rows[0][0] ?? '');
             $firstCellUpper = strtoupper($firstCell);
             if ($firstCellUpper === 'TOTAL' || str_contains($firstCellUpper, 'NAMA')) {
                 $startIdx = 1;
@@ -136,31 +96,28 @@ class ImportFromSpreadsheet extends Command
                 $row = array_map('trim', $rows[$i]);
                 $row = array_pad($row, 10, '');
                 $row = array_slice($row, 0, 10);
-                // Skip empty rows
                 if (empty(implode('', $row))) {
                     continue;
                 }
                 $result[] = $row;
             }
 
-            $this->line("  Found " . count($result) . " rows (positional).");
+            $this->line("  Found " . count($result) . " rows (positional format).");
             return $result;
         }
 
-        // Normal sheets: first row is header
+        // Data Guru and Data Kelas: first row is header
         $headers = array_shift($rows);
         $headers = array_map('trim', $headers);
 
         $result = [];
         foreach ($rows as $row) {
-            // Pad row to match header count
             while (count($row) < count($headers)) {
                 $row[] = '';
             }
             $row = array_slice($row, 0, count($headers));
             $row = array_map('trim', $row);
 
-            // Skip empty rows
             if (empty(implode('', $row))) {
                 continue;
             }
@@ -177,7 +134,7 @@ class ImportFromSpreadsheet extends Command
      * Import teachers from the Data Guru sheet.
      * Expected columns: NAMA GURU, NO HP, JURUSAN, MAPEL, ALAMAT, NAMA BANK, NOMOR REKENING, NAMA PEMILIK REKENING
      */
-    private function importTeachers(array $data): void
+    private function importTeachers(array $data): int
     {
         $count = 0;
 
@@ -195,11 +152,6 @@ class ImportFromSpreadsheet extends Command
                 continue;
             }
 
-            // Skip if already imported
-            if (isset($this->teacherMap[$name])) {
-                continue;
-            }
-
             $phone08 = $this->cleanPhone08($phone);
 
             $user = User::query()->firstOrCreate(
@@ -213,7 +165,7 @@ class ImportFromSpreadsheet extends Command
                 ]
             );
 
-            $teacher = Teacher::query()->updateOrCreate(
+            Teacher::query()->updateOrCreate(
                 ['user_id' => $user->id],
                 [
                     'name' => $name,
@@ -230,25 +182,31 @@ class ImportFromSpreadsheet extends Command
                 ]
             );
 
-            $this->teacherMap[$name] = $teacher;
             $count++;
         }
 
-        $this->line("  ✓ Imported {$count} teachers.");
+        return $count;
     }
 
     /**
-     * Import private students from the Data Murid sheet.
-     * Data comes as positional array: [0]=Nama, [1]=Ortu, [2]=No HP, [3]=Alamat
+     * Import students from both Data Murid and Data Kelas sheets.
      * 
-     * Multiple students sharing the same phone number will be merged into
-     * one record with a JSON array of names.
+     * Data Murid format: [0]=Nama, [1]=Ortu, [2]=No HP, [3]=Alamat
+     * Data Kelas format: NAMA MURID, NO HP (header-based)
+     * 
+     * Alur:
+     * 1. Kumpulkan semua nomor HP unik dari kedua sheet
+     * 2. Buat User + Parent record untuk setiap nomor HP
+     * 3. Buat Student record untuk setiap nama, hubungkan ke parent berdasarkan nomor HP
      */
-    private function importStudents(array $data): void
+    private function importStudents(array $muridData, array $kelasData): int
     {
-        // Group by phone number first
-        $grouped = [];
-        foreach ($data as $row) {
+        // ── Step 1: Collect all student entries ──
+        // Each entry: [phone, name, address]
+        $entries = [];
+
+        // From Data Murid (positional: [0]=Nama, [1]=Ortu, [2]=No HP, [3]=Alamat)
+        foreach ($muridData as $row) {
             $name = $this->cleanName($row[0] ?? '');
             $phone = $this->cleanPhone08($row[2] ?? '');
             $address = $row[3] ?? '';
@@ -256,30 +214,79 @@ class ImportFromSpreadsheet extends Command
             if (empty($name)) {
                 continue;
             }
-
-            // Skip header-like rows
             if (str_contains($name, 'murid') || str_contains($name, 'NAMA') || $name === 'TOTAL') {
                 continue;
             }
 
-            // Parse names: split by comma, "dan", "and", "/", or multiple spaces
+            // Parse names: split by comma, "dan", "and", "/"
             $parsedNames = $this->parseNameList($name);
-            $phone08 = $this->cleanPhone08($phone);
 
-            if (!isset($grouped[$phone08])) {
-                $grouped[$phone08] = [
-                    'names' => [],
-                    'address' => $address,
-                ];
-            }
-
-            $grouped[$phone08]['names'] = array_merge($grouped[$phone08]['names'], $parsedNames);
-            if (!empty($address)) {
-                $grouped[$phone08]['address'] = $address;
+            foreach ($parsedNames as $parsedName) {
+                $parsedName = trim($parsedName);
+                if (!empty($parsedName)) {
+                    $entries[] = [
+                        'phone' => $phone,
+                        'name' => $parsedName,
+                        'address' => $address,
+                    ];
+                }
             }
         }
 
-        $count = 0;
+        // From Data Kelas (header-based: NAMA MURID, NO HP)
+        foreach ($kelasData as $row) {
+            $keys = array_keys($row);
+            $name = $this->cleanName($row[$keys[0]] ?? '');
+            $phone = $this->cleanPhone08($row[$keys[1] ?? ''] ?? '');
+
+            if (empty($name)) {
+                continue;
+            }
+            if (str_contains($name, 'murid') || str_contains($name, 'NAMA') || $name === 'TOTAL') {
+                continue;
+            }
+
+            $parsedNames = $this->parseNameList($name);
+            foreach ($parsedNames as $parsedName) {
+                $parsedName = trim($parsedName);
+                if (!empty($parsedName)) {
+                    $entries[] = [
+                        'phone' => $phone,
+                        'name' => $parsedName,
+                        'address' => '',
+                    ];
+                }
+            }
+        }
+
+        if (empty($entries)) {
+            $this->warn('  No student entries found.');
+            return 0;
+        }
+
+        $this->line('  Total individual student names: ' . count($entries));
+
+        // ── Step 2: Group by phone number to identify parents ──
+        $grouped = [];
+        foreach ($entries as $entry) {
+            $phone = $entry['phone'];
+            if (!isset($grouped[$phone])) {
+                $grouped[$phone] = [
+                    'names' => [],
+                    'addresses' => [],
+                ];
+            }
+            $grouped[$phone]['names'][] = $entry['name'];
+            if (!empty($entry['address'])) {
+                $grouped[$phone]['addresses'][] = $entry['address'];
+            }
+        }
+
+        $this->line('  Unique parent phone numbers: ' . count($grouped));
+
+        // ── Step 3: Create parent records and student records ──
+        $studentCount = 0;
+
         foreach ($grouped as $phone08 => $data) {
             // Remove duplicate names
             $names = array_unique($data['names']);
@@ -289,6 +296,10 @@ class ImportFromSpreadsheet extends Command
                 continue;
             }
 
+            // Pick the first address
+            $address = !empty($data['addresses']) ? $data['addresses'][0] : '';
+
+            // Create or find user (parent)
             $user = User::query()->firstOrCreate(
                 ['phone' => $phone08],
                 [
@@ -300,38 +311,38 @@ class ImportFromSpreadsheet extends Command
                 ]
             );
 
-            // Update user name if already exists but with different name
-            if (!$user->wasRecentlyCreated && $user->name !== $names[0]) {
-                $user->update(['name' => $names[0]]);
-            }
-
-            // Create parent record if not exists
-            $parent = \App\Models\ParentModel::query()->firstOrCreate(
+            // Create parent record
+            $parent = ParentModel::query()->firstOrCreate(
                 ['user_id' => $user->id],
-                [
-                    'name' => $names[0],
-                ]
+                ['name' => $names[0]]
             );
 
-            $student = Student::query()->updateOrCreate(
-                ['parent_id' => $parent->id],
-                [
-                    'name' => implode(', ', $names),
-                    'address' => $data['address'] ?: null,
+            // Check if a student already exists for this parent
+            $existingStudent = Student::where('parent_id', $parent->id)->first();
+
+            if ($existingStudent) {
+                // Update existing student's name to include all names
+                $existingNames = array_map('trim', explode(',', $existingStudent->name));
+                $allNames = array_unique(array_merge($existingNames, $names));
+                $existingStudent->update([
+                    'name' => implode(', ', $allNames),
+                    'address' => $address ?: $existingStudent->address,
                     'status' => 'active',
-                ]
-            );
-
-            // Index by all names for lookup
-            foreach ($names as $n) {
-                $normalizedName = $this->normalizeStudentName($n);
-                $this->studentMap[$normalizedName] = $student;
+                ]);
+            } else {
+                // Create new student record
+                Student::create([
+                    'parent_id' => $parent->id,
+                    'name' => implode(', ', $names),
+                    'address' => $address ?: null,
+                    'status' => 'active',
+                ]);
             }
 
-            $count++;
+            $studentCount++;
         }
 
-        $this->line("  ✓ Imported {$count} private student records (grouped by phone).");
+        return $studentCount;
     }
 
     /**
@@ -358,11 +369,10 @@ class ImportFromSpreadsheet extends Command
             }
         }
 
-        // If only one name and it looks like a multi-word name (e.g. "Alea Amelia Nazwa Rara"), 
-        // try to split into individual names
+        // If only one name and it has multiple words (e.g. "Alea Amelia Nazwa Rara"),
+        // treat each word as a separate name
         if (count($names) === 1) {
             $words = preg_split('/\s+/', $names[0]);
-            // If more than 2 words, treat each as separate name
             if (count($words) > 2) {
                 return $words;
             }
@@ -372,368 +382,13 @@ class ImportFromSpreadsheet extends Command
     }
 
     /**
-     * Import class students from the Data Kelas sheet.
-     * Expected columns: NAMA MURID, NO HP
-     */
-    private function importClassStudents(array $data): void
-    {
-        $count = 0;
-
-        foreach ($data as $row) {
-            $keys = array_keys($row);
-            $name = $this->cleanName($row[$keys[0]] ?? '');
-            $phone = $this->cleanPhone08($row[$keys[1] ?? ''] ?? '');
-
-            if (empty($name)) {
-                continue;
-            }
-
-            // Skip header-like rows
-            if (str_contains($name, 'murid') || str_contains($name, 'NAMA') || $name === 'TOTAL') {
-                continue;
-            }
-
-            // Skip if already imported
-            $normalizedName = $this->normalizeStudentName($name);
-            if (isset($this->classStudentMap[$normalizedName])) {
-                continue;
-            }
-
-            $phone08 = $this->cleanPhone08($phone);
-
-            $classStudent = ClassStudent::query()->updateOrCreate(
-                ['name' => $name],
-                [
-                    'whatsapp_primary' => $phone08,
-                    'whatsapp_secondary' => $phone08,
-                    'rate_per_meeting' => 0,
-                    'status' => 'active',
-                    'notes' => 'Diimpor dari spreadsheet Data Kelas',
-                ]
-            );
-
-            $this->classStudentMap[$normalizedName] = $classStudent;
-            $count++;
-        }
-
-        $this->line("  ✓ Imported {$count} class students.");
-    }
-
-    /**
-     * Create programs and enrollments from the Data Les sheet.
-     * Expected columns: NAMA PENGAJAR, NAMA SISWA, BIAYA ORTU PER/PERTEMUAN, GAJI GURU PER PERT
-     */
-    private function createProgramsAndEnrollments(array $data): void
-    {
-        $programCount = 0;
-        $enrollmentCount = 0;
-
-        foreach ($data as $row) {
-            $teacherName = $this->cleanName($row['NAMA PENGAJAR'] ?? '');
-            $studentName = $this->cleanName($row['NAMA SISWA'] ?? '');
-            $parentRate = $this->parseRate($row['BIAYA ORTU PER/PERTEMUAN'] ?? '');
-            $teacherRate = $this->parseRate($row['GAJI GURU PER PERT'] ?? '');
-
-            if (empty($teacherName) || empty($studentName)) {
-                continue;
-            }
-
-            // Find or create teacher
-            $teacher = $this->findOrCreateTeacher($teacherName);
-            if (!$teacher) {
-                continue;
-            }
-
-            // Determine subject from teacher's subjects or use a default
-            $subject = $this->determineSubject($teacher, $studentName);
-
-            // Create program if not exists
-            $programKey = $teacherName . '::' . $subject;
-            if (!isset($this->programMap[$programKey])) {
-                $program = Program::query()->updateOrCreate(
-                    ['name' => "Privat {$subject} - {$teacherName}"],
-                    [
-                        'type' => 'privat',
-                        'subject' => $subject,
-                        'description' => "Les privat {$subject} dengan {$teacherName}",
-                        'default_parent_rate' => $parentRate,
-                        'default_teacher_rate' => $teacherRate,
-                        'status' => 'active',
-                    ]
-                );
-                $this->programMap[$programKey] = $program;
-                $programCount++;
-            }
-
-            $program = $this->programMap[$programKey];
-
-            // Create enrollment if not exists
-            if (!isset($this->enrollmentMap[$programKey])) {
-                $enrollment = Enrollment::query()->updateOrCreate(
-                    [
-                        'program_id' => $program->id,
-                        'teacher_id' => $teacher->id,
-                    ],
-                    [
-                        'parent_rate' => $parentRate,
-                        'teacher_rate' => $teacherRate,
-                        'validation_status' => 1,
-                        'status' => 'active',
-                    ]
-                );
-                $this->enrollmentMap[$programKey] = $enrollment;
-                $enrollmentCount++;
-            } else {
-                // Update rates if this row has higher values
-                $enrollment = $this->enrollmentMap[$programKey];
-                if ($parentRate > $enrollment->parent_rate) {
-                    $enrollment->update(['parent_rate' => $parentRate]);
-                }
-                if ($teacherRate > $enrollment->teacher_rate) {
-                    $enrollment->update(['teacher_rate' => $teacherRate]);
-                }
-            }
-        }
-
-        $this->line("  ✓ Created {$programCount} programs and {$enrollmentCount} enrollments.");
-    }
-
-    /**
-     * Assign students to enrollments based on les data.
-     */
-    private function assignStudentsToEnrollments(array $data): void
-    {
-        $assignmentCount = 0;
-
-        foreach ($data as $row) {
-            $teacherName = $this->cleanName($row['NAMA PENGAJAR'] ?? '');
-            $studentName = $this->cleanName($row['NAMA SISWA'] ?? '');
-
-            if (empty($teacherName) || empty($studentName)) {
-                continue;
-            }
-
-            $teacher = $this->teacherMap[$teacherName] ?? null;
-            if (!$teacher) {
-                continue;
-            }
-
-            $subject = $this->determineSubject($teacher, $studentName);
-            $programKey = $teacherName . '::' . $subject;
-            $enrollment = $this->enrollmentMap[$programKey] ?? null;
-            if (!$enrollment) {
-                continue;
-            }
-
-            // Find student - try multiple name variations
-            $student = $this->findStudent($studentName);
-            if (!$student) {
-                $this->warn("  Warning: Student '{$studentName}' not found in database. Creating...");
-                $student = $this->createStudentFromLesData($studentName);
-                if (!$student) {
-                    continue;
-                }
-            }
-
-            // Link teacher to student
-            $teacher->students()->syncWithoutDetaching([$student->id]);
-
-            // Link student to enrollment
-            $enrollment->students()->syncWithoutDetaching([$student->id]);
-
-            $assignmentCount++;
-        }
-
-        $this->line("  ✓ Assigned {$assignmentCount} student-enrollment relationships.");
-    }
-
-    /**
-     * Find a student by name with various matching strategies.
-     */
-    private function findStudent(string $name): ?Student
-    {
-        $normalizedName = $this->normalizeStudentName($name);
-
-        // Direct match
-        if (isset($this->studentMap[$normalizedName])) {
-            return $this->studentMap[$normalizedName];
-        }
-
-        // Try partial match
-        foreach ($this->studentMap as $key => $student) {
-            if (!is_string($key)) {
-                continue;
-            }
-            $similarity = 0;
-            similar_text($normalizedName, $key, $similarity);
-            if ($similarity > 80) {
-                return $student;
-            }
-
-            // Check if one contains the other
-            if (str_contains($normalizedName, $key) || str_contains($key, $normalizedName)) {
-                return $student;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Create a student from les data if not found in murid sheet.
-     */
-    private function createStudentFromLesData(string $name): ?Student
-    {
-        $normalizedName = $this->normalizeStudentName($name);
-
-        if (isset($this->studentMap[$normalizedName])) {
-            return $this->studentMap[$normalizedName];
-        }
-
-        $phone08 = '08' . rand(1000000000, 9999999999);
-
-        $user = User::query()->firstOrCreate(
-            ['phone' => $phone08],
-            [
-                'name' => $name,
-                'phone' => $phone08,
-                'role' => UserRole::Parent,
-                'password' => Hash::make($this->defaultPassword),
-                'must_change_password' => true,
-            ]
-        );
-
-            // Create parent record if not exists
-            $parent = \App\Models\ParentModel::query()->firstOrCreate(
-                ['user_id' => $user->id],
-                [
-                    'name' => $name,
-                ]
-            );
-
-            $student = Student::query()->updateOrCreate(
-                ['parent_id' => $parent->id],
-                [
-                    'name' => $name,
-                    'status' => 'active',
-                ]
-            );
-
-            $this->studentMap[$normalizedName] = $student;
-
-        return $student;
-    }
-
-    /**
-     * Find or create a teacher by name.
-     */
-    private function findOrCreateTeacher(string $name): ?Teacher
-    {
-        if (isset($this->teacherMap[$name])) {
-            return $this->teacherMap[$name];
-        }
-
-        // Try to find existing teacher
-        $teacher = Teacher::query()->where('name', $name)->first();
-        if ($teacher) {
-            $this->teacherMap[$name] = $teacher;
-            return $teacher;
-        }
-
-        // Create new teacher
-        $phone08 = '08' . rand(1000000000, 9999999999);
-
-        $user = User::query()->firstOrCreate(
-            ['phone' => $phone08],
-            [
-                'name' => $name,
-                'phone' => $phone08,
-                'role' => UserRole::Guru,
-                'password' => Hash::make($this->defaultPassword),
-                'must_change_password' => true,
-            ]
-        );
-
-        $teacher = Teacher::query()->updateOrCreate(
-            ['user_id' => $user->id],
-            [
-                'name' => $name,
-                'status' => 'active',
-            ]
-        );
-
-        $this->teacherMap[$name] = $teacher;
-
-        return $teacher;
-    }
-
-    /**
-     * Determine subject for a teacher-student pair.
-     */
-    private function determineSubject(Teacher $teacher, string $studentName): string
-    {
-        // Check if student name contains subject hints
-        $subjectHints = [
-            'bhs inggris' => 'Bahasa Inggris',
-            'inggris' => 'Bahasa Inggris',
-            'mandarin' => 'Bahasa Mandarin',
-            'mat' => 'Matematika',
-            'matematika' => 'Matematika',
-            'fisika' => 'Fisika',
-            'kimia' => 'Kimia',
-            'biologi' => 'Biologi',
-            'ipa' => 'IPA',
-            'ips' => 'IPS',
-            'geografi' => 'Geografi',
-            'sejarah' => 'Sejarah',
-            'gambar' => 'Seni Rupa',
-            'seni' => 'Seni Rupa',
-            'jepang' => 'Bahasa Jepang',
-            'mengaji' => 'Mengaji',
-            'abk' => 'ABK',
-            'sd' => 'SD',
-            'tk' => 'TK',
-            'smp' => 'SMP',
-            'smk' => 'SMK',
-            'sma' => 'SMA',
-            'utbk' => 'UTBK',
-        ];
-
-        $lowerStudent = strtolower($studentName);
-        foreach ($subjectHints as $hint => $subject) {
-            if (str_contains($lowerStudent, $hint)) {
-                return $subject;
-            }
-        }
-
-        // Use teacher's subjects if available
-        if ($teacher->subjects) {
-            $subjects = explode(',', $teacher->subjects);
-            $firstSubject = trim($subjects[0]);
-            if (!empty($firstSubject)) {
-                return $firstSubject;
-            }
-        }
-
-        // Use teacher's major
-        if ($teacher->major) {
-            return $teacher->major;
-        }
-
-        return 'Umum';
-    }
-
-    /**
      * Clean and normalize a name.
      */
     private function cleanName(string $name): string
     {
         $name = trim($name);
-        // Remove #N/A
         $name = str_replace('#N/A', '', $name);
-        // Remove multiple spaces
         $name = preg_replace('/\s+/', ' ', $name);
-        // Remove leading/trailing special chars
         $name = trim($name, " \t\n\r\0\x0B.,;:-");
 
         return $name;
@@ -747,7 +402,6 @@ class ImportFromSpreadsheet extends Command
         $phone = trim($phone);
         $phone = str_replace([' ', '-', '(', ')', '+'], '', $phone);
 
-        // Ensure it starts with 0
         if (str_starts_with($phone, '62')) {
             $phone = '0' . substr($phone, 2);
         } elseif (!str_starts_with($phone, '0')) {
@@ -755,54 +409,5 @@ class ImportFromSpreadsheet extends Command
         }
 
         return $phone;
-    }
-
-    /**
-     * Parse a rate value that may contain "Rp" prefix, dots, etc.
-     */
-    private function parseRate(string $rate): int
-    {
-        $rate = trim($rate);
-        $rate = str_replace(['Rp', 'rp', 'RP', '.', ',', ' ', '-'], '', $rate);
-
-        // Handle ranges like "50000-70000" - take the higher value
-        if (str_contains($rate, '-')) {
-            $parts = explode('-', $rate);
-            $rate = end($parts);
-        }
-
-        // Handle #N/A
-        if ($rate === '#N/A' || empty($rate)) {
-            return 0;
-        }
-
-        return (int) $rate;
-    }
-
-    /**
-     * Generate a unique email from a name.
-     */
-    private function generateEmail(string $name, string $type): string
-    {
-        $slug = Str::slug($name);
-        $email = "{$slug}.{$type}@bimbelgracia.test";
-
-        // Ensure uniqueness
-        $counter = 1;
-        while (User::query()->where('email', $email)->exists()) {
-            $email = "{$slug}.{$type}{$counter}@bimbelgracia.test";
-            $counter++;
-        }
-
-        return $email;
-    }
-
-    /**
-     * Normalize student name for comparison.
-     */
-    private function normalizeStudentName(string $name): string
-    {
-        $name = $this->cleanName($name);
-        return strtolower($name);
     }
 }

@@ -171,6 +171,21 @@ class TeacherController extends Controller
             ->with('status', 'Guru dihibernasi.');
     }
 
+    public function changePassword(Request $request, Teacher $teacher): RedirectResponse
+    {
+        $validated = $request->validate([
+            'password' => ['required', 'string', 'min:6', 'confirmed'],
+        ]);
+
+        $teacher->user->update([
+            'password' => Hash::make($validated['password']),
+            'must_change_password' => false,
+        ]);
+
+        return redirect()->route('admin.teachers.index')
+            ->with('status', 'Password guru berhasil diubah.');
+    }
+
     public function restore(int $teacherId): RedirectResponse
     {
         $teacher = Teacher::withTrashed()->findOrFail($teacherId);

@@ -17,7 +17,7 @@
                     </x-nav-link>
                     @if (auth()->user()?->role?->value === 'admin')
                         @php
-                            $menuLengkapActive = request()->routeIs('admin.students.*', 'admin.teachers.*', 'admin.programs.*', 'admin.enrollments.*', 'admin.lesson-offers.*', 'admin.presensi.*', 'admin.notifications.*', 'admin.class-student-sessions.*', 'admin.analysis.ortu', 'admin.analysis.ortu-kelas', 'admin.analysis.guru', 'admin.payments.*', 'admin.discounts.*', 'admin.class-reports.*', 'admin.history.*', 'admin.finance.*', 'admin.export.*');
+                            $menuLengkapActive = request()->routeIs('admin.students.*', 'admin.teachers.*', 'admin.parents.*', 'admin.programs.*', 'admin.enrollments.*', 'admin.lesson-offers.*', 'admin.presensi.*', 'admin.notifications.*', 'admin.class-student-sessions.*', 'admin.analysis.ortu', 'admin.analysis.ortu-kelas', 'admin.analysis.guru', 'admin.payments.*', 'admin.discounts.*', 'admin.class-reports.*', 'admin.history.*', 'admin.finance.*', 'admin.export.*');
                             $dropdownBase = 'inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 focus:outline-none transition duration-150 ease-in-out';
                         @endphp
                         <x-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">
@@ -37,6 +37,7 @@
                                         <svg class="h-4 w-4 sub-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                                     </span>
                                     <div class="pl-4 hidden" data-submenu-content="data-master">
+                                        <a href="{{ route('admin.parents.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Parent</a>
                                         <a href="{{ route('admin.students.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Murid</a>
                                         <a href="{{ route('admin.teachers.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Guru</a>
                                         <a href="{{ route('admin.programs.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Program</a>
@@ -122,9 +123,9 @@
                             </div>
                         </div>
                     @endif
-                    @if (auth()->user()?->role?->value === 'murid')
+                    @if (auth()->user()?->role?->value === 'parent')
                         @php
-                            $muridActive = request()->routeIs('murid.history.*', 'murid.billing.*');
+                            $muridActive = request()->routeIs('parent.history.*', 'parent.billing.*');
                             $dropdownBase = $dropdownBase ?? 'inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 focus:outline-none transition duration-150 ease-in-out';
                         @endphp
                         <div id="murid-menu-wrapper" class="relative flex items-center">
@@ -135,10 +136,10 @@
                                 </svg>
                             </button>
                             <div id="murid-menu-dropdown" class="fixed w-56 max-h-[calc(100vh-1rem)] overflow-y-auto overscroll-contain bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-50 py-2 hidden" style="top:0;left:0;">
-                                <x-dropdown-link :href="route('murid.history.index')">
+                                <x-dropdown-link :href="route('parent.history.index')">
                                     {{ __('Presensi Les') }}
                                 </x-dropdown-link>
-                                <x-dropdown-link :href="route('murid.billing.index')">
+                                <x-dropdown-link :href="route('parent.billing.index')">
                                     {{ __('Tagihan') }}
                                 </x-dropdown-link>
                             </div>
@@ -379,11 +380,11 @@
                     {{ __('Tawaran Les') }}
                 </x-responsive-nav-link>
             @endif
-            @if (auth()->user()?->role?->value === 'murid')
-                <x-responsive-nav-link :href="route('murid.history.index')" :active="request()->routeIs('murid.history.*')">
+            @if (auth()->user()?->role?->value === 'parent')
+                <x-responsive-nav-link :href="route('parent.history.index')" :active="request()->routeIs('parent.history.*')">
                     {{ __('Presensi Les') }}
                 </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('murid.billing.index')" :active="request()->routeIs('murid.billing.*')">
+                <x-responsive-nav-link :href="route('parent.billing.index')" :active="request()->routeIs('parent.billing.*')">
                     {{ __('Tagihan') }}
                 </x-responsive-nav-link>
             @endif

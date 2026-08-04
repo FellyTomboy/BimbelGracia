@@ -42,16 +42,6 @@ class Student extends Model
             ->withTimestamps();
     }
 
-    public function classSessions(): BelongsToMany
-    {
-        return $this->belongsToMany(ClassSession::class)->withTimestamps();
-    }
-
-    public function classGroups(): BelongsToMany
-    {
-        return $this->belongsToMany(ClassGroup::class)->withTimestamps();
-    }
-
     protected static function booted()
     {
         static::saved(function () {
