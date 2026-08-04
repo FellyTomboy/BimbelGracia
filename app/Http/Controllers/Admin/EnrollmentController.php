@@ -69,16 +69,45 @@ class EnrollmentController extends Controller
             'teacher_id' => ['required', 'exists:teachers,id'],
             'parent_rate' => ['required', 'integer', 'min:0'],
             'teacher_rate' => ['required', 'integer', 'min:0'],
+            'pricing_tiers_parent' => ['nullable', 'array'],
+            'pricing_tiers_parent.*' => ['integer', 'min:0'],
+            'pricing_tiers_teacher' => ['nullable', 'array'],
+            'pricing_tiers_teacher.*' => ['integer', 'min:0'],
+            'agreed_sessions_per_month' => ['required', 'integer', 'min:1', 'max:31'],
             'status' => ['required', 'in:active,hibernasi'],
             'student_ids' => ['required', 'array', 'min:1'],
             'student_ids.*' => ['integer', 'exists:students,id'],
         ]);
+
+        // Build pricing_tiers from request or fallback to single-tier
+        $pricingTiers = null;
+        if ($request->has('pricing_tiers_parent')) {
+            $pricingTiers = [
+                'parent_rate' => $validated['pricing_tiers_parent'] ?? ['1' => $validated['parent_rate']],
+                'teacher_rate' => $validated['pricing_tiers_teacher'] ?? ['1' => $validated['teacher_rate']],
+            ];
+            // Ensure keys are strings
+            if (isset($pricingTiers['parent_rate'])) {
+                $pricingTiers['parent_rate'] = array_combine(
+                    array_map('strval', array_keys($pricingTiers['parent_rate'])),
+                    array_values($pricingTiers['parent_rate'])
+                );
+            }
+            if (isset($pricingTiers['teacher_rate'])) {
+                $pricingTiers['teacher_rate'] = array_combine(
+                    array_map('strval', array_keys($pricingTiers['teacher_rate'])),
+                    array_values($pricingTiers['teacher_rate'])
+                );
+            }
+        }
 
         $enrollment = Enrollment::create([
             'program_id' => $validated['program_id'],
             'teacher_id' => $validated['teacher_id'],
             'parent_rate' => $validated['parent_rate'],
             'teacher_rate' => $validated['teacher_rate'],
+            'pricing_tiers' => $pricingTiers,
+            'agreed_sessions_per_month' => $validated['agreed_sessions_per_month'],
             'validation_status' => 0,
             'status' => $validated['status'],
         ]);
@@ -109,17 +138,45 @@ class EnrollmentController extends Controller
             'teacher_id' => ['required', 'exists:teachers,id'],
             'parent_rate' => ['required', 'integer', 'min:0'],
             'teacher_rate' => ['required', 'integer', 'min:0'],
+            'pricing_tiers_parent' => ['nullable', 'array'],
+            'pricing_tiers_parent.*' => ['integer', 'min:0'],
+            'pricing_tiers_teacher' => ['nullable', 'array'],
+            'pricing_tiers_teacher.*' => ['integer', 'min:0'],
+            'agreed_sessions_per_month' => ['required', 'integer', 'min:1', 'max:31'],
             'validation_status' => ['required', 'integer', 'in:0,1,2'],
             'status' => ['required', 'in:active,hibernasi'],
             'student_ids' => ['required', 'array', 'min:1'],
             'student_ids.*' => ['integer', 'exists:students,id'],
         ]);
 
+        // Build pricing_tiers from request or fallback to single-tier
+        $pricingTiers = null;
+        if ($request->has('pricing_tiers_parent')) {
+            $pricingTiers = [
+                'parent_rate' => $validated['pricing_tiers_parent'] ?? ['1' => $validated['parent_rate']],
+                'teacher_rate' => $validated['pricing_tiers_teacher'] ?? ['1' => $validated['teacher_rate']],
+            ];
+            if (isset($pricingTiers['parent_rate'])) {
+                $pricingTiers['parent_rate'] = array_combine(
+                    array_map('strval', array_keys($pricingTiers['parent_rate'])),
+                    array_values($pricingTiers['parent_rate'])
+                );
+            }
+            if (isset($pricingTiers['teacher_rate'])) {
+                $pricingTiers['teacher_rate'] = array_combine(
+                    array_map('strval', array_keys($pricingTiers['teacher_rate'])),
+                    array_values($pricingTiers['teacher_rate'])
+                );
+            }
+        }
+
         $enrollment->update([
             'program_id' => $validated['program_id'],
             'teacher_id' => $validated['teacher_id'],
             'parent_rate' => $validated['parent_rate'],
             'teacher_rate' => $validated['teacher_rate'],
+            'pricing_tiers' => $pricingTiers,
+            'agreed_sessions_per_month' => $validated['agreed_sessions_per_month'],
             'validation_status' => $validated['validation_status'],
             'status' => $validated['status'],
         ]);

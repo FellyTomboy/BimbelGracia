@@ -166,6 +166,42 @@
                 </div>
             </section>
 
+            <section id="teachers" class="py-16">
+                <div class="text-center">
+                    <h2 class="text-3xl font-semibold">Our Teachers</h2>
+                    <p class="mt-3 text-white/70">Kenali guru-guru profesional kami</p>
+                </div>
+
+                @php
+                    $approvedTeachers = \App\Models\Teacher::query()
+                        ->where('status', 'active')
+                        ->where('profile_photo_approved', true)
+                        ->whereNotNull('profile_photo_path')
+                        ->orderBy('name')
+                        ->get();
+                @endphp
+
+                @if ($approvedTeachers->isNotEmpty())
+                    <div class="mt-10 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                        @foreach ($approvedTeachers as $teacher)
+                            <div class="glass rounded-2xl p-4 text-center hover:scale-[1.03] transition-transform duration-200">
+                                <img src="{{ $teacher->profile_photo_url }}" alt="{{ $teacher->name }}"
+                                    class="w-20 h-20 rounded-full object-cover mx-auto border-2 border-white/20 shadow-lg">
+                                <h3 class="mt-3 font-semibold text-sm">{{ $teacher->name }}</h3>
+                                @if ($teacher->major)
+                                    <p class="text-xs text-white/60 mt-0.5">{{ $teacher->major }}</p>
+                                @endif
+                                @if ($teacher->subjects)
+                                    <p class="text-xs text-white/70 mt-1">{{ $teacher->subjects }}</p>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+                @else
+                    <p class="mt-6 text-center text-white/50">Belum ada data guru yang ditampilkan.</p>
+                @endif
+            </section>
+
             <section id="testimoni" class="py-16">
                 <h2 class="text-3xl font-semibold">Testimoni</h2>
                 <div class="grid md:grid-cols-3 gap-6 mt-8">

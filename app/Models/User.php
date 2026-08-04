@@ -65,4 +65,8 @@ class User extends Authenticatable
         return $this->hasOne(ParentModel::class);
     }
 
+    public function teacher(): HasOne
+    {
+        return $this->hasOne(Teacher::class);
+    }
 }

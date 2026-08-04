@@ -38,6 +38,73 @@ class ProfileController extends Controller
     }
 
     /**
+     * Upload profile photo for teacher.
+     */
+    public function uploadPhoto(Request $request): RedirectResponse
+    {
+        $teacher = $request->user()?->teacher;
+        abort_unless((bool) $teacher, 403);
+
+        $validated = $request->validate([
+            'profile_photo' => ['required', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
+        ]);
+
+        // Delete old photo if exists
+        if ($teacher->profile_photo_path) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($teacher->profile_photo_path);
+        }
+
+        $path = $validated['profile_photo']->store('profile-photos', 'public');
+
+        $teacher->update([
+            'profile_photo_path' => $path,
+            'profile_photo_approved' => false, // Reset approval on new upload
+        ]);
+
+        return Redirect::route('profile.edit')->with('status', 'photo-uploaded');
+    }
+
+    /**
+     * Delete profile photo for teacher.
+     */
+    public function deletePhoto(Request $request): RedirectResponse
+    {
+        $teacher = $request->user()?->teacher;
+        abort_unless((bool) $teacher, 403);
+
+        if ($teacher->profile_photo_path) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($teacher->profile_photo_path);
+        }
+
+        $teacher->update([
+            'profile_photo_path' => null,
+            'profile_photo_approved' => false,
+        ]);
+
+        return Redirect::route('profile.edit')->with('status', 'photo-deleted');
+    }
+
+    /**
+     * Update the teacher's bank information.
+     */
+    public function updateBank(Request $request): RedirectResponse
+    {
+        $teacher = $request->user()?->teacher;
+
+        abort_unless((bool) $teacher, 403);
+
+        $validated = $request->validate([
+            'bank_name' => ['nullable', 'string', 'max:255'],
+            'bank_account' => ['nullable', 'string', 'max:255'],
+            'bank_owner' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $teacher->update($validated);
+
+        return Redirect::route('profile.edit')->with('status', 'bank-updated');
+    }
+
+    /**
      * Delete the user's account.
      */
     public function destroy(Request $request): RedirectResponse

@@ -27,13 +27,23 @@ class Teacher extends Model
         'bank_account',
         'bank_owner',
         'class_rate',
+        'profile_photo_path',
+        'profile_photo_approved',
         'status',
     ];
 
     protected $casts = [
         'status' => 'string',
         'class_rate' => 'integer',
+        'profile_photo_approved' => 'boolean',
     ];
+
+    public function getProfilePhotoUrlAttribute(): ?string
+    {
+        return $this->profile_photo_path
+            ? asset('storage/' . $this->profile_photo_path)
+            : null;
+    }
 
     public function setWhatsappAttribute(?string $value): void
     {

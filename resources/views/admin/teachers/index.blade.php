@@ -34,10 +34,12 @@
                     <table class="min-w-full text-sm">
                         <thead>
                             <tr class="text-left text-gray-500 bg-gray-50/50">
+                                <th class="py-3 px-4 font-medium">Foto</th>
                                 <x-sortable-header label="Nama" column="teachers.name" />
                                 <th class="py-3 px-4 font-medium">No. Telepon</th>
                                 <th class="py-3 px-4 font-medium">WA</th>
                                 <th class="py-3 px-4 font-medium">Rekening</th>
+                                <th class="py-3 px-4 font-medium">Status Foto</th>
                                 <x-sortable-header label="Status" column="teachers.status" />
                                 <th class="py-3 px-4 font-medium">Aksi</th>
                             </tr>
@@ -45,12 +47,30 @@
                         <tbody class="divide-y divide-gray-50">
                             @forelse ($teachers as $teacher)
                                 <tr class="hover:bg-gray-50/50 transition-colors">
+                                    <td class="py-3 px-4">
+                                        @if ($teacher->profile_photo_url)
+                                            <img src="{{ $teacher->profile_photo_url }}" alt="{{ $teacher->name }}" class="w-10 h-10 rounded-full object-cover border border-gray-200">
+                                        @else
+                                            <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 text-xs">-</div>
+                                        @endif
+                                    </td>
                                     <td class="py-3 px-4 font-medium text-gray-900">{{ $teacher->name }}</td>
                                     <td class="py-3 px-4 text-gray-600">{{ $teacher->user?->phone ?? '-' }}</td>
                                     <td class="py-3 px-4 text-gray-600">{{ $teacher->whatsapp_number ?? $teacher->whatsapp ?? '-' }}</td>
                                     <td class="py-3 px-4 text-gray-600">
                                         @if ($teacher->bank_name)
                                             <span class="text-xs">{{ $teacher->bank_name }} {{ $teacher->bank_account }}</span>
+                                        @else
+                                            <span class="text-gray-400">-</span>
+                                        @endif
+                                    </td>
+                                    <td class="py-3 px-4">
+                                        @if ($teacher->profile_photo_path)
+                                            @if ($teacher->profile_photo_approved)
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">Disetujui</span>
+                                            @else
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">Menunggu</span>
+                                            @endif
                                         @else
                                             <span class="text-gray-400">-</span>
                                         @endif
@@ -65,6 +85,12 @@
                                     <td class="py-3 px-4">
                                         <div class="flex items-center gap-2">
                                             <a href="{{ route('admin.teachers.edit', $teacher) }}" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors">Edit</a>
+                                            @if ($teacher->profile_photo_path && !$teacher->profile_photo_approved)
+                                                <form method="POST" action="{{ route('admin.teachers.approve-photo', $teacher) }}" class="inline">
+                                                    @csrf
+                                                    <button type="submit" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 transition-colors">Setujui Foto</button>
+                                                </form>
+                                            @endif
                                             <form method="POST" action="{{ route('admin.teachers.destroy', $teacher) }}" onsubmit="return confirm('Hibernasi guru ini?')">
                                                 @csrf @method('DELETE')
                                                 <button type="submit" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">Hibernasi</button>
@@ -73,7 +99,7 @@
                                     </td>
                                 </tr>
                             @empty
-                                <tr><td colspan="6"><x-empty-state icon="👨‍🏫" title="Belum ada guru" description="Tambahkan guru baru." action="Tambah Guru" actionUrl="{{ route('admin.teachers.create') }}" /></td></tr>
+                                <tr><td colspan="8"><x-empty-state icon="👨‍🏫" title="Belum ada guru" description="Tambahkan guru baru." action="Tambah Guru" actionUrl="{{ route('admin.teachers.create') }}" /></td></tr>
                             @endforelse
                         </tbody>
                     </table>

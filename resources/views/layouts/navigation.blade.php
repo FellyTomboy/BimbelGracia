@@ -17,7 +17,7 @@
                     </x-nav-link>
                     @if (auth()->user()?->role?->value === 'admin')
                         @php
-                            $menuLengkapActive = request()->routeIs('admin.students.*', 'admin.teachers.*', 'admin.parents.*', 'admin.programs.*', 'admin.enrollments.*', 'admin.lesson-offers.*', 'admin.presensi.*', 'admin.notifications.*', 'admin.class-student-sessions.*', 'admin.analysis.ortu', 'admin.analysis.ortu-kelas', 'admin.analysis.guru', 'admin.payments.*', 'admin.discounts.*', 'admin.class-reports.*', 'admin.history.*', 'admin.finance.*', 'admin.export.*');
+                            $menuLengkapActive = request()->routeIs('admin.students.*', 'admin.teachers.*', 'admin.parents.*', 'admin.programs.*', 'admin.enrollments.*', 'admin.lesson-offers.*', 'admin.presensi.*', 'admin.notifications.*', 'admin.class-student-sessions.*', 'admin.class-attendance.*', 'admin.analysis.ortu', 'admin.analysis.ortu-kelas', 'admin.analysis.guru', 'admin.payments.*', 'admin.discounts.*', 'admin.class-reports.*', 'admin.history.*', 'admin.finance.*', 'admin.export.*');
                             $dropdownBase = 'inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 focus:outline-none transition duration-150 ease-in-out';
                         @endphp
                         <x-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">
@@ -43,6 +43,7 @@
                                         <a href="{{ route('admin.programs.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Program</a>
                                         <a href="{{ route('admin.enrollments.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Enrollment</a>
                                         <a href="{{ route('admin.lesson-offers.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Tawaran Les</a>
+                                        <a href="{{ route('admin.documents.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Dokumen</a>
                                         <div class="border-t border-gray-100 my-1"></div>
                                         <a href="{{ route('admin.presensi.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Validasi Presensi</a>
                                     </div>
@@ -53,6 +54,7 @@
                                         <svg class="h-4 w-4 sub-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                                     </span>
                                     <div class="pl-4 hidden" data-submenu-content="kelas">
+                                        <a href="{{ route('admin.class-attendance.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Presensi Kelas</a>
                                         <a href="{{ route('admin.class-student-sessions.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Kalender Kelas</a>
                                         <a href="{{ route('admin.analysis.ortu-kelas') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">WA Ortu Kelas</a>
                                     </div>
@@ -119,6 +121,9 @@
                                 </x-dropdown-link>
                                 <x-dropdown-link :href="route('guru.tawaran.index')">
                                     {{ __('Tawaran Les') }}
+                                </x-dropdown-link>
+                                <x-dropdown-link :href="route('guru.documents.index')">
+                                    {{ __('Dokumen') }}
                                 </x-dropdown-link>
                             </div>
                         </div>
@@ -329,6 +334,9 @@
                 <x-responsive-nav-link :href="route('admin.lesson-offers.index')" :active="request()->routeIs('admin.lesson-offers.*')">
                     {{ __('Tawaran Les') }}
                 </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('admin.documents.index')" :active="request()->routeIs('admin.documents.*')">
+                    {{ __('Dokumen') }}
+                </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('admin.bank-accounts.index')" :active="request()->routeIs('admin.bank-accounts.*')">
                     {{ __('Rekening Bimbel') }}
                 </x-responsive-nav-link>
@@ -378,6 +386,9 @@
                 </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('guru.tawaran.index')" :active="request()->routeIs('guru.tawaran.*')">
                     {{ __('Tawaran Les') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('guru.documents.index')" :active="request()->routeIs('guru.documents.*')">
+                    {{ __('Dokumen') }}
                 </x-responsive-nav-link>
             @endif
             @if (auth()->user()?->role?->value === 'parent')

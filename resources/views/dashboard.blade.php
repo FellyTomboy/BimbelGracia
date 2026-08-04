@@ -13,12 +13,13 @@
             $role = auth()->user()?->role?->value;
 
             $adminActions = [
+                ['href' => route('admin.parents.index'), 'icon' => '👨‍👩‍👧‍👦', 'label' => 'Parent', 'description' => 'Kelola data parent'],
                 ['href' => route('admin.students.index'), 'icon' => '👨‍🎓', 'label' => 'Murid', 'description' => 'Kelola data murid'],
                 ['href' => route('admin.teachers.index'), 'icon' => '👨‍🏫', 'label' => 'Guru', 'description' => 'Kelola data guru'],
                 ['href' => route('admin.programs.index'), 'icon' => '📚', 'label' => 'Program', 'description' => 'Atur program les'],
                 ['href' => route('admin.enrollments.index'), 'icon' => '📝', 'label' => 'Enrollment', 'description' => 'Kelola pendaftaran aktif'],
                 ['href' => route('admin.lesson-offers.index'), 'icon' => '🎯', 'label' => 'Tawaran Les', 'description' => 'Atur tawaran les'],
-                ['href' => route('admin.class-students.index'), 'icon' => '🏫', 'label' => 'Murid Kelas', 'description' => 'Data murid kelas'],
+                ['href' => route('admin.class-student-sessions.index'), 'icon' => '🏫', 'label' => 'Kalender Kelas', 'description' => 'Kalender sesi kelas'],
                 ['href' => route('admin.class-student-sessions.index'), 'icon' => '📅', 'label' => 'Jadwal Murid', 'description' => 'Jadwal sesi kelas'],
                 ['href' => route('admin.analysis.ortu-kelas'), 'icon' => '💬', 'label' => 'WA Ortu Kelas', 'description' => 'Pesan otomatis ortu kelas'],
                 ['href' => route('admin.analysis.ortu'), 'icon' => '💬', 'label' => 'WA Ortu Privat', 'description' => 'Pesan otomatis ortu privat'],
@@ -40,8 +41,8 @@
             ];
 
             $muridActions = [
-                ['href' => route('murid.history.index'), 'icon' => '📚', 'label' => 'Presensi Les', 'description' => 'Cek dan tolak presensi yang tidak sesuai'],
-                ['href' => route('murid.billing.index'), 'icon' => '💰', 'label' => 'Tagihan', 'description' => 'Lihat status pembayaran'],
+                ['href' => route('parent.history.index'), 'icon' => '📚', 'label' => 'Presensi Les', 'description' => 'Cek dan tolak presensi yang tidak sesuai'],
+                ['href' => route('parent.billing.index'), 'icon' => '💰', 'label' => 'Tagihan', 'description' => 'Lihat status pembayaran'],
             ];
 
             $sectionTitle = match ($role) {

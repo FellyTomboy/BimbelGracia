@@ -20,7 +20,9 @@ class InvoiceService
         $rows = $attendances->map(function (MonthlyAttendance $attendance) use ($student) {
             $s = $attendance->students->firstWhere('id', $student->id);
             $present = (int) ($s?->pivot?->total_present ?? 0);
-            $rate = $attendance->enrollment?->parent_rate ?? 0;
+            $rate = (int) ($attendance->parent_rate ?? $attendance->enrollment?->getParentRateForCount(
+                $attendance->students->filter(fn ($s) => ($s->pivot->total_present ?? 0) > 0)->count()
+            ) ?? 0);
             $total = $present * $rate;
 
             return [
@@ -58,7 +60,9 @@ class InvoiceService
     {
         $rows = $attendances->map(function (MonthlyAttendance $attendance) {
             $studentNames = $attendance->students->map->name->implode(', ');
-            $rate = $attendance->enrollment?->teacher_rate ?? 0;
+            $rate = (int) ($attendance->teacher_rate ?? $attendance->enrollment?->getTeacherRateForCount(
+                $attendance->students->filter(fn ($s) => ($s->pivot->total_present ?? 0) > 0)->count()
+            ) ?? 0);
             $totalCount = 1;
             $lateCount = $attendance->status_validation === 'terlambat' ? 1 : 0;
             $grossTotal = $totalCount * $rate;

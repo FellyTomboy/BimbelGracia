@@ -171,6 +171,14 @@ class TeacherController extends Controller
             ->with('status', 'Guru dihibernasi.');
     }
 
+    public function approvePhoto(Request $request, Teacher $teacher): RedirectResponse
+    {
+        $teacher->update(['profile_photo_approved' => true]);
+
+        return redirect()->route('admin.teachers.index')
+            ->with('status', 'Foto profile guru berhasil disetujui.');
+    }
+
     public function changePassword(Request $request, Teacher $teacher): RedirectResponse
     {
         $validated = $request->validate([

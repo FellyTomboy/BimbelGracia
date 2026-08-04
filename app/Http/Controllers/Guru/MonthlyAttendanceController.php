@@ -51,6 +51,8 @@ class MonthlyAttendanceController extends Controller
         $validated = $request->validate([
             'enrollment_id' => ['required', 'exists:enrollments,id'],
             'lesson_date' => ['required', 'date', 'before_or_equal:today'],
+            'student_ids' => ['nullable', 'array'],
+            'student_ids.*' => ['integer', 'exists:students,id'],
             'notes' => ['nullable', 'string'],
             'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:5120'],
         ]);
@@ -59,6 +61,8 @@ class MonthlyAttendanceController extends Controller
             ->where('id', $validated['enrollment_id'])
             ->where('teacher_id', $teacher->id)
             ->firstOrFail();
+
+        $isClassProgram = $enrollment->program?->type === 'kelompok';
 
         $lessonDate = Carbon::parse($validated['lesson_date']);
         $daysSinceLesson = $lessonDate->diffInDays(now(), false);
@@ -72,27 +76,65 @@ class MonthlyAttendanceController extends Controller
         // Auto-determine status: terima if within 7 days, terlambat if over 7 days
         $status = $daysSinceLesson <= 7 ? 'terima' : 'terlambat';
 
-        $attendance = MonthlyAttendance::create([
-            'enrollment_id' => $enrollment->id,
-            'lesson_date' => $lessonDate,
-            'month' => $lessonDate->month,
-            'year' => $lessonDate->year,
-            'notes' => $validated['notes'] ?? null,
-            'image' => $imagePath,
-            'status_validation' => $status,
-            'created_by' => $request->user()->id,
-        ]);
+        if ($isClassProgram) {
+            // CLASS: Guru only marks session happened, no student selection
+            // teacher_rate = class_rate (flat per session)
+            // parent_rate = from enrollment (for billing when admin fills students)
+            $teacherRate = (int) ($teacher->class_rate ?? 0);
+            $parentRate = (int) $enrollment->parent_rate;
 
-        // All students are marked as present (teacher fills attendance only when student attends)
-        $attendance->students()->sync(
-            $enrollment->students->mapWithKeys(fn ($student) => [$student->id => ['total_present' => 1]])
-        );
+            $attendance = MonthlyAttendance::create([
+                'enrollment_id' => $enrollment->id,
+                'lesson_date' => $lessonDate,
+                'month' => $lessonDate->month,
+                'year' => $lessonDate->year,
+                'notes' => $validated['notes'] ?? null,
+                'image' => $imagePath,
+                'status_validation' => $status,
+                'parent_rate' => $parentRate,
+                'teacher_rate' => $teacherRate,
+                'created_by' => $request->user()->id,
+            ]);
 
-        $enrollment->update(['validation_status' => 1]);
+            // NO students synced yet - admin will fill them later
+            $enrollment->update(['validation_status' => 1]);
 
-        $message = $status === 'terima'
-            ? 'Presensi diterima (dalam 7 hari).'
-            : 'Presensi terlambat (lebih dari 7 hari). Guru akan mendapat potongan 10%.';
+            $message = 'Presensi kelas berhasil dicatat. Admin akan mengisi daftar murid yang hadir.';
+        } else {
+            // PRIVATE: Teacher selects which students attended
+            if (empty($validated['student_ids'])) {
+                return back()->withErrors(['student_ids' => 'Pilih minimal 1 murid yang hadir.'])->withInput();
+            }
+
+            // Calculate rates based on number of present students
+            $presentCount = count($validated['student_ids']);
+            $parentRate = $enrollment->getParentRateForCount($presentCount);
+            $teacherRate = $enrollment->getTeacherRateForCount($presentCount);
+
+            $attendance = MonthlyAttendance::create([
+                'enrollment_id' => $enrollment->id,
+                'lesson_date' => $lessonDate,
+                'month' => $lessonDate->month,
+                'year' => $lessonDate->year,
+                'notes' => $validated['notes'] ?? null,
+                'image' => $imagePath,
+                'status_validation' => $status,
+                'parent_rate' => $parentRate,
+                'teacher_rate' => $teacherRate,
+                'created_by' => $request->user()->id,
+            ]);
+
+            // Only mark checked students as present
+            $attendance->students()->sync(
+                collect($validated['student_ids'])->mapWithKeys(fn ($id) => [$id => ['total_present' => 1]])
+            );
+
+            $enrollment->update(['validation_status' => 1]);
+
+            $message = $status === 'terima'
+                ? 'Presensi diterima (' . $presentCount . ' murid hadir, rate ortu Rp' . number_format($parentRate) . ', rate guru Rp' . number_format($teacherRate) . ').'
+                : 'Presensi terlambat (lebih dari 7 hari). Guru akan mendapat potongan 10%.';
+        }
 
         return redirect()
             ->route('guru.presensi.index')

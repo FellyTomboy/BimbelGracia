@@ -6,7 +6,9 @@ use App\Http\Controllers\Admin\ClassReportController;
 use App\Http\Controllers\Admin\ClassStudentSessionController;
 use App\Http\Controllers\Admin\ParentController;
 use App\Http\Controllers\Admin\AttendanceReviewController;
+use App\Http\Controllers\Admin\ClassAttendanceController;
 use App\Http\Controllers\Admin\DiscountController;
+use App\Http\Controllers\Admin\DocumentController as AdminDocumentController;
 use App\Http\Controllers\Admin\ExportController;
 use App\Http\Controllers\Admin\FinanceController;
 use App\Http\Controllers\Admin\HistoryController;
@@ -16,6 +18,7 @@ use App\Http\Controllers\Admin\MonthlyAttendanceController as AdminAttendanceCon
 use App\Http\Controllers\Admin\ProgramController;
 use App\Http\Controllers\Admin\StudentController;
 use App\Http\Controllers\Admin\TeacherController;
+use App\Http\Controllers\Guru\DocumentController as GuruDocumentController;
 use App\Http\Controllers\Guru\LessonOfferController as GuruLessonOfferController;
 use App\Http\Controllers\Guru\MonthlyAttendanceController as GuruAttendanceController;
 use App\Http\Controllers\Guru\HistoryController as GuruHistoryController;
@@ -86,6 +89,8 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('parents.add-student');
             Route::post('parents/{parent}/change-password', [ParentController::class, 'changePassword'])
                 ->name('parents.change-password');
+            Route::post('teachers/{teacher}/approve-photo', [TeacherController::class, 'approvePhoto'])
+                ->name('teachers.approve-photo');
             Route::post('teachers/{teacher}/change-password', [TeacherController::class, 'changePassword'])
                 ->name('teachers.change-password');
 
@@ -132,6 +137,7 @@ Route::middleware(['auth', 'password.force'])->group(function () {
             Route::post('analysis/generate-salary/{teacher}/{month}/{year}', [AnalysisController::class, 'generateSalary'])
                 ->name('analysis.generate-salary');
 
+            Route::resource('documents', AdminDocumentController::class)->except(['show']);
             Route::get('discounts', [DiscountController::class, 'index'])
                 ->name('discounts.index');
             Route::post('discounts', [DiscountController::class, 'store'])
@@ -144,6 +150,13 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('finance.snapshot.students');
             Route::post('finance/snapshot/teachers', [FinanceController::class, 'snapshotTeachers'])
                 ->name('finance.snapshot.teachers');
+
+            Route::get('class-attendance', [ClassAttendanceController::class, 'index'])
+                ->name('class-attendance.index');
+            Route::get('class-attendance/{attendance}/edit', [ClassAttendanceController::class, 'edit'])
+                ->name('class-attendance.edit');
+            Route::put('class-attendance/{attendance}', [ClassAttendanceController::class, 'update'])
+                ->name('class-attendance.update');
 
             Route::get('class-reports', [ClassReportController::class, 'index'])
                 ->name('class-reports.index');
@@ -210,6 +223,10 @@ Route::middleware(['auth', 'password.force'])->group(function () {
         Route::get('tawaran', [GuruLessonOfferController::class, 'index'])->name('tawaran.index');
         Route::get('riwayat', [GuruHistoryController::class, 'index'])->name('history.index');
         Route::get('proyeksi-gaji', [GuruSalaryProjectionController::class, 'index'])->name('salary-projection.index');
+        Route::get('documents', [GuruDocumentController::class, 'index'])->name('documents.index');
+        Route::get('documents/{document}', [GuruDocumentController::class, 'show'])->name('documents.show');
+        Route::post('documents/{document}/verify-password', [GuruDocumentController::class, 'verifyPassword'])->name('documents.verify-password');
+        Route::get('documents/{document}/download', [GuruDocumentController::class, 'download'])->name('documents.download');
     });
 
     Route::get('/parent', function () {
@@ -232,6 +249,9 @@ Route::middleware(['auth', 'password.force'])->group(function () {
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::patch('/profile/bank', [ProfileController::class, 'updateBank'])->name('profile.bank.update');
+    Route::post('/profile/photo/upload', [ProfileController::class, 'uploadPhoto'])->name('profile.photo.upload');
+    Route::delete('/profile/photo/delete', [ProfileController::class, 'deletePhoto'])->name('profile.photo.delete');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 

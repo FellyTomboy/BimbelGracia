@@ -445,12 +445,42 @@ class AnalysisController extends Controller
 
     private function attendanceRows(Collection $attendances): Collection
     {
-        return $attendances->flatMap(function (MonthlyAttendance $attendance) {
+        // Pre-compute per-student monthly totals for penalty calculation
+        $monthlyStudentTotals = [];
+        foreach ($attendances as $attendance) {
+            $enrollmentId = $attendance->enrollment_id;
+            foreach ($attendance->students as $student) {
+                $key = $enrollmentId . '-' . $student->id;
+                $monthlyStudentTotals[$key] = ($monthlyStudentTotals[$key] ?? 0) + ((int) ($student->pivot->total_present ?? 0));
+            }
+        }
+
+        // Pre-compute total sessions per enrollment per month
+        $monthlyEnrollmentSessions = [];
+        foreach ($attendances as $attendance) {
+            $eid = $attendance->enrollment_id;
+            $monthlyEnrollmentSessions[$eid] = ($monthlyEnrollmentSessions[$eid] ?? 0) + 1;
+        }
+
+        return $attendances->flatMap(function (MonthlyAttendance $attendance) use ($monthlyStudentTotals, $monthlyEnrollmentSessions) {
             $enrollment = $attendance->enrollment;
             $program = $enrollment?->program;
             $teacher = $enrollment?->teacher;
+            $totalSessionsThisMonth = $monthlyEnrollmentSessions[$attendance->enrollment_id] ?? 0;
 
-            return $attendance->students->map(function (Student $student) use ($attendance, $enrollment, $program, $teacher) {
+            return $attendance->students->map(function (Student $student) use ($attendance, $enrollment, $program, $teacher, $totalSessionsThisMonth, $monthlyStudentTotals) {
+                $presentCount = $attendance->students->filter(fn ($s) => ($s->pivot->total_present ?? 0) > 0)->count();
+                $studentKey = $attendance->enrollment_id . '-' . $student->id;
+                $studentTotalPresent = $monthlyStudentTotals[$studentKey] ?? 0;
+
+                // Use snapshot rate from attendance if available, otherwise compute with penalty
+                $parentRate = (int) ($attendance->parent_rate ?? $enrollment?->getAdjustedParentRate(
+                    $presentCount, $totalSessionsThisMonth, $studentTotalPresent
+                ) ?? 0);
+                $teacherRate = (int) ($attendance->teacher_rate ?? $enrollment?->getAdjustedTeacherRate(
+                    $presentCount, $totalSessionsThisMonth, $studentTotalPresent
+                ) ?? 0);
+
                 return [
                     'attendance' => $attendance,
                     'enrollment' => $enrollment,
@@ -458,9 +488,10 @@ class AnalysisController extends Controller
                     'teacher' => $teacher,
                     'student' => $student,
                     'total_present' => (int) ($student->pivot?->total_present ?? 0),
-                    'parent_rate' => (int) ($enrollment?->parent_rate ?? 0),
-                    'teacher_rate' => (int) ($enrollment?->teacher_rate ?? 0),
+                    'parent_rate' => $parentRate,
+                    'teacher_rate' => $teacherRate,
                     'status_validation' => $attendance->status_validation,
+                    'has_penalty' => $enrollment?->hasAttendancePenalty($totalSessionsThisMonth, $studentTotalPresent) ?? false,
                 ];
             });
         });
