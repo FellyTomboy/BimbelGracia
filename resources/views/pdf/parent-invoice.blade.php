@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Invoice - {{ $student->name }}</title>
+    <title>Invoice - {{ $parentName }}</title>
     <style>
         body { font-family: 'DejaVu Sans', sans-serif; font-size: 12px; color: #333; }
         .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #4f46e5; padding-bottom: 15px; }
@@ -13,7 +13,9 @@
         .info table { width: 100%; }
         .info td { padding: 3px 0; }
         .info .label { font-weight: bold; width: 120px; }
-        table.items { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        .student-section { margin-bottom: 15px; padding: 10px; background: #f8fafc; border-radius: 4px; border-left: 3px solid #4f46e5; }
+        .student-section h3 { margin: 0 0 8px; font-size: 13px; color: #4f46e5; }
+        table.items { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
         table.items th { background: #4f46e5; color: white; padding: 8px 10px; text-align: left; font-size: 11px; }
         table.items td { padding: 8px 10px; border-bottom: 1px solid #e5e7eb; }
         table.items tr:nth-child(even) { background: #f9fafb; }
@@ -30,42 +32,62 @@
 
     <div class="info">
         <table>
-            <tr><td class="label">Nama Murid</td><td>: {{ $student->name }}</td></tr>
+            <tr><td class="label">Nama Orang Tua</td><td>: {{ $parentName }}</td></tr>
             <tr><td class="label">Periode</td><td>: {{ $monthName }} {{ $year }}</td></tr>
             <tr><td class="label">Tanggal</td><td>: {{ now()->format('d/m/Y') }}</td></tr>
         </table>
     </div>
 
-    <table class="items">
-        <thead>
-            <tr>
-                <th>Program / Guru</th>
-                <th>Tarif</th>
-                <th>Jumlah</th>
-                <th>Subtotal</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach ($rows as $row)
-                <tr>
-                    <td>{{ $row['program'] }} - {{ $row['teacher'] }}{{ $row['detail'] }}</td>
-                    <td>Rp {{ number_format($row['rate']) }}</td>
-                    <td>{{ $row['count'] }}x</td>
-                    <td>Rp {{ number_format($row['total']) }}</td>
-                </tr>
-            @endforeach
-        </tbody>
-    </table>
+    @php
+        $currentStudent = null;
+    @endphp
+
+    @foreach ($rows as $row)
+        @if ($currentStudent !== $row['student_name'])
+            @php $currentStudent = $row['student_name']; @endphp
+            @if (!$loop->first)
+                </table>
+            </div>
+            @endif
+            <div class="student-section">
+                <h3>{{ $currentStudent }}</h3>
+                <table class="items">
+                    <thead>
+                        <tr>
+                            <th>Program / Guru</th>
+                            <th>Tarif</th>
+                            <th>Jml</th>
+                            <th>Subtotal</th>
+                            <th>Denda</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+        @endif
+        <tr>
+            <td>{{ $row['program'] }} - {{ $row['teacher'] }}{{ $row['detail'] }}</td>
+            <td>Rp {{ number_format($row['rate']) }}</td>
+            <td>{{ $row['count'] }}x</td>
+            <td>Rp {{ number_format($row['subtotal']) }}</td>
+            <td>{{ $row['penalty'] > 0 ? '+Rp '.number_format($row['penalty']) : '-' }}</td>
+            <td>Rp {{ number_format($row['total']) }}</td>
+        </tr>
+        @if ($loop->last)
+            </table>
+        </div>
+        @endif
+    @endforeach
 
     <div class="total">
         Total: Rp {{ number_format($grandTotal) }}
     </div>
 
-    @if ($penaltyInfo)
+    @if (count($penalties) > 0)
         <div class="penalty-info" style="margin-top: 15px; padding: 10px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 4px;">
             <p style="margin: 0; font-size: 11px; color: #991b1b;">
                 <strong>⚠️ Peringatan Absensi Rendah</strong><br>
-                Program <strong>{{ $penaltyInfo['program'] }}</strong>: Kehadiran {{ $penaltyInfo['attended'] }}x dari {{ $penaltyInfo['total_sessions'] }} pertemuan (target minimal {{ $penaltyInfo['agreed'] / 2 }}x).<br>
+                @foreach ($penalties as $p)
+                    {{ $p['student'] }} - Program <strong>{{ $p['program'] }}</strong>: Kehadiran {{ $p['attended'] }}x dari {{ $p['total_sessions'] }} pertemuan (target minimal {{ $p['agreed'] / 2 }}x).<br>
+                @endforeach
                 Tarif per pertemuan akan naik <strong>Rp 5.000</strong> bulan depan jika kehadiran tetap rendah.
             </p>
         </div>

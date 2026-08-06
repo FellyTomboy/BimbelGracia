@@ -16,6 +16,7 @@ class Program extends Model
 
     protected $fillable = [
         'name',
+        'division',
         'type',
         'subject',
         'description',

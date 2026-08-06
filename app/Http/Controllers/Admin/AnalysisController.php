@@ -29,10 +29,15 @@ class AnalysisController extends Controller
 
         $privatSummaries = $rows
             ->groupBy(function (array $row) {
-                return $row['student']->parent?->user?->phone
-                    ?? 'unknown';
+                $parent = $row['student']->parent;
+                return $parent?->id ?? 'unknown';
             })
-            ->map(function (Collection $items, string $contact) use ($month, $year, $discounts) {
+            ->map(function (Collection $items, string $parentId) use ($month, $year, $discounts) {
+                $firstRow = $items->first();
+                $parent = $firstRow['student']->parent;
+                $contact = $parent?->user?->phone ?? 'unknown';
+                $parentName = $parent?->name ?? 'Unknown';
+
                 $students = $items
                     ->groupBy(fn (array $row) => $row['student']->id)
                     ->map(function (Collection $studentItems) use ($discounts) {
@@ -77,6 +82,8 @@ class AnalysisController extends Controller
                 $message = $this->buildPrivateParentMessage($students, $month, $year, $grandTotal);
 
                 return [
+                    'parent_id' => $parentId,
+                    'parent_name' => $parentName,
                     'contact' => $contact,
                     'students' => $students,
                     'total' => $grandTotal,
@@ -112,10 +119,15 @@ class AnalysisController extends Controller
 
         $classSummaries = $rows
             ->groupBy(function (array $row) {
-                return $row['student']->parent?->user?->phone
-                    ?? 'unknown';
+                $parent = $row['student']->parent;
+                return $parent?->id ?? 'unknown';
             })
-            ->map(function (Collection $items, string $contact) use ($month, $year) {
+            ->map(function (Collection $items, string $parentId) use ($month, $year) {
+                $firstRow = $items->first();
+                $parent = $firstRow['student']->parent;
+                $contact = $parent?->user?->phone ?? 'unknown';
+                $parentName = $parent?->name ?? 'Unknown';
+
                 $students = $items
                     ->groupBy(fn (array $row) => $row['student']->id)
                     ->map(function (Collection $studentItems) {
@@ -140,6 +152,8 @@ class AnalysisController extends Controller
                 $message = $this->buildClassParentMessage($students, $month, $year, $grandTotal);
 
                 return [
+                    'parent_id' => $parentId,
+                    'parent_name' => $parentName,
                     'contact' => $contact,
                     'students' => $students,
                     'total' => $grandTotal,
@@ -219,38 +233,56 @@ class AnalysisController extends Controller
         $rows = $this->attendanceRows($attendances);
 
         $summaries = $rows
-            ->groupBy(fn (array $row) => $row['student']?->id)
+            ->groupBy(function (array $row) {
+                $parent = $row['student']->parent;
+                return $parent?->id ?? 'unknown';
+            })
             ->map(function (Collection $items) {
-                $student = $items->first()['student'];
-                $lines = $items
-                    ->groupBy(fn (array $row) => $row['enrollment']->id)
-                    ->map(function (Collection $enrollmentItems) {
-                        $row = $enrollmentItems->first();
-                        $teacherName = $row['teacher']?->name ?? '-';
-                        $programName = $row['program']?->name ?? '-';
-                        $rate = $row['parent_rate'];
-                        $count = $enrollmentItems->sum('total_present');
-                        $total = $count * $rate;
+                $firstRow = $items->first();
+                $parent = $firstRow['student']->parent;
+                $parentName = $parent?->name ?? 'Unknown';
 
-                        $att = $row['attendance'];
+                $students = $items
+                    ->groupBy(fn (array $row) => $row['student']->id)
+                    ->map(function (Collection $studentItems) {
+                        $student = $studentItems->first()['student'];
+                        $lines = $studentItems
+                            ->groupBy(fn (array $row) => $row['enrollment']->id)
+                            ->map(function (Collection $enrollmentItems) {
+                                $row = $enrollmentItems->first();
+                                $teacherName = $row['teacher']?->name ?? '-';
+                                $programName = $row['program']?->name ?? '-';
+                                $rate = $row['parent_rate'];
+                                $count = $enrollmentItems->sum('total_present');
+                                $total = $count * $rate;
+
+                                $att = $row['attendance'];
+
+                                return [
+                                    'label' => sprintf('%s (%s)', $teacherName, $programName),
+                                    'count' => $count,
+                                    'rate' => $rate,
+                                    'total' => $total,
+                                    'payment_status' => $att->parent_payment_status,
+                                    'attendance_id' => $att->id,
+                                    'proof_url' => $att->payment_proof,
+                                    'proof_status' => $att->payment_proof_status ?? 'none',
+                                ];
+                            })
+                            ->values();
 
                         return [
-                            'label' => sprintf('%s (%s)', $teacherName, $programName),
-                            'count' => $count,
-                            'rate' => $rate,
-                            'total' => $total,
-                            'payment_status' => $att->parent_payment_status,
-                            'attendance_id' => $att->id,
-                            'proof_url' => $att->payment_proof,
-                            'proof_status' => $att->payment_proof_status ?? 'none',
+                            'student' => $student,
+                            'lines' => $lines,
+                            'total' => $lines->sum('total'),
                         ];
                     })
                     ->values();
 
                 return [
-                    'student' => $student,
-                    'lines' => $lines,
-                    'total' => $lines->sum('total'),
+                    'parent_name' => $parentName,
+                    'students' => $students,
+                    'total' => $students->sum('total'),
                 ];
             })
             ->values();
@@ -403,16 +435,23 @@ class AnalysisController extends Controller
 
     public function generateInvoice(Request $request, Student $student, int $month, int $year): RedirectResponse
     {
+        $parent = $student->parent;
+        if (! $parent) {
+            return back()->with('status', 'Murid ini tidak memiliki orang tua.');
+        }
+
+        $students = $parent->students;
+
         $attendances = $this->baseAttendanceQuery($month, $year)
-            ->whereHas('students', fn ($q) => $q->where('students.id', $student->id))
+            ->whereHas('students', fn ($q) => $q->whereIn('students.id', $students->pluck('id')))
             ->get();
 
         if ($attendances->isEmpty()) {
-            return back()->with('status', 'Tidak ada data absensi untuk murid ini pada periode tersebut.');
+            return back()->with('status', 'Tidak ada data absensi untuk murid-murid ini pada periode tersebut.');
         }
 
         $invoiceService = app(InvoiceService::class);
-        $filename = $invoiceService->generateStudentInvoice($student, $month, $year, $attendances);
+        $filename = $invoiceService->generateParentInvoice($students, $month, $year, $attendances);
 
         return redirect(asset('storage/' . $filename));
     }
@@ -566,14 +605,7 @@ class AnalysisController extends Controller
 
         $lines->push(sprintf('Total pembayaran sebesar: *Rp %s*', number_format($grandTotal)));
         $lines->push('');
-        $lines->push('Mohon dicek kembali.');
-
-        $paymentLines = $this->paymentAccountLines();
-        if ($paymentLines->isNotEmpty()) {
-            $lines->push('');
-            $lines = $lines->merge($paymentLines);
-        }
-
+        $lines->push('Mohon dicek kembali. Detail rekening terlampir di PDF invoice.');
         $lines->push('');
         $lines->push('Mohon konfirmasi jika sudah transfer.');
         $lines->push('Jika ada kritik/saran untuk tentor/bimbel, atau ingin mengetahui perkembangan siswa, kami terbuka untuk berdiskusi lewat WhatsApp.');
@@ -623,14 +655,7 @@ class AnalysisController extends Controller
         $lines->push('');
         $lines->push(sprintf('Total: *Rp %s*', number_format($grandTotal)));
         $lines->push('');
-        $lines->push('Mohon dicek kembali.');
-
-        $paymentLines = $this->paymentAccountLines();
-        if ($paymentLines->isNotEmpty()) {
-            $lines->push('');
-            $lines = $lines->merge($paymentLines);
-        }
-
+        $lines->push('Mohon dicek kembali. Detail rekening terlampir di PDF invoice.');
         $lines->push('');
         $lines->push('Mohon konfirmasi jika sudah transfer.');
         $lines->push('Jika ada kritik/saran untuk tentor/bimbel, atau ingin mengetahui perkembangan siswa, kami terbuka untuk berdiskusi lewat WhatsApp.');

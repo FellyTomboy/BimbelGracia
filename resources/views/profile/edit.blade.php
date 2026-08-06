@@ -19,6 +19,14 @@
                 </div>
             </div>
 
+            @if (auth()->user()?->role?->value === 'admin')
+                <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
+                    <div class="max-w-xl">
+                        @include('profile.partials.update-founder-information-form')
+                    </div>
+                </div>
+            @endif
+
             @if (auth()->user()?->role?->value === 'guru' && auth()->user()?->teacher)
                 <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
                     <div class="max-w-xl">

@@ -139,7 +139,7 @@
                             {{-- Template WA --}}
                             <div>
                                 <label class="block text-xs uppercase tracking-wide text-gray-500 font-semibold mb-2">Template WhatsApp</label>
-                                <textarea id="wa-template" class="w-full rounded-xl border-gray-200 text-sm font-mono bg-gray-50" rows="12" readonly>{{ $selected['message'] }}</textarea>
+                                <textarea id="wa-template" class="w-full rounded-xl border-gray-200 text-sm font-mono bg-gray-50" rows="12">{{ $selected['message'] }}</textarea>
                             </div>
                         @else
                             <div class="flex items-center justify-center h-48 lg:h-full">

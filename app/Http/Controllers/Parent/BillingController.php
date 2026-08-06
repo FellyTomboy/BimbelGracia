@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Parent;
 use App\Http\Controllers\Controller;
 use App\Models\MonthlyAttendance;
 use App\Models\Student;
+use App\Services\CalculationService;
 use App\Services\Pdf\InvoiceService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,12 +16,14 @@ use Illuminate\View\View;
 
 class BillingController extends Controller
 {
+    public function __construct(
+        private CalculationService $calculationService
+    ) {}
+
     public function index(Request $request): View
     {
         $parent = $request->user()?->parent;
         $students = $parent?->students ?? collect();
-
-        // Get all attendances for ALL students of this parent
         $studentIds = $students->pluck('id')->toArray();
 
         $attendances = MonthlyAttendance::with(['enrollment.teacher', 'enrollment.program', 'students'])
@@ -30,7 +33,7 @@ class BillingController extends Controller
             ->orderByDesc('month')
             ->get();
 
-        $totals = $this->buildTotals($attendances, $studentIds);
+        $totals = $this->buildTotals($attendances, $students);
 
         // Group by month-year for the list
         $monthlyList = $attendances
@@ -42,15 +45,16 @@ class BillingController extends Controller
                 $hasProof = false;
                 $proofStatus = 'none';
 
-                foreach ($items as $attendance) {
-                    foreach ($students as $student) {
-                        $s = $attendance->students->firstWhere('id', $student->id);
-                        $present = (int) ($s?->pivot?->total_present ?? 0);
-                        $rate = $attendance->enrollment?->parent_rate ?? 0;
-                        $total += $present * $rate;
+                // Calculate total using CalculationService per student
+                foreach ($students as $student) {
+                    $studentAttendances = $items->filter(fn ($a) => $a->students->contains($student->id));
+                    if ($studentAttendances->isNotEmpty()) {
+                        $result = $this->calculationService->calculateStudentBilling($student, (int) $month, (int) $year, $studentAttendances);
+                        $total += $result['grand_total'];
                     }
+                }
 
-                    // Aggregate status: if any is paid, show paid; if any has proof, show pending
+                foreach ($items as $attendance) {
                     if ($attendance->parent_payment_status === 'paid') {
                         $status = 'paid';
                     } elseif ($attendance->payment_proof_status === 'pending') {
@@ -65,17 +69,11 @@ class BillingController extends Controller
                     }
                 }
 
-                // Check if invoice PDF exists for any student
-                $hasInvoice = false;
-                $invoiceUrl = null;
-                foreach ($students as $student) {
-                    $invoicePath = sprintf('invoice/%s/%s_%04d-%02d.pdf', $student->id, str_replace(' ', '_', $student->name ?? ''), (int) $year, (int) $month);
-                    if (Storage::disk('public')->exists($invoicePath)) {
-                        $hasInvoice = true;
-                        $invoiceUrl = asset('storage/' . $invoicePath);
-                        break;
-                    }
-                }
+                // Check if parent invoice PDF exists
+                $studentIds = $students->pluck('id')->sort()->implode('-');
+                $parentInvoicePath = sprintf('invoice/parent/%s_%04d-%02d.pdf', $studentIds, (int) $year, (int) $month);
+                $hasInvoice = Storage::disk('public')->exists($parentInvoicePath);
+                $invoiceUrl = $hasInvoice ? asset('storage/' . $parentInvoicePath) : null;
 
                 return [
                     'period' => sprintf('%s %s', $this->monthName((int) $month), $year),
@@ -104,7 +102,6 @@ class BillingController extends Controller
         $parent = $request->user()?->parent;
         $studentIds = $parent?->students->pluck('id')->toArray() ?? [];
 
-        // Verify this parent has at least one student associated with this attendance
         $hasAccess = $attendance->students()->whereIn('students.id', $studentIds)->exists();
         if (! $hasAccess) {
             abort(403, 'Anda tidak berhak mengupload bukti untuk tagihan ini.');
@@ -135,7 +132,6 @@ class BillingController extends Controller
 
         $invoiceService = app(InvoiceService::class);
 
-        // Get attendances for all students for this period
         $attendances = MonthlyAttendance::with(['enrollment.teacher', 'enrollment.program', 'students'])
             ->whereHas('students', fn ($sub) => $sub->whereIn('students.id', $studentIds))
             ->whereIn('status_validation', ['terima', 'terlambat'])
@@ -147,34 +143,41 @@ class BillingController extends Controller
             abort(404, 'Tidak ada data tagihan untuk periode ini.');
         }
 
-        // Generate invoice for the first student (or aggregate)
-        $firstStudent = $parent?->students->first();
-        $filename = $invoiceService->generateStudentInvoice($firstStudent, $month, $year, $attendances);
+        $students = $parent?->students ?? collect();
+        $filename = $invoiceService->generateParentInvoice($students, $month, $year, $attendances);
 
         return redirect(asset('storage/' . $filename));
     }
 
-    private function buildTotals($attendances, array $studentIds): array
+    private function buildTotals($attendances, $students): array
     {
-        $rows = $attendances->map(function (MonthlyAttendance $attendance) use ($studentIds) {
-            $total = 0;
-            foreach ($studentIds as $studentId) {
-                $student = $attendance->students->firstWhere('id', $studentId);
-                $present = (int) ($student?->pivot?->total_present ?? 0);
-                $rate = $attendance->enrollment?->parent_rate ?? 0;
-                $total += $present * $rate;
+        $paid = 0;
+        $unpaid = 0;
+
+        foreach ($attendances->groupBy(fn ($a) => sprintf('%04d-%02d', $a->year, $a->month)) as $period => $items) {
+            [$year, $month] = explode('-', $period);
+            $periodTotal = 0;
+
+            foreach ($students as $student) {
+                $studentAttendances = $items->filter(fn ($a) => $a->students->contains($student->id));
+                if ($studentAttendances->isNotEmpty()) {
+                    $result = $this->calculationService->calculateStudentBilling($student, (int) $month, (int) $year, $studentAttendances);
+                    $periodTotal += $result['grand_total'];
+                }
             }
 
-            return [
-                'status' => $attendance->parent_payment_status ?? 'unknown',
-                'total' => $total,
-            ];
-        });
+            $isPaid = $items->every(fn ($a) => $a->parent_payment_status === 'paid');
+            if ($isPaid) {
+                $paid += $periodTotal;
+            } else {
+                $unpaid += $periodTotal;
+            }
+        }
 
         return [
-            'paid' => (int) $rows->where('status', 'paid')->sum('total'),
-            'unpaid' => (int) $rows->where('status', 'unpaid')->sum('total'),
-            'grand' => (int) $rows->sum('total'),
+            'paid' => $paid,
+            'unpaid' => $unpaid,
+            'grand' => $paid + $unpaid,
         ];
     }
 

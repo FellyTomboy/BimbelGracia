@@ -6,45 +6,60 @@ namespace App\Services\Pdf;
 
 use App\Models\MonthlyAttendance;
 use App\Models\Student;
+use App\Models\Teacher;
+use App\Services\CalculationService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 
 class InvoiceService
 {
+    public function __construct(
+        private CalculationService $calculationService
+    ) {}
+
     /**
      * Generate and save invoice PDF for a student's monthly billing.
      */
     public function generateStudentInvoice(Student $student, int $month, int $year, Collection $attendances): string
     {
-        $rows = $attendances->map(function (MonthlyAttendance $attendance) use ($student) {
-            $s = $attendance->students->firstWhere('id', $student->id);
-            $present = (int) ($s?->pivot?->total_present ?? 0);
-            $rate = (int) ($attendance->parent_rate ?? $attendance->enrollment?->getParentRateForCount(
-                $attendance->students->filter(fn ($s) => ($s->pivot->total_present ?? 0) > 0)->count()
-            ) ?? 0);
-            $total = $present * $rate;
-
-            return [
-                'program' => $attendance->enrollment?->program?->name ?? '-',
-                'teacher' => $attendance->enrollment?->teacher?->name ?? '-',
-                'count' => $present,
-                'rate' => $rate,
-                'total' => $total,
-            ];
-        });
-
-        $grandTotal = $rows->sum('total');
+        $result = $this->calculationService->calculateStudentBilling($student, $month, $year, $attendances);
 
         $monthName = $this->monthName($month);
+
+        // Check attendance penalty info for display
+        $penaltyInfo = null;
+        $enrollments = $attendances->groupBy('enrollment_id');
+        foreach ($enrollments as $enrollmentId => $enrollmentAttendances) {
+            $first = $enrollmentAttendances->first();
+            $enrollment = $first->enrollment;
+            $agreed = $enrollment?->agreed_sessions_per_month ?? 4;
+            $studentTotalPresent = $enrollmentAttendances->sum(function (MonthlyAttendance $attendance) use ($student) {
+                $s = $attendance->students->firstWhere('id', $student->id);
+                return (int) ($s?->pivot?->total_present ?? 0);
+            });
+            $totalSessions = $enrollmentAttendances->count();
+
+            if ($enrollment && $enrollment->hasAttendancePenalty($totalSessions, $studentTotalPresent)) {
+                $penaltyInfo = [
+                    'program' => $enrollment->program?->name ?? '-',
+                    'agreed' => $agreed,
+                    'attended' => $studentTotalPresent,
+                    'total_sessions' => $totalSessions,
+                ];
+            }
+        }
 
         $pdf = Pdf::loadView('pdf.student-invoice', [
             'student' => $student,
             'month' => $month,
             'year' => $year,
             'monthName' => $monthName,
-            'rows' => $rows,
-            'grandTotal' => $grandTotal,
+            'rows' => $result['rows'],
+            'grandTotal' => $result['grand_total'],
+            'totalDiscount' => $result['total_discount'],
+            'totalPenalty' => $result['total_penalty'],
+            'penaltyInfo' => $penaltyInfo,
         ]);
 
         $filename = sprintf('invoice/%s/%s_%04d-%02d.pdf', $student->id, str_replace(' ', '_', $student->name), $year, $month);
@@ -54,34 +69,82 @@ class InvoiceService
     }
 
     /**
+     * Generate and save combined invoice PDF for a parent with multiple students.
+     */
+    public function generateParentInvoice(Collection $students, int $month, int $year, Collection $attendances): string
+    {
+        $monthName = $this->monthName($month);
+        $allRows = collect();
+        $grandTotal = 0;
+        $grandDiscount = 0;
+        $grandPenalty = 0;
+        $allPenalties = [];
+
+        foreach ($students as $student) {
+            $studentAttendances = $attendances->filter(fn ($a) => $a->students->contains($student->id));
+            if ($studentAttendances->isEmpty()) continue;
+
+            $result = $this->calculationService->calculateStudentBilling($student, $month, $year, $studentAttendances);
+
+            // Tag each row with student name
+            $taggedRows = $result['rows']->map(fn ($r) => array_merge($r, ['student_name' => $student->name]));
+            $allRows = $allRows->concat($taggedRows);
+            $grandTotal += $result['grand_total'];
+            $grandDiscount += $result['total_discount'];
+            $grandPenalty += $result['total_penalty'];
+
+            // Check penalty info per student
+            $enrollments = $studentAttendances->groupBy('enrollment_id');
+            foreach ($enrollments as $enrollmentId => $enrollmentAttendances) {
+                $first = $enrollmentAttendances->first();
+                $enrollment = $first->enrollment;
+                $agreed = $enrollment?->agreed_sessions_per_month ?? 4;
+                $studentTotalPresent = $enrollmentAttendances->sum(function (MonthlyAttendance $attendance) use ($student) {
+                    $s = $attendance->students->firstWhere('id', $student->id);
+                    return (int) ($s?->pivot?->total_present ?? 0);
+                });
+                $totalSessions = $enrollmentAttendances->count();
+
+                if ($enrollment && $enrollment->hasAttendancePenalty($totalSessions, $studentTotalPresent)) {
+                    $allPenalties[] = [
+                        'student' => $student->name,
+                        'program' => $enrollment->program?->name ?? '-',
+                        'agreed' => $agreed,
+                        'attended' => $studentTotalPresent,
+                        'total_sessions' => $totalSessions,
+                    ];
+                }
+            }
+        }
+
+        $parentName = $students->first()?->parent?->name ?? 'Orang Tua';
+
+        $pdf = Pdf::loadView('pdf.parent-invoice', [
+            'parentName' => $parentName,
+            'students' => $students,
+            'month' => $month,
+            'year' => $year,
+            'monthName' => $monthName,
+            'rows' => $allRows,
+            'grandTotal' => $grandTotal,
+            'totalDiscount' => $grandDiscount,
+            'totalPenalty' => $grandPenalty,
+            'penalties' => $allPenalties,
+        ]);
+
+        $studentIds = $students->pluck('id')->sort()->implode('-');
+        $filename = sprintf('invoice/parent/%s_%04d-%02d.pdf', $studentIds, $year, $month);
+        Storage::disk('public')->put($filename, $pdf->output());
+
+        return $filename;
+    }
+
+    /**
      * Generate and save salary slip PDF for a teacher.
      */
-    public function generateTeacherSalarySlip(\App\Models\Teacher $teacher, int $month, int $year, Collection $attendances): string
+    public function generateTeacherSalarySlip(Teacher $teacher, int $month, int $year, Collection $attendances): string
     {
-        $rows = $attendances->map(function (MonthlyAttendance $attendance) {
-            $studentNames = $attendance->students->map->name->implode(', ');
-            $rate = (int) ($attendance->teacher_rate ?? $attendance->enrollment?->getTeacherRateForCount(
-                $attendance->students->filter(fn ($s) => ($s->pivot->total_present ?? 0) > 0)->count()
-            ) ?? 0);
-            $totalCount = 1;
-            $lateCount = $attendance->status_validation === 'terlambat' ? 1 : 0;
-            $grossTotal = $totalCount * $rate;
-            $penalty = (int) ($lateCount * $rate * 0.1);
-
-            return [
-                'student' => $studentNames ?: '-',
-                'program' => $attendance->enrollment?->program?->name ?? '-',
-                'count' => $totalCount,
-                'rate' => $rate,
-                'total' => $grossTotal,
-                'penalty' => $penalty,
-                'late_count' => $lateCount,
-            ];
-        });
-
-        $grandTotal = $rows->sum('total');
-        $totalPenalty = $rows->sum('penalty');
-        $finalTotal = $grandTotal - $totalPenalty;
+        $result = $this->calculationService->calculateTeacherSalary($teacher->id, $month, $year, $attendances);
 
         $monthName = $this->monthName($month);
 
@@ -90,10 +153,10 @@ class InvoiceService
             'month' => $month,
             'year' => $year,
             'monthName' => $monthName,
-            'rows' => $rows,
-            'grandTotal' => $grandTotal,
-            'totalPenalty' => $totalPenalty,
-            'finalTotal' => $finalTotal,
+            'rows' => $result['rows'],
+            'grandTotal' => $result['grand_total'],
+            'totalPenalty' => $result['total_penalty'],
+            'finalTotal' => $result['final_total'],
         ]);
 
         $filename = sprintf('salary/%s/%s_%04d-%02d.pdf', $teacher->id, str_replace(' ', '_', $teacher->name), $year, $month);

@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\ExportController;
 use App\Http\Controllers\Admin\FinanceController;
 use App\Http\Controllers\Admin\HistoryController;
 use App\Http\Controllers\Admin\EnrollmentController;
+use App\Http\Controllers\Admin\NewStudentController;
 use App\Http\Controllers\Admin\LessonOfferController as AdminLessonOfferController;
 use App\Http\Controllers\Admin\MonthlyAttendanceController as AdminAttendanceController;
 use App\Http\Controllers\Admin\ProgramController;
@@ -26,6 +27,7 @@ use App\Http\Controllers\Guru\SalaryProjectionController as GuruSalaryProjection
 use App\Http\Controllers\Parent\BillingController as ParentBillingController;
 use App\Http\Controllers\Parent\HistoryController as ParentHistoryController;
 use App\Http\Controllers\PasswordForceController;
+use App\Http\Controllers\RegisterStudentController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -136,6 +138,12 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('analysis.generate-invoice');
             Route::post('analysis/generate-salary/{teacher}/{month}/{year}', [AnalysisController::class, 'generateSalary'])
                 ->name('analysis.generate-salary');
+
+            Route::resource('new-students', NewStudentController::class)->only(['index', 'destroy']);
+            Route::post('new-students/generate-link', [NewStudentController::class, 'generateLink'])
+                ->name('new-students.generate-link');
+            Route::post('new-students/{newStudent}/convert', [NewStudentController::class, 'convert'])
+                ->name('new-students.convert');
 
             Route::resource('documents', AdminDocumentController::class)->except(['show']);
             Route::get('discounts', [DiscountController::class, 'index'])
@@ -250,9 +258,18 @@ Route::middleware(['auth', 'password.force'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::patch('/profile/bank', [ProfileController::class, 'updateBank'])->name('profile.bank.update');
+    Route::patch('/profile/founder/{teacher}', [ProfileController::class, 'updateFounder'])->name('profile.founder.update');
     Route::post('/profile/photo/upload', [ProfileController::class, 'uploadPhoto'])->name('profile.photo.upload');
     Route::delete('/profile/photo/delete', [ProfileController::class, 'deletePhoto'])->name('profile.photo.delete');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
+
+// Public registration routes
+Route::get('register-student/{token}', [RegisterStudentController::class, 'form'])
+    ->name('register-student.form');
+Route::post('register-student/{token}', [RegisterStudentController::class, 'submit'])
+    ->name('register-student.submit');
+Route::get('register-student/success', [RegisterStudentController::class, 'success'])
+    ->name('register-student.success');
 
 require __DIR__.'/auth.php';

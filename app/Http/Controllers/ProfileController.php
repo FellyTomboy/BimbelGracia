@@ -16,8 +16,18 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): View
     {
+        $founders = collect();
+        if ($request->user()?->role?->value === 'admin') {
+            $founders = \App\Models\Teacher::query()
+                ->where('is_founder', true)
+                ->where('status', 'active')
+                ->orderBy('name')
+                ->get();
+        }
+
         return view('profile.edit', [
             'user' => $request->user(),
+            'founders' => $founders,
         ]);
     }
 
@@ -82,6 +92,28 @@ class ProfileController extends Controller
         ]);
 
         return Redirect::route('profile.edit')->with('status', 'photo-deleted');
+    }
+
+    /**
+     * Update founder information (admin only).
+     */
+    public function updateFounder(Request $request, \App\Models\Teacher $teacher): RedirectResponse
+    {
+        abort_unless($request->user()?->role?->value === 'admin', 403);
+
+        $validated = $request->validate([
+            'founder_name' => ['required', 'string', 'max:255'],
+            'founder_major' => ['nullable', 'string', 'max:255'],
+            'founder_description' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $teacher->update([
+            'name' => $validated['founder_name'],
+            'major' => $validated['founder_major'],
+            'founder_description' => $validated['founder_description'],
+        ]);
+
+        return Redirect::route('profile.edit')->with('status', 'founder-updated');
     }
 
     /**

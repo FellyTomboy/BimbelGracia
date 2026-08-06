@@ -30,6 +30,8 @@ class Teacher extends Model
         'profile_photo_path',
         'profile_photo_approved',
         'status',
+        'is_founder',
+        'founder_description',
     ];
 
     protected $casts = [

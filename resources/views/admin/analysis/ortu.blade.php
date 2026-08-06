@@ -17,22 +17,8 @@
             @endif
 
             @php
-                // Flatten summaries: each student gets its own entry
-                $studentSummaries = [];
-                $studentIndex = 0;
-                foreach ($privatSummaries as $summary) {
-                    foreach ($summary['students'] as $studentEntry) {
-                        $studentSummaries[] = [
-                            'student' => $studentEntry['student'],
-                            'contact' => $summary['contact'],
-                            'lines' => $studentEntry['lines'],
-                            'total' => $studentEntry['total'],
-                            'message' => $summary['message'],
-                        ];
-                    }
-                }
                 $selectedIndex = (int) request('selected', 0);
-                $selected = $studentSummaries[$selectedIndex] ?? null;
+                $selected = $privatSummaries[$selectedIndex] ?? null;
             @endphp
 
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100">
@@ -53,24 +39,29 @@
                 </div>
 
                 <div class="flex flex-col lg:flex-row">
-                    {{-- SIDEBAR: Daftar Murid (per nama) --}}
+                    {{-- SIDEBAR: Daftar Orang Tua (per-parent) --}}
                     <div class="w-full lg:w-1/3 border-b lg:border-b-0 lg:border-r border-gray-100">
                         <div class="p-4 font-bold text-gray-700 flex items-center justify-between lg:block">
-                            <span>Daftar Murid</span>
+                            <span>Daftar Orang Tua</span>
                             <span class="text-xs text-gray-400 lg:hidden">Geser untuk lihat detail</span>
                         </div>
                         <div class="overflow-y-auto max-h-48 lg:max-h-[70vh]">
-                            @forelse ($studentSummaries as $index => $entry)
+                            @forelse ($privatSummaries as $index => $summary)
                                 <a
                                     href="{{ route('admin.analysis.ortu', ['month' => $month, 'year' => $year, 'selected' => $index]) }}"
                                     class="block px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors
                                         {{ ($selectedIndex == $index) ? 'bg-indigo-50/50 font-semibold' : '' }}">
                                     <div class="text-sm font-medium text-gray-900">
-                                        {{ $entry['student']?->name ?? 'Unknown' }}
+                                        {{ $summary['parent_name'] }}
                                     </div>
-                                    <div class="text-xs text-gray-500">WA: {{ $entry['contact'] }}</div>
+                                    <div class="text-xs text-gray-500">WA: {{ $summary['contact'] }}</div>
+                                    <div class="mt-1 text-[11px]">
+                                        @foreach ($summary['students'] as $s)
+                                            <span class="text-gray-600">{{ $s['student']?->name }}, </span>
+                                        @endforeach
+                                    </div>
                                     <div class="mt-1 text-[11px] text-gray-600">
-                                        Rp {{ number_format($entry['total']) }}
+                                        Total: Rp {{ number_format($summary['total']) }}
                                     </div>
                                 </a>
                             @empty
@@ -79,13 +70,13 @@
                         </div>
                     </div>
 
-                    {{-- KONTEN UTAMA: Detail + WA Template --}}
+                    {{-- KONTEN UTAMA: Detail per Parent (multi-student) --}}
                     <div class="w-full lg:w-2/3 p-4 sm:p-6">
                         @if($selected)
                             <div class="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
                                 <div>
                                     <h3 class="text-xl font-bold text-gray-900">
-                                        {{ $selected['student']?->name ?? 'Unknown' }}
+                                        {{ $selected['parent_name'] }}
                                     </h3>
                                     <p class="text-sm text-gray-500">Kontak: {{ $selected['contact'] }}</p>
                                     <p class="text-xs text-gray-600">
@@ -100,7 +91,7 @@
                                     <button onclick="copyTemplate()" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors">
                                         Salin Pesan
                                     </button>
-                                    <form method="POST" action="{{ route('admin.analysis.generate-invoice', ['student' => $selected['student']?->id, 'month' => $month, 'year' => $year]) }}" class="inline">
+                                    <form method="POST" action="{{ route('admin.analysis.generate-invoice', ['student' => $selected['students'][0]['student']?->id, 'month' => $month, 'year' => $year]) }}" class="inline">
                                         @csrf
                                         <button type="submit" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 transition-colors">
                                             <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
@@ -110,63 +101,68 @@
                                 </div>
                             </div>
 
-                            {{-- Tabel Detail Pembayaran --}}
-                            <div class="overflow-x-auto border rounded-lg mb-6 -mx-4 sm:mx-0">
-                                <div class="inline-block min-w-full align-middle">
-                                    <table class="min-w-full divide-y divide-gray-200 text-xs sm:text-sm">
-                                        <thead class="bg-gray-50">
-                                            <tr>
-                                                <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Program / Guru</th>
-                                                <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tarif</th>
-                                                <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jml</th>
-                                                <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Subtotal</th>
-                                                <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Diskon</th>
-                                                <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody class="bg-white divide-y divide-gray-200">
-                                            @foreach ($selected['lines'] as $line)
-                                                <tr>
-                                                    <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm text-gray-900">{{ $line['label'] }}</td>
-                                                    <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm text-gray-600">Rp {{ number_format($line['rate']) }}</td>
-                                                    <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm text-gray-600">{{ $line['count'] }}x</td>
-                                                    <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm text-gray-600">Rp {{ number_format($line['total']) }}</td>
-                                                    <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm">
-                                                        <form method="POST" action="{{ route('admin.analysis.ortu-discount') }}" class="flex flex-col sm:flex-row items-start sm:items-center gap-1">
-                                                            @csrf
-                                                            <input type="hidden" name="month" value="{{ $month }}">
-                                                            <input type="hidden" name="year" value="{{ $year }}">
-                                                            <input type="hidden" name="enrollment_id" value="{{ $line['enrollment_id'] }}">
-                                                            <input type="hidden" name="student_id" value="{{ $line['student_id'] }}">
-                                                            <select name="discount_type" class="text-xs rounded-lg border-gray-200 w-full sm:w-16 py-1 px-1">
-                                                                <option value="none" {{ !$line['discount']['type'] ? 'selected' : '' }}>Tdk</option>
-                                                                <option value="percent" {{ $line['discount']['type'] === 'percent' ? 'selected' : '' }}>%</option>
-                                                                <option value="amount" {{ $line['discount']['type'] === 'amount' ? 'selected' : '' }}>Rp</option>
-                                                                <option value="final" {{ $line['discount']['type'] === 'final' ? 'selected' : '' }}>Final</option>
-                                                            </select>
-                                                            <input type="number" name="discount_value" value="{{ $line['discount']['value'] ?? '' }}" min="0" class="text-xs rounded-lg border-gray-200 w-full sm:w-20 py-1 px-1" placeholder="0" />
-                                                            <button type="submit" class="text-xs px-2 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-700 transition-colors w-full sm:w-auto">Simpan</button>
-                                                            @if (($line['discount']['amount'] ?? 0) > 0)
-                                                                <span class="text-rose-600 text-xs font-medium">-Rp {{ number_format($line['discount']['amount']) }}</span>
-                                                            @endif
-                                                        </form>
-                                                    </td>
-                                                    <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm font-medium">Rp {{ number_format($line['total_after'] ?? $line['total']) }}</td>
-                                                </tr>
-                                            @endforeach
-                                        </tbody>
-                                    </table>
+                            {{-- Tabel Detail Pembayaran per Student --}}
+                            @foreach ($selected['students'] as $studentSummary)
+                                <div class="mb-6 p-3 bg-gray-50 rounded-lg border-l-4 border-indigo-500">
+                                    <h4 class="font-semibold text-sm text-indigo-800">{{ $studentSummary['student']?->name }}</h4>
+                                    <div class="overflow-x-auto border rounded-lg mt-2 -mx-3 sm:mx-0">
+                                        <div class="inline-block min-w-full align-middle">
+                                            <table class="min-w-full divide-y divide-gray-200 text-xs sm:text-sm">
+                                                <thead class="bg-gray-100">
+                                                    <tr>
+                                                        <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Program / Guru</th>
+                                                        <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tarif</th>
+                                                        <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jml</th>
+                                                        <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Subtotal</th>
+                                                        <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Diskon</th>
+                                                        <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="bg-white divide-y divide-gray-200">
+                                                    @foreach ($studentSummary['lines'] as $line)
+                                                        <tr>
+                                                            <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm text-gray-900">{{ $line['label'] }}</td>
+                                                            <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm text-gray-600">Rp {{ number_format($line['rate']) }}</td>
+                                                            <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm text-gray-600">{{ $line['count'] }}x</td>
+                                                            <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm text-gray-600">Rp {{ number_format($line['total']) }}</td>
+                                                            <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm">
+                                                                <form method="POST" action="{{ route('admin.analysis.ortu-discount') }}" class="flex flex-col sm:flex-row items-start sm:items-center gap-1">
+                                                                    @csrf
+                                                                    <input type="hidden" name="month" value="{{ $month }}">
+                                                                    <input type="hidden" name="year" value="{{ $year }}">
+                                                                    <input type="hidden" name="enrollment_id" value="{{ $line['enrollment_id'] }}">
+                                                                    <input type="hidden" name="student_id" value="{{ $line['student_id'] }}">
+                                                                    <select name="discount_type" class="text-xs rounded-lg border-gray-200 w-full sm:w-16 py-1 px-1">
+                                                                        <option value="none" {{ !$line['discount']['type'] ? 'selected' : '' }}>Tdk</option>
+                                                                        <option value="percent" {{ $line['discount']['type'] === 'percent' ? 'selected' : '' }}>%</option>
+                                                                        <option value="amount" {{ $line['discount']['type'] === 'amount' ? 'selected' : '' }}>Rp</option>
+                                                                        <option value="final" {{ $line['discount']['type'] === 'final' ? 'selected' : '' }}>Final</option>
+                                                                    </select>
+                                                                    <input type="number" name="discount_value" value="{{ $line['discount']['value'] ?? '' }}" min="0" class="text-xs rounded-lg border-gray-200 w-full sm:w-20 py-1 px-1" placeholder="0" />
+                                                                    <button type="submit" class="text-xs px-2 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-700 transition-colors w-full sm:w-auto">Simpan</button>
+                                                                    @if (($line['discount']['amount'] ?? 0) > 0)
+                                                                        <span class="text-rose-600 text-xs font-medium">-Rp {{ number_format($line['discount']['amount']) }}</span>
+                                                                    @endif
+                                                                </form>
+                                                            </td>
+                                                            <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm font-medium">Rp {{ number_format($line['total_after'] ?? $line['total']) }}</td>
+                                                        </tr>
+                                                    @endforeach
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
+                            @endforeach
 
                             {{-- Template WA --}}
                             <div>
                                 <label class="block text-xs uppercase tracking-wide text-gray-500 font-semibold mb-2">Template WhatsApp</label>
-                                <textarea id="wa-template" class="w-full rounded-xl border-gray-200 text-sm font-mono bg-gray-50" rows="12" readonly>{{ $selected['message'] }}</textarea>
+                                <textarea id="wa-template" class="w-full rounded-xl border-gray-200 text-sm font-mono bg-gray-50" rows="12">{{ $selected['message'] }}</textarea>
                             </div>
                         @else
                             <div class="flex items-center justify-center h-48 lg:h-full">
-                                <p class="text-gray-500 text-center px-4">Pilih murid dari daftar di samping untuk melihat detail.</p>
+                                <p class="text-gray-500 text-center px-4">Pilih orang tua dari daftar di samping untuk melihat detail.</p>
                             </div>
                         @endif
                     </div>

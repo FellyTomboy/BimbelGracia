@@ -6,6 +6,7 @@
     <style>
         body { font-family: 'DejaVu Sans', sans-serif; font-size: 12px; color: #333; }
         .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #059669; padding-bottom: 15px; }
+        .header img { max-height: 60px; margin-bottom: 8px; }
         .header h1 { color: #059669; margin: 0; font-size: 24px; }
         .header p { margin: 5px 0 0; color: #666; }
         .info { margin-bottom: 20px; }
@@ -27,6 +28,7 @@
 </head>
 <body>
     <div class="header">
+        <img src="{{ public_path('logo_bimbel.jpg') }}" alt="Bimbel Gracia" />
         <h1>SLIP GAJI</h1>
         <p>Bimbel Gracia</p>
     </div>
@@ -56,7 +58,7 @@
         <tbody>
             @foreach ($rows as $row)
                 <tr>
-                    <td>{{ $row['student'] }} ({{ $row['program'] }})</td>
+                    <td>{{ $row['student'] }} ({{ $row['program'] }})<br><span style="font-size: 10px; color: #666;">{{ $row['label_detail'] }}</span></td>
                     <td>Rp {{ number_format($row['rate']) }}</td>
                     <td>{{ $row['count'] }}x</td>
                     <td>Rp {{ number_format($row['total']) }}</td>

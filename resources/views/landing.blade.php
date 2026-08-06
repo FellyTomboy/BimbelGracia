@@ -166,6 +166,65 @@
                 </div>
             </section>
 
+            <section id="pricelist" class="py-16">
+                <div class="text-center">
+                    <h2 class="text-3xl font-semibold">Harga Program</h2>
+                    <p class="mt-3 text-white/70">Biaya belajar per pertemuan berdasarkan divisi dan jenis les</p>
+                </div>
+
+                @php
+                    $programs = \App\Models\Program::query()
+                        ->where('status', 'active')
+                        ->orderBy('division')
+                        ->orderBy('type')
+                        ->get()
+                        ->groupBy('division');
+                    $divisions = ['TK', 'SD', 'SMP', 'SMA', 'UTBK'];
+                @endphp
+
+                <div class="mt-10 grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    @forelse ($divisions as $div)
+                        @php $divPrograms = $programs->get($div, collect()); @endphp
+                        <div class="glass rounded-2xl p-6 space-y-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-[color:var(--accent)]/20 text-[color:var(--accent)] font-bold flex items-center justify-center text-sm">
+                                    {{ $div }}
+                                </div>
+                                <h3 class="text-lg font-semibold">Divisi {{ $div }}</h3>
+                            </div>
+                            @if ($divPrograms->isNotEmpty())
+                                <div class="space-y-3">
+                                    @foreach ($divPrograms as $program)
+                                        <div class="flex items-center justify-between text-sm">
+                                            <span class="text-white/80">{{ $program->name }}</span>
+                                            <span class="font-semibold text-[color:var(--teal)]">
+                                                @if ($program->default_parent_rate)
+                                                    Rp{{ number_format($program->default_parent_rate, 0, ',', '.') }}
+                                                @else
+                                                    <span class="text-white/40">Hubungi</span>
+                                                @endif
+                                            </span>
+                                        </div>
+                                        @if ($program->description)
+                                            <p class="text-xs text-white/50 -mt-2">{{ $program->description }}</p>
+                                        @endif
+                                    @endforeach
+                                </div>
+                            @else
+                                <p class="text-sm text-white/50">Hubungi admin untuk info harga</p>
+                            @endif
+                        </div>
+                    @empty
+                        <div class="col-span-full text-center text-white/50">
+                            <p>Belum ada data program.</p>
+                        </div>
+                    @endforelse
+                </div>
+                <div class="mt-6 text-center">
+                    <p class="text-sm text-white/60">* Harga dapat berubah. Hubungi admin untuk informasi terbaru.</p>
+                </div>
+            </section>
+
             <section id="teachers" class="py-16">
                 <div class="text-center">
                     <h2 class="text-3xl font-semibold">Our Teachers</h2>
@@ -173,13 +232,45 @@
                 </div>
 
                 @php
+                    $founders = \App\Models\Teacher::query()
+                        ->where('status', 'active')
+                        ->where('is_founder', true)
+                        ->whereNotNull('profile_photo_path')
+                        ->where('profile_photo_approved', true)
+                        ->orderBy('name')
+                        ->get();
+
                     $approvedTeachers = \App\Models\Teacher::query()
                         ->where('status', 'active')
                         ->where('profile_photo_approved', true)
                         ->whereNotNull('profile_photo_path')
+                        ->where(function ($q) {
+                            $q->where('is_founder', false)->orWhereNull('is_founder');
+                        })
                         ->orderBy('name')
                         ->get();
                 @endphp
+
+                @if ($founders->isNotEmpty())
+                    <div class="mt-8 grid md:grid-cols-2 gap-6 max-w-2xl mx-auto">
+                        @foreach ($founders as $founder)
+                            <div class="glass rounded-2xl p-6 text-center hover:scale-[1.03] transition-transform duration-200 border border-[color:var(--accent)]/30">
+                                <img src="{{ $founder->profile_photo_url }}" alt="{{ $founder->name }}"
+                                    class="w-24 h-24 rounded-full object-cover mx-auto border-2 border-[color:var(--accent)]/40 shadow-lg">
+                                <h3 class="mt-3 font-semibold">{{ $founder->name }}</h3>
+                                @if ($founder->major)
+                                    <p class="text-sm text-white/60 mt-0.5">{{ $founder->major }}</p>
+                                @endif
+                                @if ($founder->founder_description)
+                                    <p class="text-sm text-white/70 mt-2">{{ $founder->founder_description }}</p>
+                                @endif
+                                <div class="mt-2 inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[color:var(--accent)]/20 text-[color:var(--accent)] text-xs font-medium">
+                                    Co-Founder
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
 
                 @if ($approvedTeachers->isNotEmpty())
                     <div class="mt-10 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">

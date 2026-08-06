@@ -33,7 +33,7 @@
                     @foreach ($classSummaries as $summary)
                         <div class="bg-white shadow-sm sm:rounded-lg p-6 space-y-4">
                             <div>
-                                <h4 class="text-lg font-semibold">Kontak Ortu</h4>
+                                <h4 class="text-lg font-semibold">{{ $summary['parent_name'] ?? 'Kontak Ortu' }}</h4>
                                 <p class="text-sm text-gray-500">WA: {{ $summary['contact'] !== 'unknown' ? $summary['contact'] : '-' }}</p>
                             </div>
                             <div class="text-sm text-gray-700 space-y-2">

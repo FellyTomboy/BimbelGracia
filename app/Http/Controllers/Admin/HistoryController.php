@@ -18,30 +18,40 @@ class HistoryController extends Controller
     {
         $students = Student::orderBy('name')->get();
         $studentId = $request->input('student_id');
+        $month = $request->input('month');
+        $year = $request->input('year');
 
         $attendances = MonthlyAttendance::with(['enrollment.teacher', 'enrollment.program', 'students'])
             ->when($studentId, fn ($query) => $query->whereHas('students', fn ($sub) => $sub->where('students.id', $studentId)))
+            ->when($month, fn ($query) => $query->where('month', (int) $month))
+            ->when($year, fn ($query) => $query->where('year', (int) $year))
             ->orderByDesc('year')
             ->orderByDesc('month')
+            ->orderBy('enrollment_id')
             ->paginate(50)
             ->withQueryString();
 
-        return view('admin.history.students', compact('students', 'studentId', 'attendances'));
+        return view('admin.history.students', compact('students', 'studentId', 'month', 'year', 'attendances'));
     }
 
     public function teachers(Request $request): View
     {
         $teachers = Teacher::orderBy('name')->get();
         $teacherId = $request->input('teacher_id');
+        $month = $request->input('month');
+        $year = $request->input('year');
 
         $attendances = MonthlyAttendance::with(['enrollment.teacher', 'enrollment.program', 'students'])
             ->when($teacherId, fn ($query) => $query->whereHas('enrollment', fn ($sub) => $sub->where('teacher_id', $teacherId)))
+            ->when($month, fn ($query) => $query->where('month', (int) $month))
+            ->when($year, fn ($query) => $query->where('year', (int) $year))
             ->orderByDesc('year')
             ->orderByDesc('month')
+            ->orderBy('enrollment_id')
             ->paginate(50)
             ->withQueryString();
 
-        return view('admin.history.teachers', compact('teachers', 'teacherId', 'attendances'));
+        return view('admin.history.teachers', compact('teachers', 'teacherId', 'month', 'year', 'attendances'));
     }
 
     public function payments(Request $request): View
