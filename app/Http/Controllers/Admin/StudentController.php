@@ -159,6 +159,32 @@ class StudentController extends Controller
             ->with('status', 'Murid dihibernasi.');
     }
 
+    public function bulkDestroy(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'ids' => ['required', 'array'],
+            'ids.*' => ['integer', 'exists:students,id'],
+        ]);
+
+        $count = Student::whereIn('id', $validated['ids'])
+            ->where('status', 'active')
+            ->count();
+
+        Student::whereIn('id', $validated['ids'])
+            ->where('status', 'active')
+            ->update(['status' => 'hibernasi']);
+
+        Student::whereIn('id', $validated['ids'])
+            ->where('status', 'hibernasi')
+            ->delete();
+
+        $this->snapshotSyncService->syncAll();
+
+        return redirect()
+            ->route('admin.students.index')
+            ->with('status', "{$count} murid berhasil dihibernasi.");
+    }
+
     public function restore(int $studentId): RedirectResponse
     {
         $student = Student::withTrashed()->findOrFail($studentId);

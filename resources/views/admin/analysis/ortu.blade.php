@@ -1,9 +1,9 @@
 <x-app-layout>
     <x-slot name="header">
         <div>
-            <x-breadcrumb :items="[['label' => 'WA Ortu Privat']]" />
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">WA Ortu Privat</h2>
-            <p class="text-sm text-gray-500 mt-0.5">Analisis dan kirim pesan tagihan ke orang tua murid privat</p>
+            <x-breadcrumb :items="[['label' => 'WA Ortu']]" />
+            <h2 class="font-semibold text-xl text-gray-800 leading-tight">WA Ortu</h2>
+            <p class="text-sm text-gray-500 mt-0.5">Analisis dan kirim pesan tagihan ke orang tua (privat & kelas)</p>
         </div>
     </x-slot>
 

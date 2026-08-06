@@ -32,15 +32,16 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y">
-                            @foreach ($students as $student)
-                                @php
-                                    $total = (int) ($studentTotals[$student->id] ?? 0);
-                                @endphp
+                            @forelse ($rows as $row)
                                 <tr>
-                                    <td class="py-2">{{ $student->name }}</td>
-                                    <td class="py-2">{{ $total }}</td>
+                                    <td class="py-2">{{ $row['name'] }}</td>
+                                    <td class="py-2">{{ $row['total'] }}</td>
                                 </tr>
-                            @endforeach
+                            @empty
+                                <tr>
+                                    <td class="py-2 text-gray-500" colspan="2">Tidak ada data untuk periode ini.</td>
+                                </tr>
+                            @endforelse
                         </tbody>
                     </table>
                 </div>
@@ -57,15 +58,16 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y">
-                            @foreach ($teachers as $teacher)
-                                @php
-                                    $total = (int) ($teacherTotals[$teacher->id] ?? 0);
-                                @endphp
+                            @forelse ($rows as $row)
                                 <tr>
-                                    <td class="py-2">{{ $teacher->name }}</td>
-                                    <td class="py-2">{{ $total }}</td>
+                                    <td class="py-2">{{ $row['teacher'] }}</td>
+                                    <td class="py-2">{{ $row['total'] }}</td>
                                 </tr>
-                            @endforeach
+                            @empty
+                                <tr>
+                                    <td class="py-2 text-gray-500" colspan="2">Tidak ada data untuk periode ini.</td>
+                                </tr>
+                            @endforelse
                         </tbody>
                     </table>
                 </div>

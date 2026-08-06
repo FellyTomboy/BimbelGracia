@@ -53,24 +53,32 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('students.inactive');
             Route::post('students/{student}/restore', [StudentController::class, 'restore'])
                 ->name('students.restore');
+            Route::post('students/bulk-destroy', [StudentController::class, 'bulkDestroy'])
+                ->name('students.bulk-destroy');
 
             Route::resource('teachers', TeacherController::class)->except(['show']);
             Route::get('teachers/inactive', [TeacherController::class, 'inactive'])
                 ->name('teachers.inactive');
             Route::post('teachers/{teacher}/restore', [TeacherController::class, 'restore'])
                 ->name('teachers.restore');
+            Route::post('teachers/bulk-destroy', [TeacherController::class, 'bulkDestroy'])
+                ->name('teachers.bulk-destroy');
 
             Route::resource('programs', ProgramController::class)->except(['show']);
             Route::get('programs/inactive', [ProgramController::class, 'inactive'])
                 ->name('programs.inactive');
             Route::post('programs/{program}/restore', [ProgramController::class, 'restore'])
                 ->name('programs.restore');
+            Route::post('programs/bulk-destroy', [ProgramController::class, 'bulkDestroy'])
+                ->name('programs.bulk-destroy');
 
             Route::resource('enrollments', EnrollmentController::class)->except(['show']);
             Route::get('enrollments/inactive', [EnrollmentController::class, 'inactive'])
                 ->name('enrollments.inactive');
             Route::post('enrollments/{enrollment}/restore', [EnrollmentController::class, 'restore'])
                 ->name('enrollments.restore');
+            Route::post('enrollments/bulk-destroy', [EnrollmentController::class, 'bulkDestroy'])
+                ->name('enrollments.bulk-destroy');
 
             Route::resource('lesson-offers', AdminLessonOfferController::class)->except(['show']);
             Route::get('lesson-offers/inactive', [AdminLessonOfferController::class, 'inactive'])
@@ -85,6 +93,14 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('bank-accounts.restore');
 
             Route::resource('parents', ParentController::class)->except(['show']);
+            Route::get('parents/inactive', [ParentController::class, 'inactive'])
+                ->name('parents.inactive');
+            Route::post('parents/{parent}/hibernate', [ParentController::class, 'hibernate'])
+                ->name('parents.hibernate');
+            Route::post('parents/{parent}/restore', [ParentController::class, 'restore'])
+                ->name('parents.restore');
+            Route::post('parents/bulk-destroy', [ParentController::class, 'bulkDestroy'])
+                ->name('parents.bulk-destroy');
             Route::delete('parents/{parent}/students/{student}', [ParentController::class, 'removeStudent'])
                 ->name('parents.remove-student');
             Route::post('parents/{parent}/add-student', [ParentController::class, 'addStudent'])
@@ -120,8 +136,6 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('analysis.ortu');
             Route::post('analysis/ortu/discount', [AnalysisController::class, 'updateEnrollmentDiscount'])
                 ->name('analysis.ortu-discount');
-            Route::get('analysis/ortu-kelas', [AnalysisController::class, 'ortuKelas'])
-                ->name('analysis.ortu-kelas');
             Route::get('analysis/guru', [AnalysisController::class, 'guru'])
                 ->name('analysis.guru');
             Route::get('payments/ortu', [AnalysisController::class, 'paymentsOrtu'])

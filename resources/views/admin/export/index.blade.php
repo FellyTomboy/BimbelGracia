@@ -139,8 +139,6 @@
                                 <label class="block text-xs text-gray-500 mb-1">Tahun</label>
                                 <input type="number" name="year" value="{{ request('year', now()->year) }}" min="2020" max="2100" class="w-24 rounded-xl border-gray-200 text-sm" required />
                             </div>
-                            <button type="submit" formaction="{{ route('admin.export.class-sessions.monthly.excel') }}" class="px-4 py-2 rounded-xl bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 transition-colors">Excel</button>
-                            <button type="submit" formaction="{{ route('admin.export.class-sessions.monthly.pdf') }}" class="px-4 py-2 rounded-xl bg-rose-600 text-white text-sm font-medium hover:bg-rose-700 transition-colors">PDF</button>
                         </form>
                     </div>
                 </div>

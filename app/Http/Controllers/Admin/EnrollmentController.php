@@ -208,6 +208,30 @@ class EnrollmentController extends Controller
             ->with('status', 'Enrollment dihibernasi.');
     }
 
+    public function bulkDestroy(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'ids' => ['required', 'array'],
+            'ids.*' => ['integer', 'exists:enrollments,id'],
+        ]);
+
+        $count = Enrollment::whereIn('id', $validated['ids'])
+            ->where('status', 'active')
+            ->count();
+
+        Enrollment::whereIn('id', $validated['ids'])
+            ->where('status', 'active')
+            ->update(['status' => 'hibernasi']);
+
+        Enrollment::whereIn('id', $validated['ids'])
+            ->where('status', 'hibernasi')
+            ->delete();
+
+        return redirect()
+            ->route('admin.enrollments.index')
+            ->with('status', "{$count} enrollment berhasil dihibernasi.");
+    }
+
     public function restore(int $enrollmentId): RedirectResponse
     {
         $enrollment = Enrollment::withTrashed()->findOrFail($enrollmentId);

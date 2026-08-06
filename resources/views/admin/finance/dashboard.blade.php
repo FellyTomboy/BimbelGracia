@@ -100,7 +100,7 @@
         const classSeries = @json($chartStudents['class']);
 
         const teachersLabels = @json($chartTeachers['labels']);
-        const teachersSeries = @json($chartTeachers['teachers']);
+        const teachersSeries = @json($chartTeachers['series']);
 
         const currencyOptions = {
             responsive: true,

@@ -28,13 +28,23 @@
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div class="p-4 border-b border-gray-100 flex items-center justify-between gap-4">
                     <x-search-form placeholder="Cari program..." />
-                    <div class="text-sm text-gray-400">{{ $programs->total() }} program</div>
+                    <div class="flex items-center gap-3">
+                        <button id="bulk-delete-btn" onclick="submitBulkDelete()" class="hidden inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">
+                            Hibernasi Massal
+                        </button>
+                        <span class="text-sm text-gray-400">{{ $programs->total() }} program</span>
+                    </div>
                 </div>
                 <div class="overflow-x-auto">
-                    <table class="min-w-full text-sm">
-                        <thead>
-                            <tr class="text-left text-gray-500 bg-gray-50/50">
-                                <x-sortable-header label="Nama" column="programs.name" />
+                    <form id="bulk-form" method="POST" action="{{ route('admin.programs.bulk-destroy') }}" onsubmit="return validateBulkDelete()">
+                        @csrf
+                        <table class="min-w-full text-sm">
+                            <thead>
+                                <tr class="text-left text-gray-500 bg-gray-50/50">
+                                    <th class="py-3 px-4 w-10">
+                                        <input type="checkbox" onclick="toggleAll(this)" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                                    </th>
+                                    <x-sortable-header label="Nama" column="programs.name" />
                                 <x-sortable-header label="Tarif Ortu" column="default_parent_rate" />
                                 <x-sortable-header label="Tarif Guru" column="default_teacher_rate" />
                                 <x-sortable-header label="Status" column="programs.status" />
@@ -44,6 +54,9 @@
                         <tbody class="divide-y divide-gray-50">
                             @forelse ($programs as $program)
                                 <tr class="hover:bg-gray-50/50 transition-colors">
+                                    <td class="py-3 px-4">
+                                        <input type="checkbox" name="ids[]" value="{{ $program->id }}" class="row-checkbox rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" onchange="updateBulkButton()" />
+                                    </td>
                                     <td class="py-3 px-4 font-medium text-gray-900">{{ $program->name }}</td>
                                     <td class="py-3 px-4 text-gray-600">Rp {{ number_format($program->default_parent_rate) }}</td>
                                     <td class="py-3 px-4 text-gray-600">Rp {{ number_format($program->default_teacher_rate) }}</td>
@@ -65,10 +78,11 @@
                                     </td>
                                 </tr>
                             @empty
-                                <tr><td colspan="5"><x-empty-state icon="📚" title="Belum ada program" description="Tambahkan program baru." action="Tambah Program" actionUrl="{{ route('admin.programs.create') }}" /></td></tr>
+                                <tr><td colspan="6"><x-empty-state icon="📚" title="Belum ada program" description="Tambahkan program baru." action="Tambah Program" actionUrl="{{ route('admin.programs.create') }}" /></td></tr>
                             @endforelse
                         </tbody>
                     </table>
+                    </form>
                 </div>
                 @if ($programs->hasPages())
                     <div class="p-4 border-t border-gray-100">{{ $programs->links() }}</div>
@@ -76,4 +90,23 @@
             </div>
         </div>
     </div>
+
+    <script>
+        function toggleAll(source) {
+            document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = source.checked);
+            updateBulkButton();
+        }
+        function updateBulkButton() {
+            const checked = document.querySelectorAll('.row-checkbox:checked');
+            const btn = document.getElementById('bulk-delete-btn');
+            if (checked.length > 0) btn.classList.remove('hidden');
+            else btn.classList.add('hidden');
+        }
+        function validateBulkDelete() {
+            const checked = document.querySelectorAll('.row-checkbox:checked');
+            if (checked.length === 0) { alert('Pilih minimal 1 data untuk dihibernasi.'); return false; }
+            return confirm('Hibernasi ' + checked.length + ' data yang dipilih?');
+        }
+        function submitBulkDelete() { document.getElementById('bulk-form').requestSubmit(); }
+    </script>
 </x-app-layout>

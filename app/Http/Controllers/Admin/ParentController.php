@@ -25,6 +25,16 @@ class ParentController extends Controller
         return view('admin.parents.index', compact('parents'));
     }
 
+    public function inactive(): View
+    {
+        $parents = ParentModel::onlyTrashed()
+            ->with(['user', 'students'])
+            ->latest('deleted_at')
+            ->paginate(20);
+
+        return view('admin.parents.inactive', compact('parents'));
+    }
+
     public function create(): View
     {
         return view('admin.parents.create');
@@ -99,23 +109,70 @@ class ParentController extends Controller
             ->with('status', 'Parent berhasil dihapus.');
     }
 
+    public function hibernate(ParentModel $parent): RedirectResponse
+    {
+        if ($parent->students()->count() > 0) {
+            return back()->withErrors(['error' => 'Tidak dapat menghibernasi parent yang masih memiliki murid. Hapus/hibernasi murid terlebih dahulu.']);
+        }
+
+        $parent->user->delete();
+        $parent->delete();
+
+        return redirect()->route('admin.parents.index')
+            ->with('status', 'Parent berhasil dihibernasi.');
+    }
+
+    public function restore(int $parentId): RedirectResponse
+    {
+        $parent = ParentModel::withTrashed()->findOrFail($parentId);
+
+        $parent->restore();
+
+        if ($parent->user) {
+            $parent->user->restore();
+        }
+
+        return redirect()->route('admin.parents.index')
+            ->with('status', 'Parent berhasil dipulihkan.');
+    }
+
+    public function bulkDestroy(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'ids' => ['required', 'array'],
+            'ids.*' => ['integer', 'exists:parents,id'],
+        ]);
+
+        $count = 0;
+
+        foreach ($validated['ids'] as $id) {
+            $parent = ParentModel::find($id);
+            if ($parent && $parent->students()->count() === 0) {
+                $parent->user->delete();
+                $parent->delete();
+                $count++;
+            }
+        }
+
+        return redirect()
+            ->route('admin.parents.index')
+            ->with('status', "{$count} parent berhasil dihibernasi.");
+    }
+
     public function addStudent(Request $request, ParentModel $parent): RedirectResponse
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'address' => ['nullable', 'string', 'max:500'],
-            'status' => ['required', 'in:active,hibernasi'],
         ]);
 
-        Student::create([
+        $student = Student::create([
             'parent_id' => $parent->id,
             'name' => $validated['name'],
-            'address' => $validated['address'] ?? null,
-            'status' => $validated['status'],
         ]);
 
-        return redirect()->route('admin.parents.edit', $parent->id)
-            ->with('status', 'Murid berhasil ditambahkan.');
+        return redirect()
+            ->route('admin.parents.edit', $parent)
+            ->with('status', "Murid {$student->name} berhasil ditambahkan.");
     }
 
     public function removeStudent(ParentModel $parent, Student $student): RedirectResponse
@@ -126,8 +183,9 @@ class ParentController extends Controller
 
         $student->delete();
 
-        return redirect()->route('admin.parents.edit', $parent->id)
-            ->with('status', 'Murid berhasil dihapus.');
+        return redirect()
+            ->route('admin.parents.edit', $parent)
+            ->with('status', "Murid {$student->name} berhasil dihapus.");
     }
 
     public function changePassword(Request $request, ParentModel $parent): RedirectResponse
@@ -141,19 +199,20 @@ class ParentController extends Controller
             'must_change_password' => false,
         ]);
 
-        return redirect()->route('admin.parents.index')
+        return redirect()->route('admin.parents.edit', $parent)
             ->with('status', 'Password parent berhasil diubah.');
     }
 
     private function cleanPhone(string $phone): string
     {
-        $phone = trim($phone);
-        $phone = str_replace([' ', '-', '(', ')', '+'], '', $phone);
+        $phone = preg_replace('/[^0-9]/', '', $phone);
 
-        if (str_starts_with($phone, '62')) {
-            $phone = '0' . substr($phone, 2);
-        } elseif (!str_starts_with($phone, '0')) {
-            $phone = '0' . $phone;
+        if (strlen($phone) > 12) {
+            $phone = substr($phone, -12);
+        }
+
+        if (substr($phone, 0, 1) === '0') {
+            $phone = '62' . substr($phone, 1);
         }
 
         return $phone;

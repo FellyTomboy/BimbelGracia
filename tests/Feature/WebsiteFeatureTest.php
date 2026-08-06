@@ -124,9 +124,9 @@ class WebsiteFeatureTest extends TestCase
         $this->get('/guru')->assertRedirect('/login');
     }
 
-    public function test_guest_cannot_access_murid_routes(): void
+    public function test_guest_cannot_access_parent_routes(): void
     {
-        $this->get('/murid')->assertRedirect('/login');
+        $this->get('/parent')->assertRedirect('/login');
     }
 
     public function test_guest_can_login(): void
@@ -139,21 +139,21 @@ class WebsiteFeatureTest extends TestCase
 
     // ── 2. Murid Tests ──
 
-    public function test_student_can_access_murid_dashboard(): void
+    public function test_student_can_access_parent_dashboard(): void
     {
-        $this->actingAs($this->createStudentUser())->get('/murid')->assertStatus(200);
+        $this->actingAs($this->createStudentUser())->get('/parent')->assertStatus(200);
     }
 
     public function test_student_can_access_history(): void
     {
         $data = $this->seedBasicData();
-        $this->actingAs($data['studentUser'])->get(route('murid.history.index'))->assertStatus(200);
+        $this->actingAs($data['studentUser'])->get(route('parent.history.index'))->assertStatus(200);
     }
 
     public function test_student_can_access_billing(): void
     {
         $data = $this->seedBasicData();
-        $this->actingAs($data['studentUser'])->get(route('murid.billing.index'))->assertStatus(200);
+        $this->actingAs($data['studentUser'])->get(route('parent.billing.index'))->assertStatus(200);
     }
 
     public function test_student_cannot_access_admin_routes(): void
@@ -192,7 +192,7 @@ class WebsiteFeatureTest extends TestCase
             'enrollment_id' => $data['enrollment']->id,
             'lesson_date' => now()->subDays(2)->format('Y-m-d'),
             'notes' => 'Test presensi',
-            'student_totals' => [$data['student']->id => 1],
+            'student_ids' => [$data['student']->id],
         ])->assertRedirect(route('guru.presensi.index'));
         $this->assertDatabaseHas('enrollment_attendances', ['enrollment_id' => $data['enrollment']->id, 'notes' => 'Test presensi']);
     }
@@ -220,9 +220,9 @@ class WebsiteFeatureTest extends TestCase
         $this->actingAs($this->createTeacherUser())->get('/admin')->assertStatus(403);
     }
 
-    public function test_teacher_cannot_access_murid_routes(): void
+    public function test_teacher_cannot_access_parent_routes(): void
     {
-        $this->actingAs($this->createTeacherUser())->get('/murid')->assertStatus(403);
+        $this->actingAs($this->createTeacherUser())->get('/parent')->assertStatus(403);
     }
 
     // ── 4. Admin Tests ──
@@ -335,6 +335,7 @@ class WebsiteFeatureTest extends TestCase
             'program_id' => $program->id, 'teacher_id' => $teacher->id,
             'parent_rate' => 200000, 'teacher_rate' => 100000, 'status' => 'active',
             'student_ids' => [$student->id],
+            'agreed_sessions_per_month' => 4,
         ])->assertRedirect(route('admin.enrollments.index'));
         $this->assertDatabaseHas('enrollments', ['program_id' => $program->id, 'teacher_id' => $teacher->id]);
     }
@@ -405,7 +406,7 @@ class WebsiteFeatureTest extends TestCase
     public function test_admin_can_access_analysis_ortu_kelas(): void
     {
         $data = $this->seedBasicData();
-        $this->actingAs($data['admin'])->get(route('admin.analysis.ortu-kelas'))->assertStatus(200);
+        $this->actingAs($data['admin'])->get(route('admin.analysis.ortu'))->assertStatus(200);
     }
 
     public function test_admin_can_access_analysis_guru(): void

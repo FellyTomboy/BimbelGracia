@@ -99,76 +99,6 @@ class AnalysisController extends Controller
         ]);
     }
 
-    public function ortuKelas(Request $request): View
-    {
-        [$month, $year] = $this->resolvePeriod($request);
-
-        $attendances = MonthlyAttendance::with([
-            'enrollment.program',
-            'enrollment.teacher',
-            'students.parent.user',
-        ])
-            ->whereHas('enrollment.program', fn ($q) => $q->where('name', 'like', 'Kelas%'))
-            ->whereIn('status_validation', ['terima', 'terlambat'])
-            ->where('month', $month)
-            ->where('year', $year)
-            ->orderBy('enrollment_id')
-            ->get();
-
-        $rows = $this->attendanceRows($attendances);
-
-        $classSummaries = $rows
-            ->groupBy(function (array $row) {
-                $parent = $row['student']->parent;
-                return $parent?->id ?? 'unknown';
-            })
-            ->map(function (Collection $items, string $parentId) use ($month, $year) {
-                $firstRow = $items->first();
-                $parent = $firstRow['student']->parent;
-                $contact = $parent?->user?->phone ?? 'unknown';
-                $parentName = $parent?->name ?? 'Unknown';
-
-                $students = $items
-                    ->groupBy(fn (array $row) => $row['student']->id)
-                    ->map(function (Collection $studentItems) {
-                        $student = $studentItems->first()['student'];
-                        $count = $studentItems->sum('total_present');
-                        $rate = (int) ($studentItems->first()['parent_rate'] ?? 0);
-                        $total = $count * $rate;
-
-                        return [
-                            'student' => $student,
-                            'count' => $count,
-                            'rate' => $rate,
-                            'total' => $total,
-                            'total_after' => $total,
-                            'discount' => null,
-                            'class_student_id' => $student?->id,
-                        ];
-                    })
-                    ->values();
-
-                $grandTotal = $students->sum('total_after');
-                $message = $this->buildClassParentMessage($students, $month, $year, $grandTotal);
-
-                return [
-                    'parent_id' => $parentId,
-                    'parent_name' => $parentName,
-                    'contact' => $contact,
-                    'students' => $students,
-                    'total' => $grandTotal,
-                    'message' => $message,
-                ];
-            })
-            ->values();
-
-        return view('admin.analysis.ortu-class', [
-            'month' => $month,
-            'year' => $year,
-            'classSummaries' => $classSummaries,
-        ]);
-    }
-
     public function guru(Request $request): View
     {
         [$month, $year] = $this->resolvePeriod($request);
@@ -604,56 +534,6 @@ class AnalysisController extends Controller
         }
 
         $lines->push(sprintf('Total pembayaran sebesar: *Rp %s*', number_format($grandTotal)));
-        $lines->push('');
-        $lines->push('Mohon dicek kembali. Detail rekening terlampir di PDF invoice.');
-        $lines->push('');
-        $lines->push('Mohon konfirmasi jika sudah transfer.');
-        $lines->push('Jika ada kritik/saran untuk tentor/bimbel, atau ingin mengetahui perkembangan siswa, kami terbuka untuk berdiskusi lewat WhatsApp.');
-        $lines->push('Terima kasih atas perhatiannya.');
-
-        return $lines->implode("\n");
-    }
-
-    private function buildClassParentMessage(Collection $students, int $month, int $year, int $grandTotal): string
-    {
-        $studentNames = $students
-            ->pluck('student')
-            ->filter()
-            ->pluck('name')
-            ->implode(', ');
-
-        $lines = collect([
-            sprintf('Selamat pagi Bapak/Ibu dari siswa *%s*.', $studentNames ?: 'Murid'),
-            '',
-            sprintf('Total biaya les pada Bulan *%s* sejumlah:', $this->monthName($month)),
-            '',
-        ]);
-
-        $index = 1;
-        foreach ($students as $studentSummary) {
-            $studentName = $studentSummary['student']?->name ?? 'Murid';
-            $lines->push(sprintf(
-                '%d. *%s*: *Rp %s* x *%d* = *Rp %s*',
-                $index,
-                $studentName,
-                number_format($studentSummary['rate']),
-                $studentSummary['count'],
-                number_format($studentSummary['total'])
-            ));
-            $discount = $studentSummary['discount'] ?? null;
-            if ($discount && $discount['type']) {
-                if ($discount['type'] === 'final') {
-                    $lines->push(sprintf('   - Total akhir: *Rp %s*', number_format($discount['total'])));
-                } else {
-                    $lines->push(sprintf('   - Diskon *%s*: -*Rp %s*', $discount['label'], number_format($discount['amount'])));
-                    $lines->push(sprintf('   - Total setelah diskon: *Rp %s*', number_format($discount['total'])));
-                }
-            }
-            $index++;
-        }
-
-        $lines->push('');
-        $lines->push(sprintf('Total: *Rp %s*', number_format($grandTotal)));
         $lines->push('');
         $lines->push('Mohon dicek kembali. Detail rekening terlampir di PDF invoice.');
         $lines->push('');

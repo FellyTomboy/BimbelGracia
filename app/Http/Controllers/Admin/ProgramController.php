@@ -113,6 +113,30 @@ class ProgramController extends Controller
             ->with('status', 'Program dihibernasi.');
     }
 
+    public function bulkDestroy(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'ids' => ['required', 'array'],
+            'ids.*' => ['integer', 'exists:programs,id'],
+        ]);
+
+        $count = Program::whereIn('id', $validated['ids'])
+            ->where('status', 'active')
+            ->count();
+
+        Program::whereIn('id', $validated['ids'])
+            ->where('status', 'active')
+            ->update(['status' => 'hibernasi']);
+
+        Program::whereIn('id', $validated['ids'])
+            ->where('status', 'hibernasi')
+            ->delete();
+
+        return redirect()
+            ->route('admin.programs.index')
+            ->with('status', "{$count} program berhasil dihibernasi.");
+    }
+
     public function restore(int $programId): RedirectResponse
     {
         $program = Program::withTrashed()->findOrFail($programId);

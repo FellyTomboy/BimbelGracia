@@ -194,6 +194,32 @@ class TeacherController extends Controller
             ->with('status', 'Password guru berhasil diubah.');
     }
 
+    public function bulkDestroy(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'ids' => ['required', 'array'],
+            'ids.*' => ['integer', 'exists:teachers,id'],
+        ]);
+
+        $count = Teacher::whereIn('id', $validated['ids'])
+            ->where('status', 'active')
+            ->count();
+
+        Teacher::whereIn('id', $validated['ids'])
+            ->where('status', 'active')
+            ->update(['status' => 'hibernasi']);
+
+        Teacher::whereIn('id', $validated['ids'])
+            ->where('status', 'hibernasi')
+            ->delete();
+
+        $this->snapshotSyncService->syncAll();
+
+        return redirect()
+            ->route('admin.teachers.index')
+            ->with('status', "{$count} guru berhasil dihibernasi.");
+    }
+
     public function restore(int $teacherId): RedirectResponse
     {
         $teacher = Teacher::withTrashed()->findOrFail($teacherId);

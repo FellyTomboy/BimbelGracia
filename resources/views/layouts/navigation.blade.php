@@ -17,7 +17,7 @@
                     </x-nav-link>
                     @if (auth()->user()?->role?->value === 'admin')
                         @php
-                            $menuLengkapActive = request()->routeIs('admin.students.*', 'admin.teachers.*', 'admin.parents.*', 'admin.programs.*', 'admin.enrollments.*', 'admin.lesson-offers.*', 'admin.presensi.*', 'admin.notifications.*', 'admin.class-student-sessions.*', 'admin.class-attendance.*', 'admin.analysis.ortu', 'admin.analysis.ortu-kelas', 'admin.analysis.guru', 'admin.payments.*', 'admin.discounts.*', 'admin.class-reports.*', 'admin.history.*', 'admin.finance.*', 'admin.export.*');
+                            $menuLengkapActive = request()->routeIs('admin.students.*', 'admin.teachers.*', 'admin.parents.*', 'admin.programs.*', 'admin.enrollments.*', 'admin.lesson-offers.*', 'admin.presensi.*', 'admin.notifications.*', 'admin.class-student-sessions.*', 'admin.class-attendance.*', 'admin.analysis.ortu', 'admin.analysis.guru', 'admin.payments.*', 'admin.discounts.*', 'admin.class-reports.*', 'admin.history.*', 'admin.finance.*', 'admin.export.*');
                             $dropdownBase = 'inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 focus:outline-none transition duration-150 ease-in-out';
                         @endphp
                         <x-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">
@@ -57,7 +57,6 @@
                                     <div class="pl-4 hidden" data-submenu-content="kelas">
                                         <a href="{{ route('admin.class-attendance.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Presensi Kelas</a>
                                         <a href="{{ route('admin.class-student-sessions.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Kalender Kelas</a>
-                                        <a href="{{ route('admin.analysis.ortu-kelas') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">WA Ortu Kelas</a>
                                     </div>
                                 </div>
                                 <div class="relative" data-submenu="wa">
@@ -66,7 +65,7 @@
                                         <svg class="h-4 w-4 sub-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                                     </span>
                                     <div class="pl-4 hidden" data-submenu-content="wa">
-                                        <a href="{{ route('admin.analysis.ortu') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">WA Ortu Privat</a>
+                                        <a href="{{ route('admin.analysis.ortu') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">WA Ortu</a>
                                         <a href="{{ route('admin.analysis.guru') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">WA Guru</a>
                                         <a href="{{ route('admin.discounts.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Diskon/Promo</a>
                                     </div>
@@ -344,11 +343,8 @@
                 <x-responsive-nav-link :href="route('admin.class-student-sessions.index')" :active="request()->routeIs('admin.class-student-sessions.*')">
                     {{ __('Kalender Kelas') }}
                 </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('admin.analysis.ortu-kelas')" :active="request()->routeIs('admin.analysis.ortu-kelas')">
-                    {{ __('WA Ortu Kelas') }}
-                </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('admin.analysis.ortu')" :active="request()->routeIs('admin.analysis.ortu')">
-                    {{ __('WA Ortu Privat') }}
+                    {{ __('WA Ortu') }}
                 </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('admin.analysis.guru')" :active="request()->routeIs('admin.analysis.guru')">
                     {{ __('WA Guru') }}
