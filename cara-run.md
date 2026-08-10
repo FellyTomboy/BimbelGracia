@@ -1,57 +1,105 @@
-Berikut langkah-langkah yang bisa kamu jalankan satu per satu di terminal VS Code:
+# Cara Menjalankan Bimbel Gracia
 
----
+## Setup Awal (Pertama Kali)
 
-## Langkah 1: Setup Environment
 ```bash
-# Copy file .env (kalau belum ada)
+# 1. Copy file .env (kalau belum ada)
 cp .env.example .env
 
-# Generate APP_KEY
+# 2. Install dependencies composer
+composer install --no-dev --optimize-autoloader
+
+# 3. Install dependencies npm (kalau ada perubahan frontend)
+npm install && npm run build
+
+# 4. Generate APP_KEY
 php artisan key:generate
+
+# 5. Migrasi database
+php artisan migrate
+
+# 6. Seed data admin
+php artisan db:seed --class=WebsiteDatasetSeeder
+
+# 7. Buat storage symlink
+php artisan storage:link
+
+# 8. Copy logo ke folder storage
+cp logo_bimbel.jpg storage/app/public/website/logo_bimbel.jpg
+
+# 9. Clear cache
+php artisan optimize:clear
 ```
 
-## Langkah 2: Migrasi Database + Seeder
+## Setelah Git Pull (Update dari Repository)
+
+Jalankan perintah berikut **berurutan** setelah `git pull`:
+
 ```bash
-# Hapus semua tabel, buat ulang, dan isi data
-php artisan migrate:fresh --seed
+# 1. Install/update composer dependencies (kalau ada package baru)
+composer install --no-dev --optimize-autoloader
+
+# 2. Jalankan migration baru (kalau ada)
+php artisan migrate
+
+# 3. Update storage symlink (kalau belum ada)
+php artisan storage:link
+
+# 4. Copy logo ke folder storage (kalau belum ada)
+mkdir -p storage/app/public/website
+cp logo_bimbel.jpg storage/app/public/website/logo_bimbel.jpg
+
+# 5. Buat folder-folder storage yang diperlukan
+mkdir -p storage/app/public/pdf/invoice
+mkdir -p storage/app/public/pdf/salary
+mkdir -p storage/app/public/photo/profile
+mkdir -p storage/app/public/photo/attendance
+mkdir -p storage/app/public/photo/transfer-proof
+
+# 6. Clear cache (penting! biar view/config/routes yang baru termuat)
+php artisan optimize:clear
+
+# 7. Regenerate PDF (kalau ada perubahan data atau template PDF)
+php artisan app:generate-all-pdfs
 ```
 
-## Langkah 3: Jalankan Server
+## Struktur Folder Storage
+
+```
+storage/app/public/
+├── website/
+│   └── logo_bimbel.jpg              # Logo bimbel + foto founder
+├── photo/
+│   ├── profile/                     # Foto profile guru
+│   ├── attendance/{nama_guru}/      # Foto bukti presensi
+│   └── transfer-proof/{nama_parent}/ # Foto bukti transfer
+├── pdf/
+│   ├── invoice/{nama_parent}/       # Invoice tagihan (MM-YYYY.pdf)
+│   └── salary/{nama_guru}/          # Slip gaji (MM-YYYY.pdf)
+└── dokumen/                         # Modul pembelajaran
+```
+
+## Jalankan Server
+
 ```bash
-# Start server di background
 php artisan serve --host=0.0.0.0 --port=8000 &
 ```
 
-## Langkah 4: Forward Port (biar bisa diakses dari browser)
-Setelah server jalan, buka **tab PORTS** di panel bawah VS Code (sebelah terminal). Kamu akan lihat port **8000** terdaftar di sana. Klik kanan → **"Port Visibility"** → pilih **"Public"**. Lalu klik link **"Forwarded Address"** yang muncul.
+## Akun Login (Data Test)
 
-Atau kalau mau lewat command:
-```bash
-# Forward port 8000
-gh codespace ports visibility 8000:public
-```
-
-## Langkah 5: Buka di Browser
-Klik link yang muncul di tab PORTS, atau buka:
-```
-https://sturdy-fiesta-wr7q6v4795xq2p77-8000.app.github.dev
-```
-
----
-
-## Akun Login:
 | Role | Email | Password |
 |------|-------|----------|
-| **Admin** | `	admin@bimbelgracia.test` | `password` |
-| **Guru** | `andi.pratama@bimbelgracia.test` | `password` |
-| **Murid** | `	alya.putri@bimbelgracia.test` | `password` |
+| **Admin** | `admin@bimbelgracia.test` | `password` |
 
-## Kalau mau stop server:
+## Generate Ulang Semua Data + PDF
+
 ```bash
-# Cari PID proses artisan serve
-ps aux | grep "artisan serve"
-
-# Kill proses (ganti PID dengan angka dari hasil di atas)
-kill 53781
+# Reset database + seed data test + generate semua PDF
+php artisan migrate:fresh --seed --force && php artisan app:generate-all-pdfs
 ```
+
+## Stop Server
+
+```bash
+ps aux | grep "artisan serve"
+kill [PID]
