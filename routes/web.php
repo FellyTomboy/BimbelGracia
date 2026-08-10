@@ -48,13 +48,13 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 return view('admin.dashboard');
             })->name('dashboard');
 
-            Route::resource('students', StudentController::class)->except(['show']);
             Route::get('students/inactive', [StudentController::class, 'inactive'])
                 ->name('students.inactive');
-            Route::post('students/{student}/restore', [StudentController::class, 'restore'])
-                ->name('students.restore');
             Route::post('students/bulk-destroy', [StudentController::class, 'bulkDestroy'])
                 ->name('students.bulk-destroy');
+            Route::resource('students', StudentController::class)->except(['show']);
+            Route::post('students/{student}/restore', [StudentController::class, 'restore'])
+                ->name('students.restore');
 
             Route::resource('teachers', TeacherController::class)->except(['show']);
             Route::get('teachers/inactive', [TeacherController::class, 'inactive'])
