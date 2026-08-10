@@ -59,6 +59,18 @@
                         <x-primary-button>{{ __('Simpan') }}</x-primary-button>
                     </div>
                 </form>
+
+                <form method="post" action="{{ route('profile.founder.photo', $founder) }}" enctype="multipart/form-data" class="mt-4 pt-4 border-t border-gray-200">
+                    @csrf
+                    <div>
+                        <x-input-label :value="__('Foto Profil')" />
+                        <input type="file" name="profile_photo" accept="image/jpeg,image/png,image/jpg" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" required />
+                        <x-input-error class="mt-2" :messages="$errors->get('profile_photo')" />
+                    </div>
+                    <div class="mt-3">
+                        <x-primary-button>{{ __('Upload Foto') }}</x-primary-button>
+                    </div>
+                </form>
             </div>
         @endforeach
 

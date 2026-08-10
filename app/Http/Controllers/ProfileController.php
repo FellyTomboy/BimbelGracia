@@ -20,9 +20,22 @@ class ProfileController extends Controller
         if ($request->user()?->role?->value === 'admin') {
             $founders = \App\Models\Teacher::query()
                 ->where('is_founder', true)
-                ->where('status', 'active')
-                ->orderBy('name')
+                ->orderBy('id')
                 ->get();
+
+            // Auto-create 2 founder slots if none exist
+            if ($founders->isEmpty()) {
+                $defaultNames = ['Founder 1', 'Founder 2'];
+                foreach ($defaultNames as $name) {
+                    $founder = \App\Models\Teacher::create([
+                        'name' => $name,
+                        'status' => 'active',
+                        'is_founder' => true,
+                        'profile_photo_approved' => true,
+                    ]);
+                    $founders->push($founder);
+                }
+            }
         }
 
         return view('profile.edit', [
@@ -96,6 +109,35 @@ class ProfileController extends Controller
         ]);
 
         return Redirect::route('profile.edit')->with('status', 'photo-deleted');
+    }
+
+    /**
+     * Upload founder photo (admin only).
+     */
+    public function uploadFounderPhoto(Request $request, \App\Models\Teacher $teacher): RedirectResponse
+    {
+        abort_unless($request->user()?->role?->value === 'admin', 403);
+
+        $validated = $request->validate([
+            'profile_photo' => ['required', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
+        ]);
+
+        if ($teacher->profile_photo_path) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($teacher->profile_photo_path);
+        }
+
+        $file = $validated['profile_photo'];
+        $extension = $file->getClientOriginalExtension();
+        $teacherSlug = str_replace(' ', '_', strtolower($teacher->name));
+        $path = sprintf('photo/profile/%s.%s', $teacherSlug, $extension);
+        $file->storeAs(dirname($path), basename($path), 'public');
+
+        $teacher->update([
+            'profile_photo_path' => $path,
+            'profile_photo_approved' => true,
+        ]);
+
+        return Redirect::route('profile.edit')->with('status', 'photo-uploaded');
     }
 
     /**

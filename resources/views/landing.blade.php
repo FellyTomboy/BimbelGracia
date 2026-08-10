@@ -69,7 +69,9 @@
             </div>
             <div class="flex items-center gap-4">
                 <a href="#program" class="text-sm text-white/80 hover:text-white">Program</a>
+                <a href="#pricelist" class="text-sm text-white/80 hover:text-white">Harga</a>
                 <a href="#metode" class="text-sm text-white/80 hover:text-white">Metode</a>
+                <a href="#teachers" class="text-sm text-white/80 hover:text-white">Teachers</a>
                 <a href="#testimoni" class="text-sm text-white/80 hover:text-white">Testimoni</a>
                 <a href="#kontak" class="text-sm text-white/80 hover:text-white">Kontak</a>
                 <a href="{{ route('login') }}" class="px-4 py-2 rounded-full bg-white text-[color:var(--bg-deep)] font-semibold shadow-lg">Login</a>
