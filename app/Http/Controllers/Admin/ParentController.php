@@ -46,6 +46,8 @@ class ParentController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'phone' => ['required', 'string', 'max:20', 'unique:users,phone'],
             'password' => ['required', 'string', 'min:6'],
+            'students' => ['nullable', 'array'],
+            'students.*.name' => ['required_with:students', 'string', 'max:255'],
         ]);
 
         $phone = $this->cleanPhone($validated['phone']);
@@ -58,13 +60,32 @@ class ParentController extends Controller
             'must_change_password' => false,
         ]);
 
-        ParentModel::create([
+        $parent = ParentModel::create([
             'user_id' => $user->id,
             'name' => $validated['name'],
         ]);
 
+        // Add students if provided
+        $studentCount = 0;
+        if (!empty($validated['students'])) {
+            foreach ($validated['students'] as $studentData) {
+                if (!empty($studentData['name'])) {
+                    Student::create([
+                        'parent_id' => $parent->id,
+                        'name' => $studentData['name'],
+                    ]);
+                    $studentCount++;
+                }
+            }
+        }
+
+        $message = 'Parent berhasil ditambahkan.';
+        if ($studentCount > 0) {
+            $message .= " {$studentCount} murid berhasil ditambahkan.";
+        }
+
         return redirect()->route('admin.parents.index')
-            ->with('status', 'Parent berhasil ditambahkan.');
+            ->with('status', $message);
     }
 
     public function edit(ParentModel $parent): View
