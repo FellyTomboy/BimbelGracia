@@ -46,53 +46,53 @@
                 </div>
 
                 {{-- Table --}}
+                <form id="bulk-form" method="POST" action="{{ route('admin.students.bulk-destroy') }}" onsubmit="return validateBulkDelete()">
+                    @csrf
+                </form>
                 <div class="overflow-x-auto">
-                    <form id="bulk-form" method="POST" action="{{ route('admin.students.bulk-destroy') }}" onsubmit="return validateBulkDelete()">
-                        @csrf
-                        <table class="min-w-full text-sm">
-                            <thead>
-                                <tr class="text-left text-gray-500 bg-gray-50/50">
-                                    <th class="py-3 px-4 w-10">
-                                        <input type="checkbox" onclick="toggleAll(this)" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-                                    </th>
-                                    <x-sortable-header label="Nama" column="students.name" />
-                                    <th class="py-3 px-4 font-medium">No. Telepon</th>
-                                    <th class="py-3 px-4 font-medium">Aksi</th>
+                    <table class="min-w-full text-sm">
+                        <thead>
+                            <tr class="text-left text-gray-500 bg-gray-50/50">
+                                <th class="py-3 px-4 w-10">
+                                    <input type="checkbox" onclick="toggleAll(this)" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                                </th>
+                                <x-sortable-header label="Nama" column="students.name" />
+                                <th class="py-3 px-4 font-medium">No. Telepon</th>
+                                <th class="py-3 px-4 font-medium">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-50">
+                            @forelse ($students as $student)
+                                <tr class="hover:bg-gray-50/50 transition-colors">
+                                    <td class="py-3 px-4">
+                                        <input type="checkbox" name="ids[]" value="{{ $student->id }}" form="bulk-form" class="row-checkbox rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" onchange="updateBulkButton()" />
+                                    </td>
+                                    <td class="py-3 px-4 font-medium text-gray-900">{{ $student->name }}</td>
+                                    <td class="py-3 px-4 text-gray-600">{{ $student->parent?->user?->phone ?? '-' }}</td>
+                                    <td class="py-3 px-4">
+                                        <div class="flex items-center gap-2">
+                                            <a href="{{ route('admin.students.edit', $student) }}" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors">
+                                                Edit
+                                            </a>
+                                            <form method="POST" action="{{ route('admin.students.destroy', $student) }}" onsubmit="return confirm('Hibernasi murid ini?')">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">
+                                                    Hibernasi
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-50">
-                                @forelse ($students as $student)
-                                    <tr class="hover:bg-gray-50/50 transition-colors">
-                                        <td class="py-3 px-4">
-                                            <input type="checkbox" name="ids[]" value="{{ $student->id }}" class="row-checkbox rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" onchange="updateBulkButton()" />
-                                        </td>
-                                        <td class="py-3 px-4 font-medium text-gray-900">{{ $student->name }}</td>
-                                        <td class="py-3 px-4 text-gray-600">{{ $student->parent?->user?->phone ?? '-' }}</td>
-                                        <td class="py-3 px-4">
-                                            <div class="flex items-center gap-2">
-                                                <a href="{{ route('admin.students.edit', $student) }}" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors">
-                                                    Edit
-                                                </a>
-                                                <form method="POST" action="{{ route('admin.students.destroy', $student) }}" onsubmit="return confirm('Hibernasi murid ini?')">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">
-                                                        Hibernasi
-                                                    </button>
-                                                </form>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="5">
-                                            <x-empty-state icon="👨‍🎓" title="Belum ada murid" description="Tambahkan murid baru untuk memulai." action="Tambah Murid" actionUrl="{{ route('admin.students.create') }}" />
-                                        </td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </form>
+                            @empty
+                                <tr>
+                                    <td colspan="5">
+                                        <x-empty-state icon="👨‍🎓" title="Belum ada murid" description="Tambahkan murid baru untuk memulai." action="Tambah Murid" actionUrl="{{ route('admin.students.create') }}" />
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
                 </div>
 
                 {{-- Pagination --}}

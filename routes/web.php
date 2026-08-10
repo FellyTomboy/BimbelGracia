@@ -50,7 +50,7 @@ Route::middleware(['auth', 'password.force'])->group(function () {
 
             Route::get('students/inactive', [StudentController::class, 'inactive'])
                 ->name('students.inactive');
-            Route::post('students/bulk-destroy', [StudentController::class, 'bulkDestroy'])
+            Route::any('students/bulk-delete', [StudentController::class, 'bulkDestroy'])
                 ->name('students.bulk-destroy');
             Route::resource('students', StudentController::class)->except(['show']);
             Route::post('students/{student}/restore', [StudentController::class, 'restore'])
