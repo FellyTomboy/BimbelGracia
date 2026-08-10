@@ -32,7 +32,6 @@
 
                 <form method="post" action="{{ route('profile.founder.update', $founder) }}" class="space-y-4">
                     @csrf
-                    @patch
 
                     <div>
                         <x-input-label for="founder_name_{{ $founder->id }}" :value="__('Nama')" />

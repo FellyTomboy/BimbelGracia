@@ -272,10 +272,7 @@ Route::middleware(['auth', 'password.force'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::patch('/profile/bank', [ProfileController::class, 'updateBank'])->name('profile.bank.update');
-    Route::get('/profile/founder/{teacher}', function () {
-        return redirect()->route('profile.edit');
-    });
-    Route::patch('/profile/founder/{teacher}', [ProfileController::class, 'updateFounder'])->name('profile.founder.update');
+    Route::post('/profile/founder/{teacher}', [ProfileController::class, 'updateFounder'])->name('profile.founder.update');
     Route::post('/profile/founder/{teacher}/photo', [ProfileController::class, 'uploadFounderPhoto'])->name('profile.founder.photo');
     Route::post('/profile/photo/upload', [ProfileController::class, 'uploadPhoto'])->name('profile.photo.upload');
     Route::delete('/profile/photo/delete', [ProfileController::class, 'deletePhoto'])->name('profile.photo.delete');
