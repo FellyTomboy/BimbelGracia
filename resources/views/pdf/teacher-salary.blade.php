@@ -28,7 +28,7 @@
 </head>
 <body>
     <div class="header">
-        <img src="{{ public_path('logo_bimbel.jpg') }}" alt="Bimbel Gracia" />
+        <img src="{{ public_path('storage/website/logo_bimbel.jpg') }}" alt="Bimbel Gracia" />
         <h1>SLIP GAJI</h1>
         <p>Bimbel Gracia</p>
     </div>
@@ -73,11 +73,21 @@
         <table>
             <tr><td class="label">Total Gaji Kotor</td><td class="right">Rp {{ number_format($grandTotal) }}</td></tr>
             @if ($totalPenalty > 0)
-            <tr><td class="label">Total Denda</td><td class="right">-Rp {{ number_format($totalPenalty) }}</td></tr>
+            <tr><td class="label">Total Denda (keterlambatan)</td><td class="right">-Rp {{ number_format($totalPenalty) }}</td></tr>
             @endif
             <tr><td class="label final">Gaji Bersih</td><td class="right final">Rp {{ number_format($finalTotal) }}</td></tr>
         </table>
     </div>
+
+    @if ($totalPenalty > 0)
+        <div class="warning" style="margin-top: 15px; padding: 10px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 4px;">
+            <p style="margin: 0; font-size: 11px; color: #991b1b;">
+                <strong>⚠️ Peringatan Keterlambatan Presensi</strong><br>
+                Terdapat {{ $totalLateCount ?? 0 }} pertemuan yang diisi terlambat. Denda keterlambatan sebesar <strong>10% dari tarif</strong> per pertemuan.<br>
+                <em>Semua presensi wajib diisi maksimal 1 minggu setelah hari pelaksanaan les. Keterlambatan pengisian presensi akan dikenakan denda.</em>
+            </p>
+        </div>
+    @endif
 
     <div class="footer">
         <p>Terima kasih atas dedikasi dan kerja keras Anda</p>

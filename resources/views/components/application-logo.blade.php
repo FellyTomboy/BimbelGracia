@@ -1,1 +1,1 @@
-<img src="{{ asset('logo_bimbel.jpg') }}" alt="Bimbel Gracia" {{ $attributes->merge(['class' => 'object-contain']) }} />
+<img src="{{ asset('storage/website/logo_bimbel.jpg') }}" alt="Bimbel Gracia" {{ $attributes->merge(['class' => 'object-contain']) }} />

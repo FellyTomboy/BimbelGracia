@@ -24,6 +24,9 @@ class CleanupOldFiles extends Command
             'lesson-photos',
             'invoice',
             'salary',
+            'presensi',
+            'photo',
+            'pdf',
         ];
 
         $totalDeleted = 0;

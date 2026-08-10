@@ -70,7 +70,12 @@ class MonthlyAttendanceController extends Controller
         // Handle image upload
         $imagePath = null;
         if ($request->hasFile('image')) {
-            $imagePath = $request->file('image')->store('presensi', 'public');
+            $file = $request->file('image');
+            $teacherSlug = str_replace(' ', '_', strtolower($teacher->name));
+            $lessonDateStr = $lessonDate->format('Y-m-d');
+            $extension = $file->getClientOriginalExtension();
+            $imagePath = sprintf('photo/attendance/%s/%d_%s.%s', $teacherSlug, $enrollment->id, $lessonDateStr, $extension);
+            $file->storeAs(dirname($imagePath), basename($imagePath), 'public');
         }
 
         // Auto-determine status: terima if within 7 days, terlambat if over 7 days
@@ -188,7 +193,13 @@ class MonthlyAttendanceController extends Controller
             if ($attendance->image) {
                 Storage::disk('public')->delete($attendance->image);
             }
-            $updateData['image'] = $request->file('image')->store('presensi', 'public');
+            $file = $request->file('image');
+            $teacherSlug = str_replace(' ', '_', strtolower($teacher->name));
+            $lessonDateStr = $lessonDate->format('Y-m-d');
+            $extension = $file->getClientOriginalExtension();
+            $imagePath = sprintf('photo/attendance/%s/%d_%s.%s', $teacherSlug, $attendance->enrollment_id, $lessonDateStr, $extension);
+            $file->storeAs(dirname($imagePath), basename($imagePath), 'public');
+            $updateData['image'] = $imagePath;
         }
 
         $attendance->update($updateData);

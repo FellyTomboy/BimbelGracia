@@ -62,7 +62,10 @@ class InvoiceService
             'penaltyInfo' => $penaltyInfo,
         ]);
 
-        $filename = sprintf('invoice/%s/%s_%04d-%02d.pdf', $student->id, str_replace(' ', '_', $student->name), $year, $month);
+        $parentName = $student->parent?->name ?? 'unknown';
+        $parentSlug = str_replace(' ', '_', strtolower($parentName));
+        $period = sprintf('%02d-%04d', $month, $year);
+        $filename = sprintf('pdf/invoice/%s/%s.pdf', $parentSlug, $period);
         Storage::disk('public')->put($filename, $pdf->output());
 
         return $filename;
@@ -132,8 +135,9 @@ class InvoiceService
             'penalties' => $allPenalties,
         ]);
 
-        $studentIds = $students->pluck('id')->sort()->implode('-');
-        $filename = sprintf('invoice/parent/%s_%04d-%02d.pdf', $studentIds, $year, $month);
+        $parentSlug = str_replace(' ', '_', strtolower($parentName));
+        $period = sprintf('%02d-%04d', $month, $year);
+        $filename = sprintf('pdf/invoice/%s/%s.pdf', $parentSlug, $period);
         Storage::disk('public')->put($filename, $pdf->output());
 
         return $filename;
@@ -148,6 +152,8 @@ class InvoiceService
 
         $monthName = $this->monthName($month);
 
+        $totalLateCount = $result['rows']->sum('late_count');
+
         $pdf = Pdf::loadView('pdf.teacher-salary', [
             'teacher' => $teacher,
             'month' => $month,
@@ -156,10 +162,13 @@ class InvoiceService
             'rows' => $result['rows'],
             'grandTotal' => $result['grand_total'],
             'totalPenalty' => $result['total_penalty'],
+            'totalLateCount' => $totalLateCount,
             'finalTotal' => $result['final_total'],
         ]);
 
-        $filename = sprintf('salary/%s/%s_%04d-%02d.pdf', $teacher->id, str_replace(' ', '_', $teacher->name), $year, $month);
+        $teacherSlug = str_replace(' ', '_', strtolower($teacher->name));
+        $period = sprintf('%02d-%04d', $month, $year);
+        $filename = sprintf('pdf/salary/%s/%s.pdf', $teacherSlug, $period);
         Storage::disk('public')->put($filename, $pdf->output());
 
         return $filename;

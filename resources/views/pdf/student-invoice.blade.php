@@ -23,7 +23,7 @@
 </head>
 <body>
     <div class="header">
-        <img src="{{ public_path('logo_bimbel.jpg') }}" alt="Bimbel Gracia" />
+        <img src="{{ public_path('storage/website/logo_bimbel.jpg') }}" alt="Bimbel Gracia" />
         <h1>INVOICE</h1>
         <p>Bimbel Gracia</p>
     </div>

@@ -33,7 +33,7 @@ class BillingController extends Controller
         // Group by month-year for the list
         $monthlyList = $attendances
             ->groupBy(fn ($a) => sprintf('%04d-%02d', $a->year, $a->month))
-            ->map(function ($items, $period) use ($student) {
+            ->map(function ($items, $period) use ($student, $parent) {
                 [$year, $month] = explode('-', $period);
                 $total = 0;
                 $status = 'unpaid';
@@ -62,7 +62,9 @@ class BillingController extends Controller
                 }
 
                 // Check if invoice PDF exists
-                $invoicePath = sprintf('invoice/%s/%s_%04d-%02d.pdf', $student?->id, str_replace(' ', '_', $student?->name ?? ''), (int) $year, (int) $month);
+                $parentName = $parent?->name ?? 'unknown';
+                $parentSlug = str_replace(' ', '_', strtolower($parentName));
+                $invoicePath = sprintf('pdf/invoice/%s/%02d-%04d.pdf', $parentSlug, (int) $month, (int) $year);
                 $hasInvoice = $student && Storage::disk('public')->exists($invoicePath);
 
                 return [
@@ -101,7 +103,13 @@ class BillingController extends Controller
             'payment_proof' => ['required', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
         ]);
 
-        $path = $validated['payment_proof']->store('payment-proofs', 'public');
+        $parentName = $parent?->name ?? 'unknown';
+        $parentSlug = str_replace(' ', '_', strtolower($parentName));
+        $file = $validated['payment_proof'];
+        $extension = $file->getClientOriginalExtension();
+        $period = sprintf('%02d-%04d', $attendance->month, $attendance->year);
+        $path = sprintf('photo/transfer-proof/%s/%s.%s', $parentSlug, $period, $extension);
+        $file->storeAs(dirname($path), basename($path), 'public');
 
         $attendance->update([
             'payment_proof' => $path,

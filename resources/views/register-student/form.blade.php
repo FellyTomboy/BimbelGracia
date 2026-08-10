@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Pendaftaran - Bimbel Gracia</title>
-    <link rel="icon" type="image/jpeg" href="{{ asset('logo_bimbel.jpg') }}" />
+    <link rel="icon" type="image/jpeg" href="{{ asset('storage/website/logo_bimbel.jpg') }}" />
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         body {

@@ -64,7 +64,11 @@ class ProfileController extends Controller
             \Illuminate\Support\Facades\Storage::disk('public')->delete($teacher->profile_photo_path);
         }
 
-        $path = $validated['profile_photo']->store('profile-photos', 'public');
+        $file = $validated['profile_photo'];
+        $extension = $file->getClientOriginalExtension();
+        $teacherSlug = str_replace(' ', '_', strtolower($teacher->name));
+        $path = sprintf('photo/profile/%s.%s', $teacherSlug, $extension);
+        $file->storeAs(dirname($path), basename($path), 'public');
 
         $teacher->update([
             'profile_photo_path' => $path,
