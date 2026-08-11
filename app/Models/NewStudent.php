@@ -16,16 +16,19 @@ class NewStudent extends Model
         'whatsapp',
         'parent_name',
         'parent_whatsapp',
+        'address',
         'school',
         'grade',
         'division',
         'notes',
+        'students_data',
         'token',
         'converted',
     ];
 
     protected $casts = [
         'converted' => 'boolean',
+        'students_data' => 'array',
     ];
 
     protected static function booted()

@@ -13,6 +13,12 @@ class RegisterStudentController extends Controller
 {
     public function form(string $token): View
     {
+        // Permanent token - always show form
+        if ($token === \App\Http\Controllers\Admin\NewStudentController::PERMANENT_TOKEN) {
+            return view('register-student.form');
+        }
+
+        // Legacy token-based links - still work for backward compatibility
         $newStudent = NewStudent::where('token', $token)->firstOrFail();
 
         if ($newStudent->converted) {
@@ -24,24 +30,33 @@ class RegisterStudentController extends Controller
 
     public function submit(Request $request, string $token): RedirectResponse
     {
-        $newStudent = NewStudent::where('token', $token)->firstOrFail();
-
-        if ($newStudent->converted) {
-            return back()->with('status', 'Form ini sudah tidak aktif.');
+        // Validate token
+        if ($token !== \App\Http\Controllers\Admin\NewStudentController::PERMANENT_TOKEN) {
+            $newStudent = NewStudent::where('token', $token)->firstOrFail();
+            if ($newStudent->converted) {
+                return back()->with('status', 'Form ini sudah tidak aktif.');
+            }
         }
 
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'whatsapp' => ['nullable', 'string', 'max:20'],
-            'parent_name' => ['nullable', 'string', 'max:255'],
-            'parent_whatsapp' => ['nullable', 'string', 'max:20'],
-            'school' => ['nullable', 'string', 'max:255'],
-            'grade' => ['nullable', 'string', 'max:100'],
-            'division' => ['nullable', 'string', 'max:50'],
+            'parent_name' => ['required', 'string', 'max:255'],
+            'whatsapp' => ['required', 'string', 'max:20'],
+            'address' => ['nullable', 'string', 'max:500'],
+            'students' => ['required', 'array', 'min:1'],
+            'students.*.name' => ['required', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
         ]);
 
-        $newStudent->update($validated);
+        // Save to database
+        NewStudent::create([
+            'name' => $validated['parent_name'],
+            'parent_name' => $validated['parent_name'],
+            'whatsapp' => $validated['whatsapp'],
+            'address' => $validated['address'] ?? null,
+            'students_data' => $validated['students'],
+            'notes' => $validated['notes'] ?? null,
+            'token' => \App\Http\Controllers\Admin\NewStudentController::PERMANENT_TOKEN,
+        ]);
 
         return redirect()
             ->route('register-student.success')

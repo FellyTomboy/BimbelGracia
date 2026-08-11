@@ -14,6 +14,8 @@ use App\Http\Controllers\Admin\FinanceController;
 use App\Http\Controllers\Admin\HistoryController;
 use App\Http\Controllers\Admin\EnrollmentController;
 use App\Http\Controllers\Admin\NewStudentController;
+use App\Http\Controllers\Admin\TeacherRegistrantController;
+use App\Http\Controllers\RegisterTeacherController;
 use App\Http\Controllers\Admin\LessonOfferController as AdminLessonOfferController;
 use App\Http\Controllers\Admin\MonthlyAttendanceController as AdminAttendanceController;
 use App\Http\Controllers\Admin\ProgramController;
@@ -153,11 +155,23 @@ Route::middleware(['auth', 'password.force'])->group(function () {
             Route::post('analysis/generate-salary/{teacher}/{month}/{year}', [AnalysisController::class, 'generateSalary'])
                 ->name('analysis.generate-salary');
 
-            Route::resource('new-students', NewStudentController::class)->only(['index', 'destroy']);
-            Route::post('new-students/generate-link', [NewStudentController::class, 'generateLink'])
-                ->name('new-students.generate-link');
+            Route::get('new-students', [NewStudentController::class, 'index'])
+                ->name('new-students.index');
             Route::post('new-students/{newStudent}/convert', [NewStudentController::class, 'convert'])
                 ->name('new-students.convert');
+            Route::delete('new-students/{newStudent}', [NewStudentController::class, 'destroy'])
+                ->name('new-students.destroy');
+            Route::delete('new-students/all', [NewStudentController::class, 'destroyAll'])
+                ->name('new-students.destroy-all');
+
+            Route::get('teacher-registrants', [TeacherRegistrantController::class, 'index'])
+                ->name('teacher-registrants.index');
+            Route::post('teacher-registrants/{teacherRegistrant}/convert', [TeacherRegistrantController::class, 'convert'])
+                ->name('teacher-registrants.convert');
+            Route::delete('teacher-registrants/{teacherRegistrant}', [TeacherRegistrantController::class, 'destroy'])
+                ->name('teacher-registrants.destroy');
+            Route::delete('teacher-registrants/all', [TeacherRegistrantController::class, 'destroyAll'])
+                ->name('teacher-registrants.destroy-all');
 
             Route::resource('documents', AdminDocumentController::class)->except(['show']);
             Route::get('discounts', [DiscountController::class, 'index'])
@@ -286,5 +300,12 @@ Route::post('register-student/{token}', [RegisterStudentController::class, 'subm
     ->name('register-student.submit');
 Route::get('register-student/success', [RegisterStudentController::class, 'success'])
     ->name('register-student.success');
+
+Route::get('register-teacher/{token}', [RegisterTeacherController::class, 'form'])
+    ->name('register-teacher.form');
+Route::post('register-teacher/{token}', [RegisterTeacherController::class, 'submit'])
+    ->name('register-teacher.submit');
+Route::get('register-teacher/success', [RegisterTeacherController::class, 'success'])
+    ->name('register-teacher.success');
 
 require __DIR__.'/auth.php';

@@ -18,23 +18,16 @@ use Illuminate\View\View;
 
 class NewStudentController extends Controller
 {
+    /**
+     * Permanent registration link - always the same token
+     */
+    public const PERMANENT_TOKEN = 'daftar-murid-bimbel-gracia';
+
     public function index(): View
     {
         $newStudents = NewStudent::latest()->paginate(20);
-        return view('admin.new-students.index', compact('newStudents'));
-    }
-
-    public function generateLink(): RedirectResponse
-    {
-        $newStudent = NewStudent::create([
-            'name' => 'Formulir Pendaftaran',
-            'token' => Str::random(32),
-        ]);
-
-        return redirect()
-            ->route('admin.new-students.index')
-            ->with('status', 'Link form berhasil dibuat. Salin link di bawah.')
-            ->with('generated_link', $newStudent->form_url);
+        $permanentLink = route('register-student.form', self::PERMANENT_TOKEN);
+        return view('admin.new-students.index', compact('newStudents', 'permanentLink'));
     }
 
     public function convert(NewStudent $newStudent): RedirectResponse
@@ -43,63 +36,65 @@ class NewStudentController extends Controller
             return back()->with('status', 'Data ini sudah dikonversi sebelumnya.');
         }
 
-        // Cek apakah nomor whatsapp sudah ada di students
-        $existingStudent = null;
-        if ($newStudent->whatsapp) {
-            $existingStudent = Student::where('whatsapp', $newStudent->whatsapp)->first();
+        $parentName = $newStudent->parent_name;
+        $parentWhatsapp = $newStudent->whatsapp;
+        $address = $newStudent->address;
+        $studentsData = $newStudent->students_data ?? [];
+
+        if (empty($studentsData)) {
+            return back()->with('error', 'Tidak ada data murid untuk dikonversi.');
         }
 
-        if ($existingStudent) {
-            // Nomor sudah ada, berarti satu parent yang sama
-            // Update parent_id jika ada parent_whatsapp
-            if ($newStudent->parent_whatsapp) {
-                $parent = ParentModel::whereHas('user', fn ($q) => $q->where('phone', $newStudent->parent_whatsapp))->first();
-                if ($parent) {
-                    $existingStudent->update(['parent_id' => $parent->id]);
-                }
-            }
-            $newStudent->update(['converted' => true]);
-            return redirect()
-                ->route('admin.new-students.index')
-                ->with('status', 'Nomor WA sudah terdaftar. Murid digabung ke parent yang sama.');
-        }
-
-        // Buat student baru
         // Cari atau buat parent
         $parentId = null;
-        if ($newStudent->parent_whatsapp) {
-            $parent = ParentModel::whereHas('user', fn ($q) => $q->where('phone', $newStudent->parent_whatsapp))->first();
+        if ($parentWhatsapp) {
+            $parent = ParentModel::whereHas('user', fn ($q) => $q->where('phone', $parentWhatsapp))->first();
             if (!$parent) {
                 // Buat user parent baru
                 $user = User::create([
-                    'name' => $newStudent->parent_name ?? 'Orang Tua ' . $newStudent->name,
+                    'name' => $parentName ?? 'Orang Tua',
                     'email' => 'parent_' . Str::random(8) . '@bimbelgracia.com',
                     'password' => Hash::make(Str::random(16)),
                     'role' => UserRole::Parent,
-                    'phone' => $newStudent->parent_whatsapp,
+                    'phone' => $parentWhatsapp,
                 ]);
                 $parent = ParentModel::create([
                     'user_id' => $user->id,
-                    'name' => $newStudent->parent_name,
+                    'name' => $parentName,
                 ]);
             }
             $parentId = $parent->id;
         }
 
-        Student::create([
-            'name' => $newStudent->name,
-            'whatsapp' => $newStudent->whatsapp,
-            'parent_id' => $parentId,
-            'school' => $newStudent->school,
-            'grade' => $newStudent->grade,
-            'status' => 'active',
-        ]);
+        $convertedCount = 0;
+        foreach ($studentsData as $studentData) {
+            $studentName = $studentData['name'] ?? '';
+            if (empty($studentName)) continue;
+
+            // Check existing student by name + parent
+            $existingStudent = null;
+            if ($parentId) {
+                $existingStudent = Student::where('parent_id', $parentId)
+                    ->where('name', $studentName)
+                    ->first();
+            }
+
+            if (!$existingStudent) {
+                Student::create([
+                    'name' => $studentName,
+                    'parent_id' => $parentId,
+                    'address' => $address ?? ($parent?->students()->first()?->address ?? null),
+                    'status' => 'active',
+                ]);
+                $convertedCount++;
+            }
+        }
 
         $newStudent->update(['converted' => true]);
 
         return redirect()
             ->route('admin.new-students.index')
-            ->with('status', 'Data berhasil ditambahkan ke murid.');
+            ->with('status', "{$convertedCount} murid berhasil ditambahkan ke data murid.");
     }
 
     public function destroy(NewStudent $newStudent): RedirectResponse
@@ -108,5 +103,13 @@ class NewStudentController extends Controller
         return redirect()
             ->route('admin.new-students.index')
             ->with('status', 'Data pendaftar dihapus.');
+    }
+
+    public function destroyAll(): RedirectResponse
+    {
+        NewStudent::truncate();
+        return redirect()
+            ->route('admin.new-students.index')
+            ->with('status', 'Semua data pendaftar berhasil dihapus.');
     }
 }
