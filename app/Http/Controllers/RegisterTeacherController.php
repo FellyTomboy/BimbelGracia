@@ -38,7 +38,6 @@ class RegisterTeacherController extends Controller
             'bank_name' => $validated['bank_name'] ?? null,
             'bank_account' => $validated['bank_account'] ?? null,
             'bank_owner' => $validated['bank_owner'] ?? null,
-            'token' => \App\Http\Controllers\Admin\TeacherRegistrantController::PERMANENT_TOKEN,
         ]);
 
         return redirect()
