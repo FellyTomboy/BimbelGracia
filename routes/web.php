@@ -294,18 +294,18 @@ Route::middleware(['auth', 'password.force'])->group(function () {
 });
 
 // Public registration routes
+Route::get('register-student/success', [RegisterStudentController::class, 'success'])
+    ->name('register-student.success');
 Route::get('register-student/{token}', [RegisterStudentController::class, 'form'])
     ->name('register-student.form');
 Route::post('register-student/{token}', [RegisterStudentController::class, 'submit'])
     ->name('register-student.submit');
-Route::get('register-student/success', [RegisterStudentController::class, 'success'])
-    ->name('register-student.success');
 
+Route::get('register-teacher/success', [RegisterTeacherController::class, 'success'])
+    ->name('register-teacher.success');
 Route::get('register-teacher/{token}', [RegisterTeacherController::class, 'form'])
     ->name('register-teacher.form');
 Route::post('register-teacher/{token}', [RegisterTeacherController::class, 'submit'])
     ->name('register-teacher.submit');
-Route::get('register-teacher/success', [RegisterTeacherController::class, 'success'])
-    ->name('register-teacher.success');
 
 require __DIR__.'/auth.php';
