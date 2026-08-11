@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Pendaftaran Murid - Bimbel Gracia</title>
+    <title>Pendaftaran Anak - Bimbel Gracia</title>
     <link rel="icon" type="image/jpeg" href="{{ asset('storage/website/logo_bimbel.jpg') }}" />
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
@@ -23,7 +23,7 @@
             <div class="w-16 h-16 rounded-2xl bg-indigo-600 text-white font-bold text-2xl flex items-center justify-center mx-auto shadow-lg mb-4">
                 BG
             </div>
-            <h1 class="text-2xl font-bold text-gray-900">Formulir Pendaftaran Murid</h1>
+                            <h1 class="text-2xl font-bold text-gray-900">Formulir Pendaftaran Anak</h1>
             <p class="text-gray-600 mt-1">Bimbel Gracia - Bimbingan Belajar Privat & Kelas</p>
         </div>
 
@@ -61,13 +61,14 @@
                     </div>
                 </div>
 
-                {{-- Data Murid (bisa lebih dari 1) --}}
+                {{-- Data Anak (bisa lebih dari 1) --}}
                 <div class="border-t border-gray-100 pt-6">
+                    <p class="text-sm text-gray-500 mb-4">Jika lebih dari satu anak yang mengikuti bimbel, silakan tekan "Tambah Anak"</p>
                     <div class="flex items-center justify-between mb-4">
-                        <h2 class="text-lg font-semibold text-gray-900">Data Murid</h2>
+                        <h2 class="text-lg font-semibold text-gray-900">Data Anak</h2>
                         <button type="button" onclick="addStudent()" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-600 text-sm font-medium hover:bg-indigo-100 transition-colors">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                            Tambah Murid
+                            Tambah Anak
                         </button>
                     </div>
 
@@ -84,13 +85,13 @@
                                 @endif
                                 <div class="flex items-center gap-2 mb-3">
                                     <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold student-number">{{ $loop->iteration }}</span>
-                                    <span class="text-sm font-medium text-gray-500">Murid {{ $loop->iteration }}</span>
+                                    <span class="text-sm font-medium text-gray-500">Anak {{ $loop->iteration }}</span>
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap Murid <span class="text-red-500">*</span></label>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap Anak <span class="text-red-500">*</span></label>
                                     <input type="text" name="students[{{ $index }}][name]" value="{{ $student['name'] ?? '' }}" required
                                         class="w-full rounded-xl border-gray-200 bg-white focus:bg-white focus:border-indigo-500 focus:ring-indigo-500 transition-colors"
-                                        placeholder="Nama lengkap murid" />
+                                        placeholder="Nama lengkap anak" />
                                 </div>
                             </div>
                         @endforeach
@@ -135,13 +136,13 @@
                 </button>
                 <div class="flex items-center gap-2 mb-3">
                     <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold student-number"></span>
-                    <span class="text-sm font-medium text-gray-500">Murid <span class="student-label-text"></span></span>
+                    <span class="text-sm font-medium text-gray-500">Anak <span class="student-label-text"></span></span>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap Murid <span class="text-red-500">*</span></label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap Anak <span class="text-red-500">*</span></label>
                     <input type="text" name="students[\${studentIndex}][name]" required
                         class="w-full rounded-xl border-gray-200 bg-white focus:bg-white focus:border-indigo-500 focus:ring-indigo-500 transition-colors"
-                        placeholder="Nama lengkap murid" />
+                        placeholder="Nama lengkap anak" />
                 </div>
             `;
             container.appendChild(template);
