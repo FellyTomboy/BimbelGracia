@@ -59,8 +59,8 @@
     <body class="min-h-screen">
         <header class="max-w-6xl mx-auto px-6 py-10 flex items-center justify-between">
             <div class="flex items-center gap-3">
-                <div class="w-11 h-11 rounded-2xl overflow-hidden shadow-lg">
-                    <img src="{{ asset('storage/website/logo_bimbel.jpg') }}" alt="Bimbel Gracia" class="w-full h-full object-cover" />
+                <div class="w-11 h-11 rounded-2xl overflow-hidden shadow-lg bg-white/10 flex items-center justify-center p-1">
+                    <img src="{{ asset('storage/website/logo_bimbel.jpg') }}" alt="Bimbel Gracia" class="w-full h-full object-contain" />
                 </div>
                 <div>
                     <p class="text-sm uppercase tracking-[0.35em] text-[color:var(--teal)]">Bimbel Gracia</p>

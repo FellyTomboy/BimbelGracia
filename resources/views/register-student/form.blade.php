@@ -20,8 +20,8 @@
 <body class="py-12 px-4">
     <div class="max-w-2xl mx-auto">
         <div class="text-center mb-8">
-            <div class="w-20 h-20 rounded-2xl overflow-hidden mx-auto shadow-lg mb-4">
-                <img src="{{ asset('storage/website/logo_bimbel.jpg') }}" alt="Bimbel Gracia" class="w-full h-full object-cover" />
+            <div class="w-20 h-20 rounded-2xl overflow-hidden mx-auto shadow-lg mb-4 bg-indigo-50 flex items-center justify-center p-2">
+                <img src="{{ asset('storage/website/logo_bimbel.jpg') }}" alt="Bimbel Gracia" class="w-full h-full object-contain" />
             </div>
                             <h1 class="text-2xl font-bold text-gray-900">Formulir Pendaftaran Anak</h1>
             <p class="text-gray-600 mt-1">Bimbel Gracia - Bimbingan Belajar Privat & Kelas</p>
