@@ -130,7 +130,7 @@
                                 <label class="flex items-center gap-2 text-sm">
                                     <input type="checkbox" name="student_ids[]" value="{{ $student->id }}"
                                         @checked(in_array($student->id, old('student_ids', $enrollment->students->pluck('id')->all()))) />
-                                    <span>{{ $student->name }}</span>
+                                    <span>{{ $student->display_name }}</span>
                                 </label>
                             @endforeach
                         </div>

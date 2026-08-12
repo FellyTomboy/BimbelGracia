@@ -12,7 +12,7 @@
                         <select name="student_id" class="mt-1 w-full border-gray-300 rounded-md">
                             <option value="">Semua</option>
                             @foreach ($students as $student)
-                                <option value="{{ $student->id }}" @selected($studentId == $student->id)>{{ $student->name }}</option>
+                                <option value="{{ $student->id }}" @selected($studentId == $student->id)>{{ $student->display_name }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -75,7 +75,7 @@
                                             @foreach ($result['rows'] as $row)
                                                 <tr>
                                                     <td class="py-2">{{ sprintf('%02d', $periodMonth) }}/{{ $periodYear }}</td>
-                                                    <td class="py-2">{{ $student->name }}</td>
+                                                    <td class="py-2">{{ $student->display_name }}</td>
                                                     <td class="py-2">{{ $row['teacher'] }}</td>
                                                     <td class="py-2">{{ $row['program'] }}{{ $row['detail'] }}</td>
                                                     <td class="py-2">Rp {{ number_format($row['rate']) }}</td>
@@ -101,7 +101,7 @@
                                                 <td class="py-2">{{ sprintf('%02d', $attendance->month) }}/{{ $attendance->year }}</td>
                                                 <td class="py-2">
                                                     @foreach ($attendance->students as $s)
-                                                        <x-hibernated-label :model="$s" :label="$s->name" type="murid privat" />{{ !$loop->last ? ', ' : '' }}
+                                                        <x-hibernated-label :model="$s" :label="$s->display_name" type="murid privat" />{{ !$loop->last ? ', ' : '' }}
                                                     @endforeach
                                                 </td>
                                                 <td class="py-2">

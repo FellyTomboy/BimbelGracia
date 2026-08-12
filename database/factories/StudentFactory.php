@@ -14,7 +14,8 @@ class StudentFactory extends Factory
     {
         return [
             'parent_id' => ParentModel::factory(),
-            'name' => fake()->name(),
+            'nickname' => fake()->firstName(),
+            'full_name' => fake()->name(),
             'address' => fake()->address(),
             'status' => 'active',
         ];

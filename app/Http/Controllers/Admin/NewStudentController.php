@@ -68,20 +68,23 @@ class NewStudentController extends Controller
 
         $convertedCount = 0;
         foreach ($studentsData as $studentData) {
-            $studentName = $studentData['name'] ?? '';
-            if (empty($studentName)) continue;
+            $nickname = trim((string) ($studentData['nickname'] ?? $studentData['name'] ?? ''));
+            if ($nickname === '') continue;
 
-            // Check existing student by name + parent
+            $fullName = trim((string) ($studentData['full_name'] ?? '')) ?: null;
+
+            // Check existing student by nickname + parent
             $existingStudent = null;
             if ($parentId) {
                 $existingStudent = Student::where('parent_id', $parentId)
-                    ->where('name', $studentName)
+                    ->where('nickname', $nickname)
                     ->first();
             }
 
             if (!$existingStudent) {
                 Student::create([
-                    'name' => $studentName,
+                    'nickname' => $nickname,
+                    'full_name' => $fullName,
                     'parent_id' => $parentId,
                     'address' => $address ?? ($parent?->students()->first()?->address ?? null),
                     'status' => 'active',

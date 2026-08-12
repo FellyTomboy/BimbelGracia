@@ -62,10 +62,72 @@ class TeacherController extends Controller
         return view('admin.teachers.create');
     }
 
+    public function completeData(Request $request): View
+    {
+        $teacher = $request->user()?->teacher;
+        abort_unless($teacher, 403);
+
+        return view('guru.complete-data', [
+            'teacher' => $teacher,
+            'redirect_to' => $request->query('redirect_to', route('guru.salary-projection.index')),
+        ]);
+    }
+
+    public function submitCompleteData(Request $request): RedirectResponse
+    {
+        $teacher = $request->user()?->teacher;
+        abort_unless($teacher, 403);
+
+        $validated = $request->validate([
+            'name' => ['nullable', 'string', 'max:255'],
+            'nickname' => ['nullable', 'string', 'max:255'],
+            'full_name' => ['nullable', 'string', 'max:255'],
+            'major' => ['nullable', 'string', 'max:255'],
+            'subjects' => ['nullable', 'string', 'max:255'],
+            'address' => ['nullable', 'string', 'max:1000'],
+            'bank_name' => ['nullable', 'string', 'max:255'],
+            'bank_account' => ['nullable', 'string', 'max:255'],
+            'bank_owner' => ['nullable', 'string', 'max:255'],
+            'class_rate' => ['nullable', 'integer', 'min:0'],
+            'status' => ['nullable', 'in:active,hibernasi'],
+        ]);
+
+        $name = trim((string) ($validated['name'] ?? '')) ?: null;
+        $nickname = trim((string) ($validated['nickname'] ?? '')) ?: null;
+        $fullName = trim((string) ($validated['full_name'] ?? '')) ?: null;
+
+        $teacher->update([
+            'name' => $name ?: $fullName ?: $nickname ?: $teacher->name ?: 'Guru',
+            'nickname' => $nickname,
+            'full_name' => $fullName,
+            'major' => trim((string) ($validated['major'] ?? '')) ?: null,
+            'subjects' => trim((string) ($validated['subjects'] ?? '')) ?: null,
+            'address' => trim((string) ($validated['address'] ?? '')) ?: null,
+            'bank_name' => trim((string) ($validated['bank_name'] ?? '')) ?: null,
+            'bank_account' => trim((string) ($validated['bank_account'] ?? '')) ?: null,
+            'bank_owner' => trim((string) ($validated['bank_owner'] ?? '')) ?: null,
+            'class_rate' => $validated['class_rate'] ?? $teacher->class_rate,
+            'status' => $validated['status'] ?? $teacher->status,
+        ]);
+
+        if ($teacher->user) {
+            $teacher->user->update([
+                'name' => $teacher->name,
+            ]);
+        }
+
+        $redirectTo = $request->input('redirect_to', route('guru.salary-projection.index'));
+
+        return redirect()->to($redirectTo)
+            ->with('status', 'Data guru berhasil diperbarui.');
+    }
+
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['nullable', 'string', 'max:255'],
+            'nickname' => ['nullable', 'string', 'max:255'],
+            'full_name' => ['nullable', 'string', 'max:255'],
             'whatsapp' => ['required', 'string', 'max:32', 'unique:users,phone'],
             'major' => ['nullable', 'string', 'max:255'],
             'subjects' => ['nullable', 'string'],
@@ -77,11 +139,14 @@ class TeacherController extends Controller
             'status' => ['required', 'in:active,hibernasi'],
         ]);
 
+        $displayName = trim((string) ($validated['full_name'] ?? '')) ?: trim((string) ($validated['name'] ?? '')) ?: null;
+        $nickname = trim((string) ($validated['nickname'] ?? '')) ?: $displayName;
+
         $defaultPassword = config('bimbel.default_password', '12345678');
         $phone = $validated['whatsapp'];
 
         $user = User::create([
-            'name' => $validated['name'],
+            'name' => $displayName ?: 'Guru',
             'phone' => $phone,
             'role' => UserRole::Guru,
             'password' => Hash::make($defaultPassword),
@@ -90,7 +155,9 @@ class TeacherController extends Controller
 
         Teacher::create([
             'user_id' => $user->id,
-            'name' => $validated['name'],
+            'name' => $displayName ?: $nickname ?: 'Guru',
+            'nickname' => $nickname,
+            'full_name' => $displayName,
             'whatsapp' => $phone,
             'whatsapp_number' => $phone,
             'major' => $validated['major'] ?? null,
@@ -116,7 +183,9 @@ class TeacherController extends Controller
     public function update(Request $request, Teacher $teacher): RedirectResponse
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['nullable', 'string', 'max:255'],
+            'nickname' => ['nullable', 'string', 'max:255'],
+            'full_name' => ['nullable', 'string', 'max:255'],
             'whatsapp' => ['required', 'string', 'max:32', 'unique:users,phone,'.$teacher->user_id],
             'major' => ['nullable', 'string', 'max:255'],
             'subjects' => ['nullable', 'string'],
@@ -128,10 +197,14 @@ class TeacherController extends Controller
             'status' => ['required', 'in:active,hibernasi'],
         ]);
 
+        $displayName = trim((string) ($validated['full_name'] ?? '')) ?: trim((string) ($validated['name'] ?? '')) ?: $teacher->full_name ?: $teacher->name ?: $teacher->nickname;
+        $nickname = trim((string) ($validated['nickname'] ?? '')) ?: $teacher->nickname ?: $displayName;
         $phone = $validated['whatsapp'];
 
         $teacher->update([
-            'name' => $validated['name'],
+            'name' => $displayName ?: $teacher->name ?: 'Guru',
+            'nickname' => $nickname,
+            'full_name' => $displayName,
             'whatsapp' => $phone,
             'whatsapp_number' => $phone,
             'major' => $validated['major'] ?? null,
@@ -146,7 +219,7 @@ class TeacherController extends Controller
 
         if ($teacher->user) {
             $teacher->user->update([
-                'name' => $validated['name'],
+                'name' => $displayName ?: $teacher->name ?: 'Guru',
                 'phone' => $phone,
             ]);
         }

@@ -90,7 +90,7 @@ class InvoiceService
             $result = $this->calculationService->calculateStudentBilling($student, $month, $year, $studentAttendances);
 
             // Tag each row with student name
-            $taggedRows = $result['rows']->map(fn ($r) => array_merge($r, ['student_name' => $student->name]));
+            $taggedRows = $result['rows']->map(fn ($r) => array_merge($r, ['student_name' => $student->display_name]));
             $allRows = $allRows->concat($taggedRows);
             $grandTotal += $result['grand_total'];
             $grandDiscount += $result['total_discount'];
@@ -110,7 +110,7 @@ class InvoiceService
 
                 if ($enrollment && $enrollment->hasAttendancePenalty($totalSessions, $studentTotalPresent)) {
                     $allPenalties[] = [
-                        'student' => $student->name,
+                        'student' => $student->display_name,
                         'program' => $enrollment->program?->name ?? '-',
                         'agreed' => $agreed,
                         'attended' => $studentTotalPresent,

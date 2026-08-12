@@ -34,7 +34,7 @@
                             <span class="font-semibold text-lg">{{ $summary['parent_name'] }}</span>
                             <div class="text-xs text-gray-500 mt-1">
                                 @foreach ($summary['students'] as $s)
-                                    <span class="inline-block mr-2">{{ $s['student']?->name }}</span>
+                                    <span class="inline-block mr-2">{{ $s['student']?->display_name }}</span>
                                 @endforeach
                             </div>
                         </div>
@@ -43,7 +43,7 @@
                     <div class="p-4 text-gray-900 overflow-x-auto">
                         @foreach ($summary['students'] as $studentEntry)
                             <div class="mb-4 last:mb-0">
-                                <h4 class="text-sm font-semibold text-indigo-700 mb-2">{{ $studentEntry['student']?->name }}</h4>
+                                <h4 class="text-sm font-semibold text-indigo-700 mb-2">{{ $studentEntry['student']?->display_name }}</h4>
                                 <table class="min-w-full text-sm">
                                     <thead>
                                         <tr class="text-left text-gray-500">

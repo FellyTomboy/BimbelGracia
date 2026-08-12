@@ -62,7 +62,7 @@ class MonthlyAttendanceController extends Controller
             ->where('teacher_id', $teacher->id)
             ->firstOrFail();
 
-        $isClassProgram = $enrollment->program?->type === 'kelompok';
+        $isClassProgram = $enrollment->program?->type === 'kelas';
 
         $lessonDate = Carbon::parse($validated['lesson_date']);
         $daysSinceLesson = $lessonDate->diffInDays(now(), false);

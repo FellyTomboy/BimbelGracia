@@ -10,9 +10,21 @@
                     @csrf
                     @method('PUT')
 
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Nama Lengkap</label>
+                            <input name="full_name" value="{{ old('full_name', $teacher->full_name) }}" class="mt-1 w-full border-gray-300 rounded-md" placeholder="Nama lengkap" />
+                            @error('full_name')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Nama Panggilan</label>
+                            <input name="nickname" value="{{ old('nickname', $teacher->nickname) }}" class="mt-1 w-full border-gray-300 rounded-md" placeholder="Nama panggilan" />
+                            @error('nickname')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                        </div>
+                    </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Nama</label>
-                        <input name="name" value="{{ old('name', $teacher->name) }}" class="mt-1 w-full border-gray-300 rounded-md" required />
+                        <input name="name" value="{{ old('name', $teacher->name) }}" class="mt-1 w-full border-gray-300 rounded-md" placeholder="Opsional jika nama lengkap sudah diisi" />
                         @error('name')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
                     </div>
                     <div>

@@ -87,17 +87,26 @@
                                     <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold student-number">{{ $loop->iteration }}</span>
                                     <span class="text-sm font-medium text-gray-500">Anak {{ $loop->iteration }}</span>
                                 </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap Anak <span class="text-red-500">*</span></label>
-                                    <input type="text" name="students[{{ $index }}][name]" value="{{ $student['name'] ?? '' }}" required
-                                        class="w-full rounded-xl border-gray-200 bg-white focus:bg-white focus:border-indigo-500 focus:ring-indigo-500 transition-colors"
-                                        placeholder="Nama lengkap anak" />
+                                <div class="grid md:grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Nama Panggilan <span class="text-red-500">*</span></label>
+                                        <input type="text" name="students[{{ $index }}][nickname]" value="{{ old('students.' . $index . '.nickname', $student['nickname'] ?? '') }}" required
+                                            class="w-full rounded-xl border-gray-200 bg-white focus:bg-white focus:border-indigo-500 focus:ring-indigo-500 transition-colors"
+                                            placeholder="Nama panggilan anak" />
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap</label>
+                                        <input type="text" name="students[{{ $index }}][full_name]" value="{{ old('students.' . $index . '.full_name', $student['full_name'] ?? '') }}"
+                                            class="w-full rounded-xl border-gray-200 bg-white focus:bg-white focus:border-indigo-500 focus:ring-indigo-500 transition-colors"
+                                            placeholder="Nama lengkap anak (opsional)" />
+                                    </div>
                                 </div>
                             </div>
                         @endforeach
                     </div>
                     @error('students') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
-                    @error('students.*.name') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
+                    @error('students.*.nickname') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
+                    @error('students.*.full_name') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
 
                 {{-- Catatan --}}

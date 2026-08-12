@@ -59,7 +59,7 @@ class ProgramController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'type' => ['required', 'in:privat,kelompok,online'],
+            'type' => ['required', 'in:privat,kelas'],
             'subject' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'default_parent_rate' => ['required', 'integer', 'min:0'],
@@ -83,7 +83,7 @@ class ProgramController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'type' => ['required', 'in:privat,kelompok,online'],
+            'type' => ['required', 'in:privat,kelas'],
             'subject' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'default_parent_rate' => ['required', 'integer', 'min:0'],

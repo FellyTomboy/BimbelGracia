@@ -20,6 +20,12 @@ class ParentModel extends Model
     protected $fillable = [
         'user_id',
         'name',
+        'address',
+    ];
+
+    protected $casts = [
+        'name' => 'string',
+        'address' => 'string',
     ];
 
     public function user(): BelongsTo

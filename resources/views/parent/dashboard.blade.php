@@ -59,10 +59,10 @@
                                 <div class="border border-gray-100 rounded-xl p-4 hover:shadow-md transition-shadow">
                                     <div class="flex items-center gap-3">
                                         <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-lg font-bold text-indigo-600">
-                                            {{ strtoupper(substr($student->name, 0, 1)) }}
+                                            {{ strtoupper(substr($student->display_name, 0, 1)) }}
                                         </div>
                                         <div>
-                                            <p class="font-semibold text-gray-900">{{ $student->name }}</p>
+                                            <p class="font-semibold text-gray-900">{{ $student->display_name }}</p>
                                             <p class="text-xs text-gray-500">{{ $student->status }}</p>
                                         </div>
                                     </div>

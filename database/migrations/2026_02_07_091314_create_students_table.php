@@ -14,7 +14,8 @@ return new class extends Migration
         Schema::create('students', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
-            $table->string('name');
+            $table->string('nickname');
+            $table->string('full_name')->nullable();
             $table->string('whatsapp', 32)->nullable();
             $table->text('address')->nullable();
             $table->string('status', 20)->default('active');

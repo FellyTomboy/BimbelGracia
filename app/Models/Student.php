@@ -17,14 +17,27 @@ class Student extends Model
 
     protected $fillable = [
         'parent_id',
-        'name',
+        'nickname',
+        'full_name',
         'address',
         'status',
     ];
 
+    protected $appends = ['display_name'];
+
     protected $casts = [
         'status' => 'string',
     ];
+
+    public function getNameAttribute($value)
+    {
+        return $this->full_name ?: $this->nickname ?: '';
+    }
+
+    public function getDisplayNameAttribute(): string
+    {
+        return trim((string) ($this->full_name ?: $this->nickname ?: '')) ?: 'Tanpa nama';
+    }
 
     public function parent(): BelongsTo
     {

@@ -205,11 +205,11 @@ class ExportController extends Controller
     private function studentsData(): array
     {
         $rows = Student::withTrashed()
-            ->orderBy('name')
+            ->orderByRaw('COALESCE(full_name, nickname) ASC')
             ->get()
             ->map(fn (Student $student) => [
                 $student->id,
-                $student->name,
+                $student->display_name,
                 $student->parent?->user?->phone ?? '-',
                 $student->address,
                 $student->status,
@@ -261,7 +261,7 @@ class ExportController extends Controller
                 $enrollment->program?->name,
                 $enrollment->program?->type,
                 $enrollment->teacher?->name,
-                $enrollment->students->map->name->implode(', '),
+                $enrollment->students->map->display_name->implode(', '),
                 $enrollment->parent_rate,
                 $enrollment->teacher_rate,
                 $enrollment->validation_status,
@@ -299,7 +299,7 @@ class ExportController extends Controller
                 $attendance->enrollment_id,
                 $attendance->enrollment?->program?->name,
                 $attendance->enrollment?->teacher?->name,
-                $attendance->students->map->name->implode(', '),
+                $attendance->students->map->display_name->implode(', '),
                 1,
                 $attendance->enrollment?->parent_rate ?? 0,
                 $attendance->enrollment?->parent_rate ?? 0,
@@ -364,7 +364,7 @@ class ExportController extends Controller
                 $attendance->enrollment_id,
                 $attendance->enrollment?->program?->name,
                 $attendance->enrollment?->teacher?->name,
-                $attendance->students->map->name->implode(', '),
+                $attendance->students->map->display_name->implode(', '),
                 1,
                 $attendance->enrollment?->parent_rate ?? 0,
                 $attendance->enrollment?->parent_rate ?? 0,

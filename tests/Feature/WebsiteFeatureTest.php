@@ -50,7 +50,12 @@ class WebsiteFeatureTest extends TestCase
     {
         $user = $this->createUserWithRole(UserRole::Parent);
         $parent = ParentModel::factory()->create(['user_id' => $user->id, 'name' => $user->name]);
-        Student::factory()->create(['parent_id' => $parent->id, 'name' => $user->name, 'status' => 'active']);
+        Student::factory()->create([
+            'parent_id' => $parent->id,
+            'nickname' => $user->name,
+            'full_name' => $user->name,
+            'status' => 'active',
+        ]);
         return $user;
     }
 
@@ -156,6 +161,22 @@ class WebsiteFeatureTest extends TestCase
         $this->actingAs($data['studentUser'])->get(route('parent.billing.index'))->assertStatus(200);
     }
 
+    public function test_parent_must_complete_invoice_data_before_downloading_invoice(): void
+    {
+        $data = $this->seedBasicData();
+        $parent = $data['studentUser']->parent;
+        $student = $parent->students()->first();
+
+        $parent->update(['name' => null, 'address' => null]);
+        $student->update(['full_name' => null]);
+
+        $this->actingAs($data['studentUser'])
+            ->post(route('parent.billing.download-invoice', ['year' => now()->year, 'month' => now()->month]))
+            ->assertRedirect(route('parent.billing.complete-data', [
+                'redirect_to' => route('parent.billing.download-invoice', ['year' => now()->year, 'month' => now()->month]),
+            ]));
+    }
+
     public function test_student_cannot_access_admin_routes(): void
     {
         $this->actingAs($this->createStudentUser())->get('/admin')->assertStatus(403);
@@ -238,23 +259,36 @@ class WebsiteFeatureTest extends TestCase
         $this->actingAs($data['admin'])->get(route('admin.students.index'))->assertStatus(200)->assertSee($data['student']->name);
     }
 
-    public function test_admin_can_create_student(): void
+    public function test_admin_can_create_student_with_nickname_and_nullable_parent_name(): void
     {
         $this->actingAs($this->createAdmin())->post(route('admin.students.store'), [
-            'name' => 'Student Baru', 'whatsapp' => '081234567890', 'address' => 'Alamat test', 'status' => 'active',
+            'nickname' => 'Student Baru',
+            'full_name' => 'Student Baru Lengkap',
+            'parent_name' => '',
+            'whatsapp' => '081234567890',
+            'address' => 'Alamat test',
+            'status' => 'active',
         ])->assertRedirect(route('admin.students.index'));
+
         $this->assertDatabaseHas('users', ['phone' => '081234567890']);
-        $this->assertDatabaseHas('students', ['name' => 'Student Baru']);
+        $this->assertDatabaseHas('students', ['nickname' => 'Student Baru', 'full_name' => 'Student Baru Lengkap']);
+
+        $student = \App\Models\Student::where('nickname', 'Student Baru')->first();
+        $this->assertNotNull($student);
+        $this->assertNull($student->parent?->name);
     }
 
     public function test_admin_can_edit_student(): void
     {
         $data = $this->seedBasicData();
         $this->actingAs($data['admin'])->put(route('admin.students.update', $data['student']->id), [
-            'name' => 'Student Updated', 'whatsapp' => $data['student']->parent->user->phone,
-            'address' => 'Alamat updated', 'status' => 'active',
+            'nickname' => 'Student Updated',
+            'full_name' => 'Student Updated Lengkap',
+            'whatsapp' => $data['student']->parent->user->phone,
+            'address' => 'Alamat updated',
+            'status' => 'active',
         ])->assertRedirect(route('admin.students.index'));
-        $this->assertDatabaseHas('students', ['name' => 'Student Updated']);
+        $this->assertDatabaseHas('students', ['nickname' => 'Student Updated', 'full_name' => 'Student Updated Lengkap']);
     }
 
     public function test_admin_can_hibernate_student(): void

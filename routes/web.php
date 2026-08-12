@@ -259,6 +259,8 @@ Route::middleware(['auth', 'password.force'])->group(function () {
         Route::get('tawaran', [GuruLessonOfferController::class, 'index'])->name('tawaran.index');
         Route::get('riwayat', [GuruHistoryController::class, 'index'])->name('history.index');
         Route::get('proyeksi-gaji', [GuruSalaryProjectionController::class, 'index'])->name('salary-projection.index');
+        Route::get('complete-data', [\App\Http\Controllers\Admin\TeacherController::class, 'completeData'])->name('complete-data');
+        Route::post('complete-data', [\App\Http\Controllers\Admin\TeacherController::class, 'submitCompleteData'])->name('complete-data.store');
         Route::get('documents', [GuruDocumentController::class, 'index'])->name('documents.index');
         Route::get('documents/{document}', [GuruDocumentController::class, 'show'])->name('documents.show');
         Route::post('documents/{document}/verify-password', [GuruDocumentController::class, 'verifyPassword'])->name('documents.verify-password');
@@ -274,6 +276,8 @@ Route::middleware(['auth', 'password.force'])->group(function () {
         Route::post('riwayat/{attendance}/tolak', [ParentHistoryController::class, 'reject'])->name('history.reject');
         Route::post('riwayat/{attendance}/batalkan-penolakan', [ParentHistoryController::class, 'cancelReject'])->name('history.cancel-reject');
         Route::get('tagihan', [ParentBillingController::class, 'index'])->name('billing.index');
+        Route::get('complete-data', [ParentBillingController::class, 'completeData'])->name('billing.complete-data');
+        Route::post('complete-data', [ParentBillingController::class, 'submitCompleteData'])->name('billing.submit-complete-data');
         Route::post('tagihan/{attendance}/upload', [ParentBillingController::class, 'uploadProof'])->name('billing.upload-proof');
         Route::post('tagihan/invoice/{year}/{month}', [ParentBillingController::class, 'downloadInvoice'])->name('billing.download-invoice');
     });

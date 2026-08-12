@@ -57,7 +57,7 @@
                                     <div class="text-xs text-gray-500">WA: {{ $summary['contact'] }}</div>
                                     <div class="mt-1 text-[11px]">
                                         @foreach ($summary['students'] as $s)
-                                            <span class="text-gray-600">{{ $s['student']?->name }}, </span>
+                                            <span class="text-gray-600">{{ $s['student']?->display_name }}, </span>
                                         @endforeach
                                     </div>
                                     <div class="mt-1 text-[11px] text-gray-600">
@@ -104,7 +104,7 @@
                             {{-- Tabel Detail Pembayaran per Student --}}
                             @foreach ($selected['students'] as $studentSummary)
                                 <div class="mb-6 p-3 bg-gray-50 rounded-lg border-l-4 border-indigo-500">
-                                    <h4 class="font-semibold text-sm text-indigo-800">{{ $studentSummary['student']?->name }}</h4>
+                                    <h4 class="font-semibold text-sm text-indigo-800">{{ $studentSummary['student']?->display_name }}</h4>
                                     <div class="overflow-x-auto border rounded-lg mt-2 -mx-3 sm:mx-0">
                                         <div class="inline-block min-w-full align-middle">
                                             <table class="min-w-full divide-y divide-gray-200 text-xs sm:text-sm">

@@ -30,12 +30,13 @@ class StudentController extends Controller
         $students = Student::with(['parent.user', 'teachers']);
 
         $students = $this->applySearch($students, $params['search'], [
-            'students.name',
+            'students.full_name',
+            'students.nickname',
             'students.status',
         ]);
 
         $students = $this->applySort($students, $params['sort'], $params['direction'], [
-            'students.name', 'students.status', 'students.created_at',
+            'students.full_name', 'students.nickname', 'students.status', 'students.created_at',
         ]);
 
         $students = $students->paginate(20)->withQueryString();
@@ -62,35 +63,47 @@ class StudentController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'name' => ['required', 'string'],
+            'nickname' => ['required', 'string'],
+            'full_name' => ['nullable', 'string'],
+            'parent_name' => ['nullable', 'string', 'max:255'],
             'whatsapp' => ['required', 'string', 'max:32', 'unique:users,phone'],
             'address' => ['nullable', 'string'],
             'status' => ['required', 'in:active,hibernasi'],
         ]);
 
+        $nickname = trim((string) ($validated['nickname'] ?? ''));
+        $fullName = trim((string) ($validated['full_name'] ?? ''));
+        $parentName = trim((string) ($validated['parent_name'] ?? '')) ?: null;
+
+        if ($nickname === '') {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'nickname' => ['Nickname murid wajib diisi.'],
+            ]);
+        }
+
         $defaultPassword = config('bimbel.default_password', '12345678');
         $phone = $validated['whatsapp'];
 
-        DB::transaction(function () use ($validated, $phone, $defaultPassword) {
-            // Create user with role parent
+        DB::transaction(function () use ($phone, $defaultPassword, $nickname, $fullName, $parentName, $validated) {
+            $userName = $parentName ?: 'Orang Tua';
+
             $user = User::create([
-                'name' => $validated['name'],
+                'name' => $userName,
                 'phone' => $phone,
                 'role' => UserRole::Parent,
                 'password' => Hash::make($defaultPassword),
                 'must_change_password' => true,
             ]);
 
-            // Create parent record
             $parent = ParentModel::create([
                 'user_id' => $user->id,
-                'name' => $validated['name'],
+                'name' => $parentName,
             ]);
 
-            // Create student linked to parent
             Student::create([
                 'parent_id' => $parent->id,
-                'name' => $validated['name'],
+                'nickname' => $nickname,
+                'full_name' => $fullName !== '' ? $fullName : null,
                 'address' => $validated['address'] ?? null,
                 'status' => $validated['status'],
             ]);
@@ -110,29 +123,42 @@ class StudentController extends Controller
     public function update(Request $request, Student $student): RedirectResponse
     {
         $validated = $request->validate([
-            'name' => ['required', 'string'],
+            'nickname' => ['required', 'string'],
+            'full_name' => ['nullable', 'string'],
+            'parent_name' => ['nullable', 'string', 'max:255'],
             'whatsapp' => ['required', 'string', 'max:32', 'unique:users,phone,'.($student->parent?->user_id ?? 'NULL')],
             'address' => ['nullable', 'string'],
             'status' => ['required', 'in:active,hibernasi'],
         ]);
 
+        $nickname = trim((string) ($validated['nickname'] ?? ''));
+        $fullName = trim((string) ($validated['full_name'] ?? ''));
+        $parentName = trim((string) ($validated['parent_name'] ?? '')) ?: null;
+
+        if ($nickname === '') {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'nickname' => ['Nickname murid wajib diisi.'],
+            ]);
+        }
+
         $phone = $validated['whatsapp'];
 
-        DB::transaction(function () use ($student, $validated, $phone) {
+        DB::transaction(function () use ($student, $nickname, $fullName, $parentName, $validated, $phone) {
             $student->update([
-                'name' => $validated['name'],
+                'nickname' => $nickname,
+                'full_name' => $fullName !== '' ? $fullName : null,
                 'address' => $validated['address'] ?? null,
                 'status' => $validated['status'],
             ]);
 
             if ($student->parent) {
                 $student->parent->update([
-                    'name' => $validated['name'],
+                    'name' => $parentName,
                 ]);
 
                 if ($student->parent->user) {
                     $student->parent->user->update([
-                        'name' => $validated['name'],
+                        'name' => $parentName ?: 'Orang Tua',
                         'phone' => $phone,
                     ]);
                 }

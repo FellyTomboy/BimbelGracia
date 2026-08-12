@@ -20,8 +20,8 @@
                     <h3 class="font-semibold text-lg">Informasi Parent</h3>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Nama Parent</label>
-                        <input type="text" name="name" value="{{ old('name', $parent->name) }}" class="mt-1 w-full border-gray-300 rounded-md" required />
+                        <label class="block text-sm font-medium text-gray-700">Nama Parent <span class="text-xs text-gray-400">(opsional)</span></label>
+                        <input type="text" name="name" value="{{ old('name', $parent->name) }}" class="mt-1 w-full border-gray-300 rounded-md" placeholder="Kosongkan jika nomor baru" />
                         @error('name') <p class="text-rose-600 text-xs mt-1">{{ $message }}</p> @enderror
                     </div>
 
@@ -76,10 +76,10 @@
                             <tbody class="divide-y">
                                 @foreach ($parent->students as $student)
                                     <tr>
-                                        <td class="py-2 pr-4">{{ $student->name }}</td>
+                                        <td class="py-2 pr-4">{{ $student->display_name }}</td>
                                         <td class="py-2 pr-4">{{ $student->status }}</td>
                                         <td class="py-2">
-                                            <form method="POST" action="{{ route('admin.parents.remove-student', [$parent->id, $student->id]) }}" onsubmit="return confirm('Hapus murid {{ $student->name }}?')" class="inline">
+                                            <form method="POST" action="{{ route('admin.parents.remove-student', [$parent->id, $student->id]) }}" onsubmit="return confirm('Hapus murid {{ $student->display_name }}?')" class="inline">
                                                 @csrf @method('DELETE')
                                                 <button type="submit" class="text-rose-600 hover:text-rose-900">Hapus</button>
                                             </form>
@@ -102,21 +102,15 @@
                     <h3 class="font-semibold text-lg">Tambah Murid</h3>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Nama Murid</label>
-                        <input type="text" name="name" class="mt-1 w-full border-gray-300 rounded-md" required />
+                        <label class="block text-sm font-medium text-gray-700">Nickname Murid</label>
+                        <input type="text" name="nickname" class="mt-1 w-full border-gray-300 rounded-md" required />
+                        @error('nickname') <p class="text-rose-600 text-xs mt-1">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Alamat</label>
-                        <input type="text" name="address" class="mt-1 w-full border-gray-300 rounded-md" />
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Status</label>
-                        <select name="status" class="mt-1 w-full border-gray-300 rounded-md">
-                            <option value="active">Active</option>
-                            <option value="hibernasi">Hibernasi</option>
-                        </select>
+                        <label class="block text-sm font-medium text-gray-700">Nama Lengkap Murid <span class="text-xs text-gray-400">(opsional)</span></label>
+                        <input type="text" name="full_name" class="mt-1 w-full border-gray-300 rounded-md" placeholder="Opsional" />
+                        @error('full_name') <p class="text-rose-600 text-xs mt-1">{{ $message }}</p> @enderror
                     </div>
 
                     <button type="submit" class="px-4 py-2 rounded-md bg-slate-900 text-white">Tambah Murid</button>

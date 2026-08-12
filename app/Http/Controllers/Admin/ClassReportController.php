@@ -35,7 +35,7 @@ class ClassReportController extends Controller
                 $id = $student->id;
                 if (!isset($studentTotals[$id])) {
                     $studentTotals[$id] = [
-                        'name' => $student->name,
+                        'name' => $student->display_name,
                         'total' => 0,
                         'program' => $attendance->enrollment?->program?->name ?? '-',
                         'teacher' => $attendance->enrollment?->teacher?->name ?? '-',

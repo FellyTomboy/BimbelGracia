@@ -100,7 +100,7 @@
                                                 </td>
                                                 <td class="py-2">
                                                     @foreach ($attendance->students as $s)
-                                                        <x-hibernated-label :model="$s" :label="$s->name" type="murid privat" />{{ !$loop->last ? ', ' : '' }}
+                                                        <x-hibernated-label :model="$s" :label="$s->display_name" type="murid privat" />{{ !$loop->last ? ', ' : '' }}
                                                     @endforeach
                                                 </td>
                                                 <td class="py-2">

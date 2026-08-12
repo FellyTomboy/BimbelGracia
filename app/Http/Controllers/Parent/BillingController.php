@@ -128,6 +128,62 @@ class BillingController extends Controller
         return back()->with('status', 'Bukti pembayaran berhasil diupload, menunggu konfirmasi admin.');
     }
 
+    public function completeData(Request $request): View
+    {
+        $parent = $request->user()?->parent;
+        abort_unless($parent, 403);
+
+        $students = $parent->students()->orderBy('nickname')->get();
+
+        return view('parent.complete-data', [
+            'parent' => $parent,
+            'students' => $students,
+            'redirect_to' => $request->query('redirect_to', route('parent.billing.index')),
+        ]);
+    }
+
+    public function submitCompleteData(Request $request): RedirectResponse
+    {
+        $parent = $request->user()?->parent;
+        abort_unless($parent, 403);
+
+        $validated = $request->validate([
+            'name' => ['nullable', 'string', 'max:255'],
+            'address' => ['nullable', 'string', 'max:1000'],
+            'students' => ['nullable', 'array'],
+            'students.*.id' => ['required', 'integer', 'exists:students,id'],
+            'students.*.full_name' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $parentName = trim((string) ($validated['name'] ?? '')) ?: null;
+        $parentAddress = trim((string) ($validated['address'] ?? '')) ?: null;
+
+        $parent->update([
+            'name' => $parentName,
+            'address' => $parentAddress,
+        ]);
+
+        if ($parent->user) {
+            $parent->user->update([
+                'name' => $parentName ?: 'Orang Tua',
+            ]);
+        }
+
+        foreach ($validated['students'] ?? [] as $studentPayload) {
+            $student = $parent->students()->find($studentPayload['id'] ?? null);
+            if ($student) {
+                $student->update([
+                    'full_name' => trim((string) ($studentPayload['full_name'] ?? '')) ?: null,
+                ]);
+            }
+        }
+
+        $redirectTo = $request->input('redirect_to', route('parent.billing.index'));
+
+        return redirect()->to($redirectTo)
+            ->with('status', 'Data orang tua dan murid berhasil diperbarui.');
+    }
+
     public function downloadInvoice(Request $request, int $year, int $month): RedirectResponse
     {
         $parent = $request->user()?->parent;
@@ -135,6 +191,11 @@ class BillingController extends Controller
 
         if (empty($studentIds)) {
             abort(404);
+        }
+
+        $missingDataRedirect = $this->redirectIfInvoiceDataMissing($parent, route('parent.billing.download-invoice', ['year' => $year, 'month' => $month]));
+        if ($missingDataRedirect) {
+            return $missingDataRedirect;
         }
 
         $invoiceService = app(InvoiceService::class);
@@ -154,6 +215,22 @@ class BillingController extends Controller
         $filename = $invoiceService->generateParentInvoice($students, $month, $year, $attendances);
 
         return redirect(asset('storage/' . $filename));
+    }
+
+    private function redirectIfInvoiceDataMissing($parent, string $redirectRoute): ?RedirectResponse
+    {
+        if (! $parent) {
+            return null;
+        }
+
+        $missingParentData = blank($parent->name) || blank($parent->address);
+        $missingStudentData = $parent->students()->where(fn ($query) => $query->whereNull('full_name')->orWhereRaw('TRIM(COALESCE(full_name, "")) = ""'))->exists();
+
+        if ($missingParentData || $missingStudentData) {
+            return redirect()->route('parent.billing.complete-data', ['redirect_to' => $redirectRoute]);
+        }
+
+        return null;
     }
 
     private function buildTotals($attendances, $students): array

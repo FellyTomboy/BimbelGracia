@@ -19,7 +19,7 @@
                         <label class="block text-sm font-medium text-gray-700">Tipe</label>
                         <select name="type" class="mt-1 w-full border-gray-300 rounded-md" required>
                             <option value="privat" @selected(old('type', $program->type) === 'privat')>privat</option>
-                            <option value="kelompok" @selected(old('type', $program->type) === 'kelompok')>kelompok</option>
+                            <option value="kelas" @selected(old('type', $program->type) === 'kelas')>kelas</option>
                             <option value="online" @selected(old('type', $program->type) === 'online')>online</option>
                         </select>
                         @error('type')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror

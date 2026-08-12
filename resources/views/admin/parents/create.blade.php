@@ -10,8 +10,8 @@
                     @csrf
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Nama Parent</label>
-                        <input type="text" name="name" value="{{ old('name') }}" class="mt-1 w-full border-gray-300 rounded-md" required />
+                        <label class="block text-sm font-medium text-gray-700">Nama Parent <span class="text-xs text-gray-400">(opsional)</span></label>
+                        <input type="text" name="name" value="{{ old('name') }}" class="mt-1 w-full border-gray-300 rounded-md" placeholder="Kosongkan jika nomor baru" />
                         @error('name') <p class="text-rose-600 text-xs mt-1">{{ $message }}</p> @enderror
                     </div>
 
@@ -38,13 +38,14 @@
                             @if (old('students'))
                                 @foreach (old('students') as $index => $student)
                                 <div class="flex items-center gap-2 mt-2 student-row" data-index="{{ $index }}">
-                                    <input type="text" name="students[{{ $index }}][name]" value="{{ $student['name'] ?? '' }}" class="flex-1 border-gray-300 rounded-md" placeholder="Nama murid" />
+                                    <input type="text" name="students[{{ $index }}][nickname]" value="{{ old('students.' . $index . '.nickname', $student['nickname'] ?? '') }}" class="flex-1 border-gray-300 rounded-md" placeholder="Nickname murid" />
+                                    <input type="text" name="students[{{ $index }}][full_name]" value="{{ $student['full_name'] ?? '' }}" class="flex-1 border-gray-300 rounded-md" placeholder="Nama lengkap (opsional)" />
                                     <button type="button" onclick="this.closest('.student-row').remove()" class="text-rose-500 hover:text-rose-700 text-sm">&times;</button>
                                 </div>
                                 @endforeach
                             @endif
                         </div>
-                        @error('students.*.name') <p class="text-rose-600 text-xs mt-1">Nama murid tidak boleh kosong</p> @enderror
+                        @error('students.*.nickname') <p class="text-rose-600 text-xs mt-1">Nickname murid tidak boleh kosong jika ditambahkan</p> @enderror
                     </div>
 
                     <div class="flex items-center gap-3 pt-4">
@@ -66,7 +67,8 @@
             div.className = 'flex items-center gap-2 mt-2 student-row';
             div.dataset.index = studentIndex;
             div.innerHTML = `
-                <input type="text" name="students[${studentIndex}][name]" class="flex-1 border-gray-300 rounded-md" placeholder="Nama murid" />
+                <input type="text" name="students[${studentIndex}][nickname]" class="flex-1 border-gray-300 rounded-md" placeholder="Nickname murid" />
+                <input type="text" name="students[${studentIndex}][full_name]" class="flex-1 border-gray-300 rounded-md" placeholder="Nama lengkap (opsional)" />
                 <button type="button" onclick="this.closest('.student-row').remove()" class="text-rose-500 hover:text-rose-700 text-sm">&times;</button>
             `;
             container.appendChild(div);

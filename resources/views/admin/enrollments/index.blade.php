@@ -60,7 +60,7 @@
                                         <input type="checkbox" name="ids[]" value="{{ $enrollment->id }}" class="row-checkbox rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" onchange="updateBulkButton()" />
                                     </td>
                                     <td class="py-3 px-4 font-medium text-gray-900">
-                                        {{ $enrollment->students->map->name->implode(', ') ?: '-' }}
+                                        {{ $enrollment->students->map->display_name->implode(', ') ?: '-' }}
                                     </td>
                                     <td class="py-3 px-4 text-gray-600">{{ $enrollment->teacher?->name ?? '-' }}</td>
                                     <td class="py-3 px-4 text-gray-600">{{ $enrollment->program?->name ?? '-' }}</td>

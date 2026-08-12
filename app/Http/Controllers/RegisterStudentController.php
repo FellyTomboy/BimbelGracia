@@ -43,7 +43,8 @@ class RegisterStudentController extends Controller
             'whatsapp' => ['required', 'string', 'max:20'],
             'address' => ['nullable', 'string', 'max:500'],
             'students' => ['required', 'array', 'min:1'],
-            'students.*.name' => ['required', 'string', 'max:255'],
+            'students.*.nickname' => ['required', 'string', 'max:255'],
+            'students.*.full_name' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
         ]);
 

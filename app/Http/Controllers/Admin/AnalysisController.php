@@ -114,7 +114,7 @@ class AnalysisController extends Controller
                     ->groupBy(fn (array $row) => $row['enrollment']->id)
                     ->map(function (Collection $enrollmentItems) {
                         $row = $enrollmentItems->first();
-                        $studentName = $enrollmentItems->pluck('student')->filter()->unique('id')->map->name->implode(', ');
+                        $studentName = $enrollmentItems->pluck('student')->filter()->unique('id')->map->display_name->implode(', ');
                         $programName = $row['program']?->name ?? '-';
                         $rate = $row['teacher_rate'];
                         $totalCount = $enrollmentItems->count();
@@ -239,7 +239,7 @@ class AnalysisController extends Controller
                     ->groupBy(fn (array $row) => $row['enrollment']->id)
                     ->map(function (Collection $enrollmentItems) {
                         $row = $enrollmentItems->first();
-                        $studentName = $enrollmentItems->pluck('student')->filter()->unique('id')->map->name->implode(', ');
+                        $studentName = $enrollmentItems->pluck('student')->filter()->unique('id')->map->display_name->implode(', ');
                         $programName = $row['program']?->name ?? '-';
                         $rate = $row['teacher_rate'];
                         $totalCount = $enrollmentItems->count();
@@ -370,6 +370,15 @@ class AnalysisController extends Controller
             return back()->with('status', 'Murid ini tidak memiliki orang tua.');
         }
 
+        $missingParentData = blank($parent->name) || blank($parent->address);
+        $missingStudentData = $parent->students()->where(fn ($query) => $query->whereNull('full_name')->orWhereRaw('TRIM(COALESCE(full_name, "")) = ""'))->exists();
+
+        if ($missingParentData || $missingStudentData) {
+            return redirect()->route('parent.billing.complete-data', [
+                'redirect_to' => route('admin.analysis.generate-invoice', ['student' => $student->id, 'month' => $month, 'year' => $year]),
+            ]);
+        }
+
         $students = $parent->students;
 
         $attendances = $this->baseAttendanceQuery($month, $year)
@@ -388,8 +397,20 @@ class AnalysisController extends Controller
 
     public function generateSalary(Request $request, Teacher $teacher, int $month, int $year): RedirectResponse
     {
+        $hasMissingTeacherIdentity = blank($teacher->full_name) && blank($teacher->nickname) && blank($teacher->name);
+        $hasMissingTeacherProfile = blank($teacher->major) || blank($teacher->subjects) || blank($teacher->address);
+
+        if ($hasMissingTeacherIdentity || $hasMissingTeacherProfile) {
+            return redirect()->route('guru.complete-data', [
+                'redirect_to' => route('admin.analysis.generate-salary', ['teacher' => $teacher->id, 'month' => $month, 'year' => $year]),
+            ]);
+        }
+
         $attendances = $this->baseAttendanceQuery($month, $year)
-            ->whereHas('enrollment', fn ($q) => $q->where('teacher_id', $teacher->id))
+            ->where(function ($query) use ($teacher) {
+                $query->whereHas('enrollment', fn ($q) => $q->where('teacher_id', $teacher->id))
+                    ->orWhere('session_teacher_id', $teacher->id);
+            })
             ->get();
 
         if ($attendances->isEmpty()) {
@@ -405,7 +426,7 @@ class AnalysisController extends Controller
     private function baseAttendanceQuery(int $month, int $year)
     {
         return MonthlyAttendance::query()
-            ->with(['enrollment.program', 'enrollment.teacher', 'students'])
+            ->with(['enrollment.program', 'enrollment.teacher', 'sessionTeacher', 'students'])
             ->whereIn('status_validation', ['terima', 'terlambat'])
             ->where('month', $month)
             ->where('year', $year)
@@ -434,7 +455,9 @@ class AnalysisController extends Controller
         return $attendances->flatMap(function (MonthlyAttendance $attendance) use ($monthlyStudentTotals, $monthlyEnrollmentSessions) {
             $enrollment = $attendance->enrollment;
             $program = $enrollment?->program;
-            $teacher = $enrollment?->teacher;
+            $teacher = $enrollment?->isKelas()
+                ? $attendance->sessionTeacher
+                : $enrollment?->teacher;
             $totalSessionsThisMonth = $monthlyEnrollmentSessions[$attendance->enrollment_id] ?? 0;
 
             return $attendance->students->map(function (Student $student) use ($attendance, $enrollment, $program, $teacher, $totalSessionsThisMonth, $monthlyStudentTotals) {
@@ -508,7 +531,7 @@ class AnalysisController extends Controller
 
         $index = 1;
         foreach ($students as $studentSummary) {
-            $lines->push(sprintf('%d. *%s*', $index, $studentSummary['student']?->name ?? 'Murid'));
+            $lines->push(sprintf('%d. *%s*', $index, $studentSummary['student']?->display_name ?? 'Murid'));
             foreach ($studentSummary['lines'] as $line) {
                 $lines->push(
                     sprintf(

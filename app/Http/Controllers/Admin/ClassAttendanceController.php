@@ -26,7 +26,7 @@ class ClassAttendanceController extends Controller
             'enrollment.teacher',
             'students',
         ])
-            ->whereHas('enrollment.program', fn ($q) => $q->where('type', 'kelompok'))
+            ->whereHas('enrollment.program', fn ($q) => $q->where('type', 'kelas'))
             ->where('month', $month)
             ->where('year', $year)
             ->orderBy('lesson_date')
@@ -45,7 +45,7 @@ class ClassAttendanceController extends Controller
     public function edit(Request $request, MonthlyAttendance $attendance): View
     {
         $enrollment = $attendance->enrollment;
-        abort_unless($enrollment?->program?->type === 'kelompok', 404);
+        abort_unless($enrollment?->program?->type === 'kelas', 404);
 
         $allStudents = Student::query()
             ->where('status', 'active')
@@ -68,7 +68,7 @@ class ClassAttendanceController extends Controller
     public function update(Request $request, MonthlyAttendance $attendance): RedirectResponse
     {
         $enrollment = $attendance->enrollment;
-        abort_unless($enrollment?->program?->type === 'kelompok', 404);
+        abort_unless($enrollment?->program?->type === 'kelas', 404);
 
         $validated = $request->validate([
             'student_ids' => ['nullable', 'array'],

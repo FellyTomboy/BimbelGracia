@@ -19,7 +19,7 @@
                         <select name="type" class="mt-1 w-full border-gray-300 rounded-md" required>
                             <option value="">Pilih tipe</option>
                             <option value="privat" @selected(old('type') === 'privat')>privat</option>
-                            <option value="kelompok" @selected(old('type') === 'kelompok')>kelompok</option>
+                            <option value="kelas" @selected(old('type') === 'kelas')>kelas</option>
                             <option value="online" @selected(old('type') === 'online')>online</option>
                         </select>
                         @error('type')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror

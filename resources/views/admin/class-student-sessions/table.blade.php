@@ -39,7 +39,7 @@
                                     </td>
                                     <td class="py-2">
                                         @foreach ($attendance->students as $student)
-                                            <x-hibernated-label :model="$student" :label="$student->name" type="murid privat" /><br>
+                                            <x-hibernated-label :model="$student" :label="$student->display_name" type="murid privat" /><br>
                                         @endforeach
                                     </td>
                                     <td class="py-2">

@@ -21,7 +21,7 @@
                 <p><span class="font-semibold">Murid:</span>
                     @if ($attendance->students->count() > 0)
                         @foreach ($attendance->students as $student)
-                            <x-hibernated-label :model="$student" :label="$student->name" type="murid privat" />{{ !$loop->last ? ', ' : '' }}
+                            <x-hibernated-label :model="$student" :label="$student->display_name" type="murid privat" />{{ !$loop->last ? ', ' : '' }}
                         @endforeach
                     @else
                         -
@@ -64,7 +64,7 @@
                     <ul class="mt-2 list-disc pl-5 text-sm text-gray-700">
                         @forelse ($attendance->students as $student)
                             <li>
-                                <x-hibernated-label :model="$student" :label="$student->name" type="murid privat" />:
+                                <x-hibernated-label :model="$student" :label="$student->display_name" type="murid privat" />:
                                 {{ $student->pivot->total_present ? 'Hadir' : 'Tidak Hadir' }}
                             </li>
                         @empty
@@ -83,7 +83,7 @@
                             <option value="">Pilih enrollment</option>
                             @foreach ($enrollments as $enrollment)
                                 <option value="{{ $enrollment->id }}" @selected(old('enrollment_id', $attendance->enrollment_id) == $enrollment->id)>
-                                    #{{ $enrollment->id }} - {{ $enrollment->program?->name ?? '-' }} - {{ $enrollment->teacher?->name ?? '-' }} - {{ $enrollment->students->map->name->implode(', ') }}
+                                    #{{ $enrollment->id }} - {{ $enrollment->program?->name ?? '-' }} - {{ $enrollment->teacher?->name ?? '-' }} - {{ $enrollment->students->map->display_name->implode(', ') }}
                                 </option>
                             @endforeach
                         </select>

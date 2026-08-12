@@ -69,7 +69,7 @@
                                                             <ul class="mt-1 space-y-1">
                                                                 @foreach ($block['students'] as $student)
                                                                 <li class="flex items-center gap-2">
-                                                                    <x-hibernated-label :model="$student" :label="$student->name" type="murid privat" />
+                                                                    <x-hibernated-label :model="$student" :label="$student->display_name" type="murid privat" />
                                                                     @if (($student->status ?? '') === 'hibernasi')
                                                                         <span class="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">Hibernasi</span>
                                                                     @endif

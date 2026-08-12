@@ -31,7 +31,6 @@
                 <ul class="mt-2 space-y-1 text-emerald-600">
                     <li>✓ Admin akan memeriksa data pendaftaran</li>
                     <li>✓ Kami akan menghubungi via WhatsApp untuk informasi lebih lanjut</li>
-                    <li>✓ Diskusi program belajar yang sesuai</li>
                 </ul>
             </div>
             <p class="text-sm text-gray-400">Bimbel Gracia - Bimbingan Belajar Privat & Kelas</p>

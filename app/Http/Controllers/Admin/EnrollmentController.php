@@ -261,7 +261,7 @@ class EnrollmentController extends Controller
                 ->select('enrollments.*')
                 ->selectSub(
                     Student::withTrashed()
-                        ->selectRaw('MIN(name)')
+                        ->selectRaw('MIN(COALESCE(full_name, nickname))')
                         ->join('enrollment_student', 'students.id', '=', 'enrollment_student.student_id')
                         ->whereColumn('enrollment_student.enrollment_id', 'enrollments.id'),
                     'student_sort_name'

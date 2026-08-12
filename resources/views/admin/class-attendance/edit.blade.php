@@ -25,7 +25,7 @@
                                 <input type="checkbox" name="student_ids[]" value="{{ $student->id }}"
                                     @checked(in_array($student->id, $selectedStudentIds))
                                     class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-                                <span>{{ $student->name }}</span>
+                                <span>{{ $student->display_name }}</span>
                             </label>
                         @empty
                             <p class="text-gray-400 col-span-3">Tidak ada murid aktif.</p>

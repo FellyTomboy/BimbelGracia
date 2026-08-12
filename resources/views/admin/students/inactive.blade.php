@@ -27,7 +27,7 @@
                         <tbody class="divide-y">
                             @foreach ($students as $student)
                                 <tr>
-                                    <td class="py-2 font-medium">{{ $student->name }}</td>
+                                    <td class="py-2 font-medium">{{ $student->display_name }}</td>
                                     <td class="py-2">{{ $student->parent?->user?->phone ?? '-' }}</td>
                                     <td class="py-2">hibernasi</td>
                                     <td class="py-2">

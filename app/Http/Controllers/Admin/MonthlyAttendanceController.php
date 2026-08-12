@@ -93,7 +93,7 @@ class MonthlyAttendanceController extends Controller
         $needle = strtolower($placeholder);
 
         return $students->contains(function (Student $student) use ($needle): bool {
-            return strtolower($student->name) === $needle;
+            return strtolower($student->display_name) === $needle;
         });
     }
 

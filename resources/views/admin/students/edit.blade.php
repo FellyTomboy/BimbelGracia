@@ -11,9 +11,19 @@
                     @method('PUT')
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Nama Murid</label>
-                        <input type="text" name="name" value="{{ old('name', $student->name) }}" class="mt-1 w-full border-gray-300 rounded-md" placeholder="Nama murid" required />
-                        @error('name')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                        <label class="block text-sm font-medium text-gray-700">Nickname Murid</label>
+                        <input type="text" name="nickname" value="{{ old('nickname', $student->nickname ?? '') }}" class="mt-1 w-full border-gray-300 rounded-md" placeholder="Nickname murid" required />
+                        @error('nickname')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Nama Lengkap Murid <span class="text-xs text-gray-400">(opsional)</span></label>
+                        <input type="text" name="full_name" value="{{ old('full_name', $student->full_name) }}" class="mt-1 w-full border-gray-300 rounded-md" placeholder="Nama lengkap murid" />
+                        @error('full_name')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Nama Orang Tua / Wali <span class="text-xs text-gray-400">(opsional)</span></label>
+                        <input type="text" name="parent_name" value="{{ old('parent_name', $student->parent?->name) }}" class="mt-1 w-full border-gray-300 rounded-md" placeholder="Kosongkan jika nomor baru" />
+                        @error('parent_name')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Nomor WhatsApp (untuk login dan WA)</label>

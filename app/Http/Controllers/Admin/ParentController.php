@@ -43,17 +43,19 @@ class ParentController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['nullable', 'string', 'max:255'],
             'phone' => ['required', 'string', 'max:20', 'unique:users,phone'],
             'password' => ['required', 'string', 'min:6'],
             'students' => ['nullable', 'array'],
-            'students.*.name' => ['required_with:students', 'string', 'max:255'],
+            'students.*.nickname' => ['nullable', 'string', 'max:255'],
+            'students.*.full_name' => ['nullable', 'string', 'max:255'],
         ]);
 
         $phone = $this->cleanPhone($validated['phone']);
+        $parentName = trim((string) ($validated['name'] ?? '')) ?: null;
 
         $user = User::create([
-            'name' => $validated['name'],
+            'name' => $parentName ?: 'Orang Tua',
             'phone' => $phone,
             'role' => UserRole::Parent,
             'password' => Hash::make($validated['password']),
@@ -62,17 +64,19 @@ class ParentController extends Controller
 
         $parent = ParentModel::create([
             'user_id' => $user->id,
-            'name' => $validated['name'],
+            'name' => $parentName,
         ]);
 
-        // Add students if provided
         $studentCount = 0;
         if (!empty($validated['students'])) {
             foreach ($validated['students'] as $studentData) {
-                if (!empty($studentData['name'])) {
+                $nickname = trim((string) ($studentData['nickname'] ?? $studentData['name'] ?? ''));
+                if ($nickname !== '') {
+                    $fullName = trim((string) ($studentData['full_name'] ?? '')) ?: null;
                     Student::create([
                         'parent_id' => $parent->id,
-                        'name' => $studentData['name'],
+                        'nickname' => $nickname,
+                        'full_name' => $fullName,
                     ]);
                     $studentCount++;
                 }
@@ -98,19 +102,20 @@ class ParentController extends Controller
     public function update(Request $request, ParentModel $parent): RedirectResponse
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['nullable', 'string', 'max:255'],
             'phone' => ['required', 'string', 'max:20', 'unique:users,phone,' . $parent->user_id],
         ]);
 
         $phone = $this->cleanPhone($validated['phone']);
+        $parentName = trim((string) ($validated['name'] ?? '')) ?: null;
 
         $parent->user->update([
-            'name' => $validated['name'],
+            'name' => $parentName ?: 'Orang Tua',
             'phone' => $phone,
         ]);
 
         $parent->update([
-            'name' => $validated['name'],
+            'name' => $parentName,
         ]);
 
         return redirect()->route('admin.parents.index')
@@ -183,17 +188,19 @@ class ParentController extends Controller
     public function addStudent(Request $request, ParentModel $parent): RedirectResponse
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'nickname' => ['required', 'string', 'max:255'],
+            'full_name' => ['nullable', 'string', 'max:255'],
         ]);
 
         $student = Student::create([
             'parent_id' => $parent->id,
-            'name' => $validated['name'],
+            'nickname' => $validated['nickname'],
+            'full_name' => $validated['full_name'] ?? null,
         ]);
 
         return redirect()
             ->route('admin.parents.edit', $parent)
-            ->with('status', "Murid {$student->name} berhasil ditambahkan.");
+            ->with('status', "Murid {$student->display_name} berhasil ditambahkan.");
     }
 
     public function removeStudent(ParentModel $parent, Student $student): RedirectResponse
@@ -206,7 +213,7 @@ class ParentController extends Controller
 
         return redirect()
             ->route('admin.parents.edit', $parent)
-            ->with('status', "Murid {$student->name} berhasil dihapus.");
+            ->with('status', "Murid {$student->display_name} berhasil dihapus.");
     }
 
     public function changePassword(Request $request, ParentModel $parent): RedirectResponse

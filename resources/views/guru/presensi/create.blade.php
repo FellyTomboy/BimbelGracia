@@ -17,8 +17,8 @@
                         <select name="enrollment_id" id="enrollment-select" class="mt-1 w-full rounded-xl border-gray-200 text-sm" required>
                             <option value="">Pilih enrollment</option>
                             @foreach ($enrollments as $enrollment)
-                                <option value="{{ $enrollment->id }}" data-students="{{ $enrollment->students->map(fn($s) => ['id' => $s->id, 'name' => $s->name]) }}" data-type="{{ $enrollment->program?->type }}" @selected(old('enrollment_id', $enrollments->first()?->id) == $enrollment->id)>
-                                    #{{ $enrollment->id }} - {{ $enrollment->program?->name ?? '-' }} - {{ $enrollment->students->map->name->implode(', ') }}
+                                <option value="{{ $enrollment->id }}" data-students="{{ $enrollment->students->map(fn($s) => ['id' => $s->id, 'name' => $s->display_name]) }}" data-type="{{ $enrollment->program?->type }}" @selected(old('enrollment_id', $enrollments->first()?->id) == $enrollment->id)>
+                                    #{{ $enrollment->id }} - {{ $enrollment->program?->name ?? '-' }} - {{ $enrollment->students->map->display_name->implode(', ') }}
                                 </option>
                             @endforeach
                         </select>
@@ -38,14 +38,14 @@
                         <p class="text-xs text-gray-500 mb-3" id="student-presence-desc">Centang murid yang benar-benar hadir pada sesi ini. Harga ortu & gaji guru akan dihitung otomatis sesuai jumlah yang hadir.</p>
                         <div id="student-checkboxes" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             @php $firstEnrollment = $enrollments->first(); @endphp
-                            @if ($firstEnrollment && $firstEnrollment->program?->type !== 'kelompok')
+                            @if ($firstEnrollment && $firstEnrollment->program?->type !== 'kelas')
                                 @foreach ($firstEnrollment->students as $student)
                                     <label class="flex items-center gap-2 text-sm p-2 bg-white rounded-lg border border-gray-200 hover:border-indigo-300 transition-colors cursor-pointer">
                                         <input type="checkbox" name="student_ids[]" value="{{ $student->id }}" checked class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-                                        <span>{{ $student->name }}</span>
+                                        <span>{{ $student->display_name }}</span>
                                     </label>
                                 @endforeach
-                            @elseif($firstEnrollment && $firstEnrollment->program?->type === 'kelompok')
+                            @elseif($firstEnrollment && $firstEnrollment->program?->type === 'kelas')
                                 <p class="text-sm text-gray-500 italic">Presensi kelas tidak perlu memilih murid. Admin akan mengisi daftar hadir nanti.</p>
                             @endif
                         </div>
@@ -98,7 +98,7 @@
 
                 studentSection.classList.remove('hidden');
 
-                if (programType === 'kelompok') {
+                if (programType === 'kelas') {
                     // CLASS: show info message, no checkboxes
                     studentPresenceDesc.textContent = 'Presensi kelas tidak perlu memilih murid. Admin akan mengisi daftar hadir nanti.';
                     studentCheckboxes.innerHTML = '<p class="text-sm text-gray-500 italic">Tidak perlu centang murid untuk program kelas.</p>';

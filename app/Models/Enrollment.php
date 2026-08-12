@@ -18,6 +18,7 @@ class Enrollment extends Model
 
     protected $fillable = [
         'program_id',
+        'type',
         'teacher_id',
         'parent_rate',
         'teacher_rate',
@@ -28,6 +29,7 @@ class Enrollment extends Model
     ];
 
     protected $casts = [
+        'type' => 'string',
         'parent_rate' => 'integer',
         'teacher_rate' => 'integer',
         'pricing_tiers' => 'array',
@@ -39,6 +41,16 @@ class Enrollment extends Model
     public function program(): BelongsTo
     {
         return $this->belongsTo(Program::class)->withTrashed();
+    }
+
+    public function isKelas(): bool
+    {
+        return strtolower((string) ($this->type ?? 'privat')) === 'kelas';
+    }
+
+    public function isPrivat(): bool
+    {
+        return ! $this->isKelas();
     }
 
     public function teacher(): BelongsTo

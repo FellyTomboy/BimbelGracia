@@ -18,31 +18,30 @@ class CalculationService
      */
     public function calculateStudentBilling(Student $student, int $month, int $year, Collection $attendances): array
     {
-        // Filter out attendances where the student has 0 present
         $attendances = $attendances->filter(function (MonthlyAttendance $attendance) use ($student) {
             $s = $attendance->students->firstWhere('id', $student->id);
             return ($s?->pivot?->total_present ?? 0) > 0;
         });
 
-        // Group by (enrollment_id, rate, present_count) because rate differs per student count
-        $grouped = $attendances->groupBy(function (MonthlyAttendance $attendance) use ($student) {
+        $privatAttendances = $attendances->filter(fn (MonthlyAttendance $attendance) => $attendance->enrollment?->isPrivat());
+        $kelasAttendances = $attendances->filter(fn (MonthlyAttendance $attendance) => $attendance->enrollment?->isKelas());
+
+        $rows = collect();
+
+        foreach ($privatAttendances->groupBy(function (MonthlyAttendance $attendance) use ($student) {
             $presentCount = $attendance->students->filter(fn ($s) => ($s->pivot->total_present ?? 0) > 0)->count();
             $rate = (int) ($attendance->parent_rate ?? $attendance->enrollment?->getParentRateForCount($presentCount) ?? 0);
             return $attendance->enrollment_id . '-' . $rate . '-' . $presentCount;
-        });
-
-        $rows = $grouped->map(function (Collection $group) use ($student, $month, $year) {
+        }) as $group) {
             $first = $group->first();
             $enrollment = $first->enrollment;
-            $presentCount = $group->first()->students->filter(fn ($s) => ($s->pivot->total_present ?? 0) > 0)->count();
+            $presentCount = $first->students->filter(fn ($s) => ($s->pivot->total_present ?? 0) > 0)->count();
             $rate = (int) ($first->parent_rate ?? 0);
             $totalCount = $group->sum(function (MonthlyAttendance $attendance) use ($student) {
                 $s = $attendance->students->firstWhere('id', $student->id);
                 return (int) ($s?->pivot?->total_present ?? 0);
             });
             $subtotal = $totalCount * $rate;
-
-            // Check attendance penalty for this enrollment
             $totalSessions = $group->count();
             $studentTotalPresent = $group->sum(function (MonthlyAttendance $attendance) use ($student) {
                 $s = $attendance->students->firstWhere('id', $student->id);
@@ -50,10 +49,9 @@ class CalculationService
             });
             $penalty = 0;
             if ($enrollment && $enrollment->hasAttendancePenalty($totalSessions, $studentTotalPresent)) {
-                $penalty = $totalCount * 5000; // Rp 5.000 extra per session
+                $penalty = $totalCount * 5000;
             }
 
-            // Get discount for this enrollment+student+month
             $discount = 0;
             if ($enrollment) {
                 $discountRecord = EnrollmentStudentDiscount::where('enrollment_id', $enrollment->id)
@@ -76,12 +74,9 @@ class CalculationService
                 }
             }
 
-            $detailLabel = '';
-            if ($presentCount > 1) {
-                $detailLabel = ' (grup ' . $presentCount . ' siswa)';
-            }
+            $detailLabel = $presentCount > 1 ? ' (grup ' . $presentCount . ' siswa)' : '';
 
-            return [
+            $rows->push([
                 'enrollment_id' => $first->enrollment_id,
                 'program' => $enrollment?->program?->name ?? '-',
                 'teacher' => $enrollment?->teacher?->name ?? '-',
@@ -93,8 +88,37 @@ class CalculationService
                 'total' => $subtotal - $discount + $penalty,
                 'detail' => $detailLabel,
                 'present_count' => $presentCount,
-            ];
-        })->values();
+                'type' => 'privat',
+            ]);
+        }
+
+        foreach ($kelasAttendances->groupBy('enrollment_id') as $enrollmentId => $group) {
+            $enrollment = $group->first()->enrollment;
+            $agreedSessions = (int) ($enrollment->agreed_sessions_per_month ?? 4);
+            $studentTotalPresent = $group->sum(function (MonthlyAttendance $attendance) use ($student) {
+                $s = $attendance->students->firstWhere('id', $student->id);
+                return (int) ($s?->pivot?->total_present ?? 0);
+            });
+            $attendancePercent = $agreedSessions > 0 ? ($studentTotalPresent / $agreedSessions) * 100 : 0;
+            $finalRate = $attendancePercent <= 50 ? (int) round((float) ($enrollment->parent_rate ?? 0) * 0.5) : (int) ($enrollment->parent_rate ?? 0);
+
+            $rows->push([
+                'enrollment_id' => $enrollmentId,
+                'program' => $enrollment?->program?->name ?? '-',
+                'teacher' => '-',
+                'count' => 1,
+                'rate' => $finalRate,
+                'subtotal' => $finalRate,
+                'discount' => 0,
+                'penalty' => 0,
+                'total' => $finalRate,
+                'detail' => sprintf('Paket %d sesi - Hadir %d/%d (%d%%)', $agreedSessions, $studentTotalPresent, $agreedSessions, (int) $attendancePercent),
+                'present_count' => 1,
+                'type' => 'kelas',
+            ]);
+        }
+
+        $rows = $rows->values();
 
         return [
             'rows' => $rows,
@@ -110,12 +134,16 @@ class CalculationService
      */
     public function calculateTeacherSalary(int $teacherId, int $month, int $year, Collection $attendances): array
     {
-        // Filter out attendances where no students are present
-        $attendances = $attendances->filter(function (MonthlyAttendance $attendance) {
+        $attendances = $attendances->filter(function (MonthlyAttendance $attendance) use ($teacherId) {
+            if ($attendance->enrollment?->isPrivat()) {
+                return (int) ($attendance->enrollment->teacher_id ?? 0) === $teacherId;
+            }
+
+            return (int) ($attendance->session_teacher_id ?? 0) === $teacherId;
+        })->filter(function (MonthlyAttendance $attendance) {
             return $attendance->students->sum(fn ($s) => (int) ($s->pivot->total_present ?? 0)) > 0;
         });
 
-        // Group by (enrollment_id, rate, present_count)
         $grouped = $attendances->groupBy(function (MonthlyAttendance $attendance) {
             $presentCount = $attendance->students->filter(fn ($s) => ($s->pivot->total_present ?? 0) > 0)->count();
             $rate = (int) ($attendance->teacher_rate ?? $attendance->enrollment?->getTeacherRateForCount($presentCount) ?? 0);
@@ -127,11 +155,11 @@ class CalculationService
             $enrollment = $first->enrollment;
             $presentCount = $group->first()->students->filter(fn ($s) => ($s->pivot->total_present ?? 0) > 0)->count();
             $rate = (int) ($first->teacher_rate ?? 0);
-            $studentNames = $group->flatMap(fn ($a) => $a->students->filter(fn ($s) => ($s->pivot->total_present ?? 0) > 0)->map->name)->unique()->implode(', ');
+            $studentNames = $group->flatMap(fn ($a) => $a->students->filter(fn ($s) => ($s->pivot->total_present ?? 0) > 0)->map->display_name)->unique()->implode(', ');
             $totalCount = $group->sum(fn ($a) => $a->students->sum(fn ($s) => (int) ($s->pivot->total_present ?? 0)));
             $lateCount = $group->filter(fn ($a) => $a->status_validation === 'terlambat')->count();
             $grossTotal = $totalCount * $rate;
-            $penalty = (int) ($lateCount * $rate * 0.1); // 10% penalty per late session
+            $penalty = (int) ($lateCount * $rate * 0.1);
 
             $countLabel = $presentCount . ' siswa';
             if ($presentCount > 1) $countLabel = 'grup ' . $presentCount . ' siswa';
@@ -147,6 +175,7 @@ class CalculationService
                 'late_count' => $lateCount,
                 'label_detail' => $countLabel,
                 'present_count' => $presentCount,
+                'type' => $enrollment?->isKelas() ? 'kelas' : 'privat',
             ];
         })->values();
 

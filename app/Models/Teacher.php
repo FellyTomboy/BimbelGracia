@@ -18,6 +18,8 @@ class Teacher extends Model
     protected $fillable = [
         'user_id',
         'name',
+        'nickname',
+        'full_name',
         'whatsapp',
         'whatsapp_number',
         'major',
@@ -39,6 +41,11 @@ class Teacher extends Model
         'class_rate' => 'integer',
         'profile_photo_approved' => 'boolean',
     ];
+
+    public function getDisplayNameAttribute(): string
+    {
+        return trim((string) ($this->full_name ?: $this->name ?: $this->nickname ?: '')) ?: 'Tanpa nama';
+    }
 
     public function getProfilePhotoUrlAttribute(): ?string
     {

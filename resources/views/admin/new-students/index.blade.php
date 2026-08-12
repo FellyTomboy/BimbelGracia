@@ -91,7 +91,9 @@
                                         @if (!empty($students))
                                             <div class="space-y-1">
                                                 @foreach ($students as $student)
-                                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700">{{ $student['name'] ?? '-' }}</span>
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
+                                                        {{ $student['full_name'] ?? $student['nickname'] ?? '-' }}
+                                                    </span>
                                                 @endforeach
                                             </div>
                                         @else
