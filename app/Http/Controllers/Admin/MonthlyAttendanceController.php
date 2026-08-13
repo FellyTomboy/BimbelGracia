@@ -43,7 +43,7 @@ class MonthlyAttendanceController extends Controller
 
         $enrollments = Enrollment::with(['program', 'teacher', 'students'])
             ->when($isClassPlaceholder, function ($query) {
-                $query->whereHas('program', fn ($sub) => $sub->where('type', 'kelas'));
+                $query->where('type', 'kelas');
             })
             ->orderBy('id')
             ->get();
@@ -60,7 +60,7 @@ class MonthlyAttendanceController extends Controller
         $attendance->load('students');
         $enrollment = Enrollment::with(['students', 'program'])->findOrFail($validated['enrollment_id']);
 
-        if ($this->hasClassPlaceholderStudent($attendance->students) && $enrollment->program?->type !== 'kelas') {
+        if ($this->hasClassPlaceholderStudent($attendance->students) && ! $enrollment->isKelas()) {
             return back()->withErrors([
                 'enrollment_id' => 'Presensi murid kelas bersama harus memakai program bertipe kelas.',
             ]);

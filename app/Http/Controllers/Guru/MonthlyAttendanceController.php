@@ -24,7 +24,10 @@ class MonthlyAttendanceController extends Controller
             'enrollment.program',
             'students',
         ])
-            ->whereHas('enrollment', fn ($query) => $query->where('teacher_id', $teacher->id))
+            ->where(function ($query) use ($teacher) {
+                $query->whereHas('enrollment', fn ($q) => $q->where('teacher_id', $teacher->id))
+                    ->orWhere('session_teacher_id', $teacher->id);
+            })
             ->latest()
             ->get();
 
@@ -36,7 +39,10 @@ class MonthlyAttendanceController extends Controller
         $teacher = $this->resolveTeacher($request);
 
         $enrollments = Enrollment::with(['program', 'students'])
-            ->where('teacher_id', $teacher->id)
+            ->where(function ($query) use ($teacher) {
+                $query->where('teacher_id', $teacher->id)       // privat
+                    ->orWhere('type', 'kelas');                  // kelas (any teacher can teach)
+            })
             ->where('status', 'active')
             ->orderBy('id')
             ->get();
@@ -59,10 +65,13 @@ class MonthlyAttendanceController extends Controller
 
         $enrollment = Enrollment::with(['students', 'program'])
             ->where('id', $validated['enrollment_id'])
-            ->where('teacher_id', $teacher->id)
+            ->where(function ($query) use ($teacher) {
+                $query->where('teacher_id', $teacher->id)
+                    ->orWhere('type', 'kelas');
+            })
             ->firstOrFail();
 
-        $isClassProgram = $enrollment->program?->type === 'kelas';
+        $isClassProgram = $enrollment->isKelas();
 
         $lessonDate = Carbon::parse($validated['lesson_date']);
         $daysSinceLesson = $lessonDate->diffInDays(now(), false);
@@ -83,13 +92,14 @@ class MonthlyAttendanceController extends Controller
 
         if ($isClassProgram) {
             // CLASS: Guru only marks session happened, no student selection
-            // teacher_rate = class_rate (flat per session)
+            // teacher_rate = from enrollment (per-session rate for teacher)
             // parent_rate = from enrollment (for billing when admin fills students)
-            $teacherRate = (int) ($teacher->class_rate ?? 0);
+            $teacherRate = (int) ($enrollment->teacher_rate ?? 0);
             $parentRate = (int) $enrollment->parent_rate;
 
             $attendance = MonthlyAttendance::create([
                 'enrollment_id' => $enrollment->id,
+                'session_teacher_id' => $teacher->id,
                 'lesson_date' => $lessonDate,
                 'month' => $lessonDate->month,
                 'year' => $lessonDate->year,
@@ -150,7 +160,10 @@ class MonthlyAttendanceController extends Controller
     {
         $teacher = $this->resolveTeacher($request);
 
-        abort_unless($attendance->enrollment?->teacher_id === $teacher->id, 403);
+        // Allow access if teacher owns the enrollment (privat) or is the session teacher (kelas)
+        $isOwner = $attendance->enrollment?->teacher_id === $teacher->id;
+        $isSessionTeacher = $attendance->session_teacher_id === $teacher->id;
+        abort_unless($isOwner || $isSessionTeacher, 403);
 
         if ($attendance->status_validation === 'terima') {
             abort(403);
@@ -165,7 +178,10 @@ class MonthlyAttendanceController extends Controller
     {
         $teacher = $this->resolveTeacher($request);
 
-        abort_unless($attendance->enrollment?->teacher_id === $teacher->id, 403);
+        // Allow access if teacher owns the enrollment (privat) or is the session teacher (kelas)
+        $isOwner = $attendance->enrollment?->teacher_id === $teacher->id;
+        $isSessionTeacher = $attendance->session_teacher_id === $teacher->id;
+        abort_unless($isOwner || $isSessionTeacher, 403);
 
         if ($attendance->status_validation === 'terima') {
             abort(403);

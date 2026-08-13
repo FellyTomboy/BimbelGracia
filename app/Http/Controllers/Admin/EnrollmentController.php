@@ -66,7 +66,11 @@ class EnrollmentController extends Controller
     {
         $validated = $request->validate([
             'program_id' => ['required', 'exists:programs,id'],
-            'teacher_id' => ['required', 'exists:teachers,id'],
+            'type' => ['required', 'in:privat,kelas'],
+            'teacher_id' => [
+                $request->input('type') === 'privat' ? 'required' : 'nullable',
+                'exists:teachers,id',
+            ],
             'parent_rate' => ['required', 'integer', 'min:0'],
             'teacher_rate' => ['required', 'integer', 'min:0'],
             'pricing_tiers_parent' => ['nullable', 'array'],
@@ -103,7 +107,8 @@ class EnrollmentController extends Controller
 
         $enrollment = Enrollment::create([
             'program_id' => $validated['program_id'],
-            'teacher_id' => $validated['teacher_id'],
+            'type' => $validated['type'],
+            'teacher_id' => $validated['teacher_id'] ?? null,
             'parent_rate' => $validated['parent_rate'],
             'teacher_rate' => $validated['teacher_rate'],
             'pricing_tiers' => $pricingTiers,
@@ -135,7 +140,11 @@ class EnrollmentController extends Controller
     {
         $validated = $request->validate([
             'program_id' => ['required', 'exists:programs,id'],
-            'teacher_id' => ['required', 'exists:teachers,id'],
+            'type' => ['required', 'in:privat,kelas'],
+            'teacher_id' => [
+                $request->input('type') === 'privat' ? 'required' : 'nullable',
+                'exists:teachers,id',
+            ],
             'parent_rate' => ['required', 'integer', 'min:0'],
             'teacher_rate' => ['required', 'integer', 'min:0'],
             'pricing_tiers_parent' => ['nullable', 'array'],
@@ -172,7 +181,8 @@ class EnrollmentController extends Controller
 
         $enrollment->update([
             'program_id' => $validated['program_id'],
-            'teacher_id' => $validated['teacher_id'],
+            'type' => $validated['type'],
+            'teacher_id' => $validated['teacher_id'] ?? null,
             'parent_rate' => $validated['parent_rate'],
             'teacher_rate' => $validated['teacher_rate'],
             'pricing_tiers' => $pricingTiers,

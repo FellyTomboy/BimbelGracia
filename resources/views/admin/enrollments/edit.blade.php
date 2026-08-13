@@ -10,29 +10,41 @@
                     @csrf
                     @method('PUT')
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Program</label>
-                        <select name="program_id" id="program-select" class="mt-1 w-full border-gray-300 rounded-md" required>
-                            @foreach ($programs as $program)
-                                <option
-                                    value="{{ $program->id }}"
-                                    data-default-parent="{{ $program->default_parent_rate }}"
-                                    data-default-teacher="{{ $program->default_teacher_rate }}"
-                                    @selected(old('program_id', $enrollment->program_id) == $program->id)
-                                >
-                                    {{ $program->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                        @error('program_id')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Tipe Enrollment</label>
+                            <select name="type" id="type-select" class="mt-1 w-full border-gray-300 rounded-md" required>
+                                <option value="privat" @selected(old('type', $enrollment->type) === 'privat')>Privat (Per Sesi)</option>
+                                <option value="kelas" @selected(old('type', $enrollment->type) === 'kelas')>Kelas (Paket Bulanan)</option>
+                            </select>
+                            <p class="text-xs text-gray-500 mt-1">Privat: tagihan per sesi. Kelas: paket bulanan dengan guru bisa berganti per sesi.</p>
+                            @error('type')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Program</label>
+                            <select name="program_id" id="program-select" class="mt-1 w-full border-gray-300 rounded-md" required>
+                                @foreach ($programs as $program)
+                                    <option
+                                        value="{{ $program->id }}"
+                                        data-default-parent="{{ $program->default_parent_rate }}"
+                                        data-default-teacher="{{ $program->default_teacher_rate }}"
+                                        @selected(old('program_id', $enrollment->program_id) == $program->id)
+                                    >
+                                        {{ $program->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('program_id')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                        </div>
                     </div>
-                    <div>
+                    <div id="teacher-field">
                         <label class="block text-sm font-medium text-gray-700">Guru</label>
-                        <select name="teacher_id" class="mt-1 w-full border-gray-300 rounded-md" required>
+                        <select name="teacher_id" id="teacher-select" class="mt-1 w-full border-gray-300 rounded-md">
                             @foreach ($teachers as $teacher)
                                 <option value="{{ $teacher->id }}" @selected(old('teacher_id', $enrollment->teacher_id) == $teacher->id)>{{ $teacher->name }}</option>
                             @endforeach
                         </select>
+                        <p class="text-xs text-gray-500 mt-1">Guru utama untuk privat. Untuk kelas, guru bisa berubah per sesi saat pencatatan kehadiran.</p>
                         @error('teacher_id')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
                     </div>
 
@@ -147,9 +159,16 @@
     </div>
 
     <script>
+        const typeSelect = document.getElementById('type-select');
+        const teacherSelect = document.getElementById('teacher-select');
         const programSelect = document.getElementById('program-select');
         const parentRateInput = document.getElementById('parent-rate');
         const teacherRateInput = document.getElementById('teacher-rate');
+
+        const updateTeacherRequired = () => {
+            const isPrivat = typeSelect.value === 'privat';
+            teacherSelect.required = isPrivat;
+        };
 
         const markTouched = (event) => {
             event.target.dataset.touched = 'true';
@@ -173,9 +192,11 @@
             }
         };
 
+        typeSelect.addEventListener('change', updateTeacherRequired);
         parentRateInput.addEventListener('input', markTouched);
         teacherRateInput.addEventListener('input', markTouched);
         programSelect.addEventListener('change', applyDefaults);
+        updateTeacherRequired();
         applyDefaults();
     </script>
 

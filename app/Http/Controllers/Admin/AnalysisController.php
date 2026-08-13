@@ -47,17 +47,40 @@ class AnalysisController extends Controller
                             ->groupBy(fn (array $row) => $row['enrollment']->id)
                             ->map(function (Collection $enrollmentItems) use ($discounts, $studentId) {
                                 $row = $enrollmentItems->first();
+                                $enrollment = $row['enrollment'];
                                 $teacherName = $row['teacher']?->name ?? '-';
                                 $programName = $row['program']?->name ?? '-';
-                                $rate = $row['parent_rate'];
-                                $count = $enrollmentItems->sum('total_present');
-                                $total = $count * $rate;
                                 $enrollmentId = $row['enrollment']?->id;
+                                $type = $enrollment?->isKelas() ? 'kelas' : 'privat';
+
+                                if ($type === 'kelas') {
+                                    // For kelas: use 50% package rule
+                                    $agreedSessions = (int) ($enrollment->agreed_sessions_per_month ?? 4);
+                                    $studentTotalPresent = $enrollmentItems->sum('total_present');
+                                    $attendancePercent = $agreedSessions > 0 ? ($studentTotalPresent / $agreedSessions) * 100 : 0;
+                                    $rate = $attendancePercent <= 50
+                                        ? (int) round((float) ($enrollment->parent_rate ?? 0) * 0.5)
+                                        : (int) ($enrollment->parent_rate ?? 0);
+                                    $count = 1;
+                                    $total = $rate;
+                                    $label = sprintf('Paket Kelas %s', $programName);
+                                } else {
+                                    // For privat: per-session pricing
+                                    // Each session may have DIFFERENT rate (multi-student tiers),
+                                    // so we must sum individual session costs, not use a single rate
+                                    $rate = $row['parent_rate']; // display rate (from first row)
+                                    $count = $enrollmentItems->sum('total_present');
+                                    $total = $enrollmentItems->sum(function (array $row) use ($student) {
+                                        return (int) ($row['parent_rate'] ?? 0) * (int) ($row['total_present'] ?? 0);
+                                    });
+                                    $label = sprintf('%s (%s)', $teacherName, $programName);
+                                }
+
                                 $discountModel = $discounts[$this->discountKey($enrollmentId, $studentId)] ?? null;
                                 $discount = $this->resolveDiscount($total, $discountModel?->discount_type, $discountModel?->discount_value);
 
                                 return [
-                                    'label' => sprintf('%s (%s)', $teacherName, $programName),
+                                    'label' => $label,
                                     'count' => $count,
                                     'rate' => $rate,
                                     'total' => $total,
@@ -65,6 +88,7 @@ class AnalysisController extends Controller
                                     'discount' => $discount,
                                     'enrollment_id' => $enrollmentId,
                                     'student_id' => $studentId,
+                                    'type' => $type,
                                 ];
                             })
                             ->values();
@@ -114,6 +138,7 @@ class AnalysisController extends Controller
                     ->groupBy(fn (array $row) => $row['enrollment']->id)
                     ->map(function (Collection $enrollmentItems) {
                         $row = $enrollmentItems->first();
+                        $enrollment = $row['enrollment'];
                         $studentName = $enrollmentItems->pluck('student')->filter()->unique('id')->map->display_name->implode(', ');
                         $programName = $row['program']?->name ?? '-';
                         $rate = $row['teacher_rate'];
@@ -121,6 +146,7 @@ class AnalysisController extends Controller
                         $lateCount = $enrollmentItems->where('status_validation', 'terlambat')->count();
                         $grossTotal = $totalCount * $rate;
                         $penalty = $lateCount * $rate * 0.1;
+                        $type = $enrollment?->isKelas() ? 'kelas' : 'privat';
 
                         return [
                             'label' => sprintf('%s (%s)', $studentName ?: '-', $programName),
@@ -129,6 +155,7 @@ class AnalysisController extends Controller
                             'total' => $grossTotal,
                             'penalty' => (int) $penalty,
                             'late_count' => $lateCount,
+                            'type' => $type,
                         ];
                     })
                     ->values();
@@ -180,16 +207,34 @@ class AnalysisController extends Controller
                             ->groupBy(fn (array $row) => $row['enrollment']->id)
                             ->map(function (Collection $enrollmentItems) {
                                 $row = $enrollmentItems->first();
+                                $enrollment = $row['enrollment'];
                                 $teacherName = $row['teacher']?->name ?? '-';
                                 $programName = $row['program']?->name ?? '-';
-                                $rate = $row['parent_rate'];
-                                $count = $enrollmentItems->sum('total_present');
-                                $total = $count * $rate;
+                                $type = $enrollment?->isKelas() ? 'kelas' : 'privat';
+
+                                if ($type === 'kelas') {
+                                    $agreedSessions = (int) ($enrollment->agreed_sessions_per_month ?? 4);
+                                    $studentTotalPresent = $enrollmentItems->sum('total_present');
+                                    $attendancePercent = $agreedSessions > 0 ? ($studentTotalPresent / $agreedSessions) * 100 : 0;
+                                    $rate = $attendancePercent <= 50
+                                        ? (int) round((float) ($enrollment->parent_rate ?? 0) * 0.5)
+                                        : (int) ($enrollment->parent_rate ?? 0);
+                                    $count = 1;
+                                    $total = $rate;
+                                    $label = sprintf('Paket Kelas %s', $programName);
+                                } else {
+                                    $rate = $row['parent_rate'];
+                                    $count = $enrollmentItems->sum('total_present');
+                                    $total = $enrollmentItems->sum(function (array $r) {
+                                        return (int) ($r['parent_rate'] ?? 0) * (int) ($r['total_present'] ?? 0);
+                                    });
+                                    $label = sprintf('%s (%s)', $teacherName, $programName);
+                                }
 
                                 $att = $row['attendance'];
 
                                 return [
-                                    'label' => sprintf('%s (%s)', $teacherName, $programName),
+                                    'label' => $label,
                                     'count' => $count,
                                     'rate' => $rate,
                                     'total' => $total,
@@ -465,13 +510,20 @@ class AnalysisController extends Controller
                 $studentKey = $attendance->enrollment_id . '-' . $student->id;
                 $studentTotalPresent = $monthlyStudentTotals[$studentKey] ?? 0;
 
-                // Use snapshot rate from attendance if available, otherwise compute with penalty
-                $parentRate = (int) ($attendance->parent_rate ?? $enrollment?->getAdjustedParentRate(
-                    $presentCount, $totalSessionsThisMonth, $studentTotalPresent
-                ) ?? 0);
-                $teacherRate = (int) ($attendance->teacher_rate ?? $enrollment?->getAdjustedTeacherRate(
-                    $presentCount, $totalSessionsThisMonth, $studentTotalPresent
-                ) ?? 0);
+                // Use snapshot rate from attendance if available
+                if ($enrollment?->isKelas()) {
+                    // For kelas: use raw rates, no penalty adjustment
+                    $parentRate = (int) ($attendance->parent_rate ?? $enrollment->parent_rate ?? 0);
+                    $teacherRate = (int) ($attendance->teacher_rate ?? $enrollment->teacher_rate ?? 0);
+                } else {
+                    // For privat: use rates with penalty adjustment
+                    $parentRate = (int) ($attendance->parent_rate ?? $enrollment?->getAdjustedParentRate(
+                        $presentCount, $totalSessionsThisMonth, $studentTotalPresent
+                    ) ?? 0);
+                    $teacherRate = (int) ($attendance->teacher_rate ?? $enrollment?->getAdjustedTeacherRate(
+                        $presentCount, $totalSessionsThisMonth, $studentTotalPresent
+                    ) ?? 0);
+                }
 
                 return [
                     'attendance' => $attendance,
@@ -533,15 +585,28 @@ class AnalysisController extends Controller
         foreach ($students as $studentSummary) {
             $lines->push(sprintf('%d. *%s*', $index, $studentSummary['student']?->display_name ?? 'Murid'));
             foreach ($studentSummary['lines'] as $line) {
-                $lines->push(
-                    sprintf(
-                        '   - Tentor *%s*: *%d* x *Rp %s* = *Rp %s*',
-                        $line['label'],
-                        $line['count'],
-                        number_format($line['rate']),
-                        number_format($line['total'])
-                    )
-                );
+                if ($line['type'] === 'kelas') {
+                    // Format for kelas (package) - shows detail about attendance
+                    $lines->push(
+                        sprintf(
+                            '   - *[KELAS]* %s: *Rp %s* = *Rp %s*',
+                            $line['label'],
+                            number_format($line['rate']),
+                            number_format($line['total'])
+                        )
+                    );
+                } else {
+                    // Format for privat (per-session) - shows session count
+                    $lines->push(
+                        sprintf(
+                            '   - Tentor *%s*: *%d* x *Rp %s* = *Rp %s*',
+                            $line['label'],
+                            $line['count'],
+                            number_format($line['rate']),
+                            number_format($line['total'])
+                        )
+                    );
+                }
                 $discount = $line['discount'] ?? null;
                 if ($discount && $discount['type']) {
                     if ($discount['type'] === 'final') {

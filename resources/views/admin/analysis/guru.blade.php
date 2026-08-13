@@ -117,7 +117,14 @@
                                         <tbody class="bg-white divide-y divide-gray-200">
                                             @foreach ($selected['lines'] as $line)
                                                 <tr>
-                                                    <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm text-gray-900">{{ $line['label'] }}</td>
+                                                    <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm text-gray-900">
+                                                        {{ $line['label'] }}
+                                                        @if ($line['type'] === 'kelas')
+                                                            <span class="ml-2 inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">Kelas</span>
+                                                        @else
+                                                            <span class="ml-2 inline-flex items-center rounded-full bg-purple-50 px-2 py-1 text-xs font-medium text-purple-700">Privat</span>
+                                                        @endif
+                                                    </td>
                                                     <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm text-gray-600">Rp {{ number_format($line['rate']) }}</td>
                                                     <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm text-gray-600">{{ $line['count'] }}x</td>
                                                     <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm text-gray-600">Rp {{ number_format($line['total']) }}</td>
