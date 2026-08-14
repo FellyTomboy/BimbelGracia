@@ -8,16 +8,6 @@
             </div>
             <div class="flex items-center gap-3">
                 <a href="{{ route('admin.students.inactive') }}" class="inline-flex items-center px-4 py-2 rounded-xl border border-slate-300 bg-slate-100 text-sm font-medium text-slate-800 shadow-sm hover:bg-slate-200 hover:border-slate-400 transition-all">Data tidak aktif</a>
-                <form method="POST" action="{{ route('admin.finance.snapshot.students') }}" class="flex items-center gap-2">
-                    @csrf
-                    <input type="number" name="month" value="{{ now()->month }}" min="1" max="12" class="w-20 rounded-xl border-gray-200 text-sm" aria-label="Bulan" />
-                    <input type="number" name="year" value="{{ now()->year }}" min="2020" max="2100" class="w-24 rounded-xl border-gray-200 text-sm" aria-label="Tahun" />
-                    <button type="submit" class="inline-flex items-center px-4 py-2 rounded-xl border border-slate-300 bg-slate-100 text-sm font-medium text-slate-800 shadow-sm hover:bg-slate-200 hover:border-slate-400 transition-all">Snapshot</button>
-                </form>
-                <a href="{{ route('admin.students.create') }}" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition-all shadow-sm">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                    Tambah Murid
-                </a>
             </div>
         </div>
     </x-slot>
@@ -70,24 +60,19 @@
                                     <td class="py-3 px-4 font-medium text-gray-900">{{ $student->display_name }}</td>
                                     <td class="py-3 px-4 text-gray-600">{{ $student->parent?->user?->phone ?? '-' }}</td>
                                     <td class="py-3 px-4">
-                                        <div class="flex items-center gap-2">
-                                            <a href="{{ route('admin.students.edit', $student) }}" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors">
-                                                Edit
-                                            </a>
-                                            <form method="POST" action="{{ route('admin.students.destroy', $student) }}" onsubmit="return confirm('Hibernasi murid ini?')">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">
-                                                    Hibernasi
-                                                </button>
-                                            </form>
-                                        </div>
+                                        <form method="POST" action="{{ route('admin.students.destroy', $student) }}" onsubmit="return confirm('Hibernasi murid ini?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">
+                                                Hibernasi
+                                            </button>
+                                        </form>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
                                     <td colspan="5">
-                                        <x-empty-state icon="👨‍🎓" title="Belum ada murid" description="Tambahkan murid baru untuk memulai." action="Tambah Murid" actionUrl="{{ route('admin.students.create') }}" />
+                                        <x-empty-state icon="👨‍🎓" title="Belum ada murid" description="Tambahkan murid melalui halaman Parent." />
                                     </td>
                                 </tr>
                             @endforelse

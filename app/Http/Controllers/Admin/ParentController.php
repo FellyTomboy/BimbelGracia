@@ -45,12 +45,12 @@ class ParentController extends Controller
         $validated = $request->validate([
             'name' => ['nullable', 'string', 'max:255'],
             'phone' => ['required', 'string', 'max:20', 'unique:users,phone'],
-            'password' => ['required', 'string', 'min:6'],
             'students' => ['nullable', 'array'],
             'students.*.nickname' => ['nullable', 'string', 'max:255'],
             'students.*.full_name' => ['nullable', 'string', 'max:255'],
         ]);
 
+        $defaultPassword = config('bimbel.default_password', 'password');
         $phone = $this->cleanPhone($validated['phone']);
         $parentName = trim((string) ($validated['name'] ?? '')) ?: null;
 
@@ -58,8 +58,8 @@ class ParentController extends Controller
             'name' => $parentName ?: 'Orang Tua',
             'phone' => $phone,
             'role' => UserRole::Parent,
-            'password' => Hash::make($validated['password']),
-            'must_change_password' => false,
+            'password' => Hash::make($defaultPassword),
+            'must_change_password' => true,
         ]);
 
         $parent = ParentModel::create([
@@ -137,15 +137,18 @@ class ParentController extends Controller
 
     public function hibernate(ParentModel $parent): RedirectResponse
     {
-        if ($parent->students()->count() > 0) {
-            return back()->withErrors(['error' => 'Tidak dapat menghibernasi parent yang masih memiliki murid. Hapus/hibernasi murid terlebih dahulu.']);
+        // Cascade: hibernasi parent + semua murid di bawahnya
+        foreach ($parent->students as $student) {
+            $student->status = 'hibernasi';
+            $student->save();
+            $student->delete();
         }
 
         $parent->user->delete();
         $parent->delete();
 
         return redirect()->route('admin.parents.index')
-            ->with('status', 'Parent berhasil dihibernasi.');
+            ->with('status', 'Parent beserta semua murid berhasil dihibernasi.');
     }
 
     public function restore(int $parentId): RedirectResponse
@@ -158,8 +161,15 @@ class ParentController extends Controller
             $parent->user->restore();
         }
 
+        // Cascade: restore semua murid
+        foreach (Student::withTrashed()->where('parent_id', $parent->id)->get() as $student) {
+            $student->restore();
+            $student->status = 'active';
+            $student->save();
+        }
+
         return redirect()->route('admin.parents.index')
-            ->with('status', 'Parent berhasil dipulihkan.');
+            ->with('status', 'Parent beserta semua murid berhasil dipulihkan.');
     }
 
     public function bulkDestroy(Request $request): RedirectResponse
@@ -173,7 +183,14 @@ class ParentController extends Controller
 
         foreach ($validated['ids'] as $id) {
             $parent = ParentModel::find($id);
-            if ($parent && $parent->students()->count() === 0) {
+            if ($parent) {
+                // Cascade: hibernasi parent + semua murid di bawahnya
+                foreach ($parent->students as $student) {
+                    $student->status = 'hibernasi';
+                    $student->save();
+                    $student->delete();
+                }
+
                 $parent->user->delete();
                 $parent->delete();
                 $count++;
@@ -182,7 +199,7 @@ class ParentController extends Controller
 
         return redirect()
             ->route('admin.parents.index')
-            ->with('status', "{$count} parent berhasil dihibernasi.");
+            ->with('status', "{$count} parent beserta murid-muridnya berhasil dihibernasi.");
     }
 
     public function addStudent(Request $request, ParentModel $parent): RedirectResponse
@@ -209,11 +226,13 @@ class ParentController extends Controller
             abort(404);
         }
 
+        $student->status = 'hibernasi';
+        $student->save();
         $student->delete();
 
         return redirect()
             ->route('admin.parents.edit', $parent)
-            ->with('status', "Murid {$student->display_name} berhasil dihapus.");
+            ->with('status', "Murid {$student->display_name} berhasil dihibernasi.");
     }
 
     public function changePassword(Request $request, ParentModel $parent): RedirectResponse
@@ -235,12 +254,17 @@ class ParentController extends Controller
     {
         $phone = preg_replace('/[^0-9]/', '', $phone);
 
-        if (strlen($phone) > 12) {
-            $phone = substr($phone, -12);
+        // Keep as 08XXXXXXXXX format in database
+        // Only convert to 628 when generating wa.me links (via WhatsappHelper)
+        if (strlen($phone) > 13) {
+            $phone = substr($phone, -13);
         }
 
-        if (substr($phone, 0, 1) === '0') {
-            $phone = '62' . substr($phone, 1);
+        // Ensure starts with 08
+        if (str_starts_with($phone, '62')) {
+            $phone = '0' . substr($phone, 2);
+        } elseif (! str_starts_with($phone, '0')) {
+            $phone = '0' . $phone;
         }
 
         return $phone;

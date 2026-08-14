@@ -2,18 +2,13 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\ParentModel;
 use App\Models\Student;
-use App\Models\User;
 use App\Services\MonthlySnapshotSyncService;
 use App\Traits\SearchAndSort;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
 
 class StudentController extends Controller
@@ -23,6 +18,7 @@ class StudentController extends Controller
     public function __construct(private MonthlySnapshotSyncService $snapshotSyncService)
     {
     }
+
     public function index(Request $request): View
     {
         $params = $this->getSearchSortParams($request);
@@ -52,122 +48,9 @@ class StudentController extends Controller
             ->latest('deleted_at')
             ->get();
 
-        return view('admin.students.inactive', compact('students'));
-    }
+        $parents = ParentModel::with(['user', 'students'])->orderBy('name')->get();
 
-    public function create(): View
-    {
-        return view('admin.students.create');
-    }
-
-    public function store(Request $request): RedirectResponse
-    {
-        $validated = $request->validate([
-            'nickname' => ['required', 'string'],
-            'full_name' => ['nullable', 'string'],
-            'parent_name' => ['nullable', 'string', 'max:255'],
-            'whatsapp' => ['required', 'string', 'max:32', 'unique:users,phone'],
-            'address' => ['nullable', 'string'],
-            'status' => ['required', 'in:active,hibernasi'],
-        ]);
-
-        $nickname = trim((string) ($validated['nickname'] ?? ''));
-        $fullName = trim((string) ($validated['full_name'] ?? ''));
-        $parentName = trim((string) ($validated['parent_name'] ?? '')) ?: null;
-
-        if ($nickname === '') {
-            throw \Illuminate\Validation\ValidationException::withMessages([
-                'nickname' => ['Nickname murid wajib diisi.'],
-            ]);
-        }
-
-        $defaultPassword = config('bimbel.default_password', '12345678');
-        $phone = $validated['whatsapp'];
-
-        DB::transaction(function () use ($phone, $defaultPassword, $nickname, $fullName, $parentName, $validated) {
-            $userName = $parentName ?: 'Orang Tua';
-
-            $user = User::create([
-                'name' => $userName,
-                'phone' => $phone,
-                'role' => UserRole::Parent,
-                'password' => Hash::make($defaultPassword),
-                'must_change_password' => true,
-            ]);
-
-            $parent = ParentModel::create([
-                'user_id' => $user->id,
-                'name' => $parentName,
-            ]);
-
-            Student::create([
-                'parent_id' => $parent->id,
-                'nickname' => $nickname,
-                'full_name' => $fullName !== '' ? $fullName : null,
-                'address' => $validated['address'] ?? null,
-                'status' => $validated['status'],
-            ]);
-        });
-
-        return redirect()
-            ->route('admin.students.index')
-            ->with('status', 'Murid berhasil dibuat.');
-    }
-
-    public function edit(Student $student): View
-    {
-        $student->load('parent.user');
-        return view('admin.students.edit', compact('student'));
-    }
-
-    public function update(Request $request, Student $student): RedirectResponse
-    {
-        $validated = $request->validate([
-            'nickname' => ['required', 'string'],
-            'full_name' => ['nullable', 'string'],
-            'parent_name' => ['nullable', 'string', 'max:255'],
-            'whatsapp' => ['required', 'string', 'max:32', 'unique:users,phone,'.($student->parent?->user_id ?? 'NULL')],
-            'address' => ['nullable', 'string'],
-            'status' => ['required', 'in:active,hibernasi'],
-        ]);
-
-        $nickname = trim((string) ($validated['nickname'] ?? ''));
-        $fullName = trim((string) ($validated['full_name'] ?? ''));
-        $parentName = trim((string) ($validated['parent_name'] ?? '')) ?: null;
-
-        if ($nickname === '') {
-            throw \Illuminate\Validation\ValidationException::withMessages([
-                'nickname' => ['Nickname murid wajib diisi.'],
-            ]);
-        }
-
-        $phone = $validated['whatsapp'];
-
-        DB::transaction(function () use ($student, $nickname, $fullName, $parentName, $validated, $phone) {
-            $student->update([
-                'nickname' => $nickname,
-                'full_name' => $fullName !== '' ? $fullName : null,
-                'address' => $validated['address'] ?? null,
-                'status' => $validated['status'],
-            ]);
-
-            if ($student->parent) {
-                $student->parent->update([
-                    'name' => $parentName,
-                ]);
-
-                if ($student->parent->user) {
-                    $student->parent->user->update([
-                        'name' => $parentName ?: 'Orang Tua',
-                        'phone' => $phone,
-                    ]);
-                }
-            }
-        });
-
-        return redirect()
-            ->route('admin.students.index')
-            ->with('status', 'Murid berhasil diperbarui.');
+        return view('admin.students.inactive', compact('students', 'parents'));
     }
 
     public function destroy(Student $student): RedirectResponse
@@ -181,7 +64,7 @@ class StudentController extends Controller
         $this->snapshotSyncService->syncAll();
 
         return redirect()
-            ->route('admin.students.index')
+            ->route('admin.students.inactive')
             ->with('status', 'Murid dihibernasi.');
     }
 
@@ -211,20 +94,74 @@ class StudentController extends Controller
             ->with('status', "{$count} murid berhasil dihibernasi.");
     }
 
-    public function restore(int $studentId): RedirectResponse
+    public function restore(Request $request, int $studentId): RedirectResponse
     {
         $student = Student::withTrashed()->findOrFail($studentId);
 
-        $student->restore();
+        $validated = $request->validate([
+            'parent_id' => ['nullable', 'integer', 'exists:parents,id'],
+            'new_parent_name' => ['nullable', 'string', 'max:255'],
+            'new_parent_phone' => ['nullable', 'string', 'max:20'],
+        ]);
 
+        // If student had a parent that's still active, restore to that parent
+        $parentId = $validated['parent_id'] ?? $student->parent_id;
+
+        // If no parent selected and no new parent info, try original parent
+        if (! $parentId && blank($validated['new_parent_name']) && blank($validated['new_parent_phone'])) {
+            $originalParent = ParentModel::withTrashed()->find($student->parent_id);
+            if ($originalParent) {
+                $parentId = $originalParent->id;
+            } else {
+                return back()->withErrors(['parent_id' => 'Pilih parent atau buat parent baru untuk murid ini.'])->withInput();
+            }
+        }
+
+        // Create new parent if new info provided
+        if (! $parentId && $validated['new_parent_phone']) {
+            $parent = $this->createParent(
+                $validated['new_parent_name'] ?? 'Orang Tua',
+                $validated['new_parent_phone']
+            );
+            $parentId = $parent->id;
+        }
+
+        // Restore student
+        $student->restore();
         $student->update([
             'status' => 'active',
+            'parent_id' => $parentId,
         ]);
 
         $this->snapshotSyncService->syncAll();
 
         return redirect()
-            ->route('admin.students.index')
+            ->route('admin.students.inactive')
             ->with('status', 'Murid berhasil dipulihkan.');
+    }
+
+    private function createParent(string $name, string $phone): ParentModel
+    {
+        $phone = preg_replace('/[^0-9]/', '', $phone);
+        if (str_starts_with($phone, '62')) {
+            $phone = '0' . substr($phone, 2);
+        } elseif (! str_starts_with($phone, '0')) {
+            $phone = '0' . $phone;
+        }
+
+        $defaultPassword = config('bimbel.default_password', 'password');
+
+        $user = \App\Models\User::create([
+            'name' => $name,
+            'phone' => $phone,
+            'role' => \App\Enums\UserRole::Parent,
+            'password' => \Illuminate\Support\Facades\Hash::make($defaultPassword),
+            'must_change_password' => true,
+        ]);
+
+        return ParentModel::create([
+            'user_id' => $user->id,
+            'name' => $name,
+        ]);
     }
 }

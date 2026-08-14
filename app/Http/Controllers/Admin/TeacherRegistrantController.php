@@ -37,6 +37,8 @@ class TeacherRegistrantController extends Controller
 
         // Check if whatsapp already exists
         $existingTeacher = Teacher::where('whatsapp', $teacherRegistrant->whatsapp)->first();
+        $phone = $this->cleanPhone($teacherRegistrant->whatsapp);
+
         if ($existingTeacher) {
             $teacherRegistrant->update(['converted' => true]);
             return redirect()
@@ -50,13 +52,13 @@ class TeacherRegistrantController extends Controller
             'email' => 'guru_' . Str::random(8) . '@bimbelgracia.com',
             'password' => Hash::make(Str::random(16)),
             'role' => UserRole::Guru,
-            'phone' => $teacherRegistrant->whatsapp,
+            'phone' => $phone,
         ]);
 
         Teacher::create([
             'user_id' => $user->id,
             'name' => $teacherRegistrant->name,
-            'whatsapp' => $teacherRegistrant->whatsapp,
+            'whatsapp' => $phone,
             'major' => $teacherRegistrant->major,
             'subjects' => $teacherRegistrant->subjects,
             'address' => $teacherRegistrant->address,
@@ -87,5 +89,24 @@ class TeacherRegistrantController extends Controller
         return redirect()
             ->route('admin.teacher-registrants.index')
             ->with('status', 'Semua data pendaftar guru berhasil dihapus.');
+    }
+
+    private function cleanPhone(string $phone): string
+    {
+        $phone = preg_replace('/[^0-9]/', '', $phone);
+
+        // Keep as 08XXXXXXXXX format in database
+        if (strlen($phone) > 13) {
+            $phone = substr($phone, -13);
+        }
+
+        // Ensure starts with 08
+        if (str_starts_with($phone, '62')) {
+            $phone = '0' . substr($phone, 2);
+        } elseif (! str_starts_with($phone, '0')) {
+            $phone = '0' . $phone;
+        }
+
+        return $phone;
     }
 }

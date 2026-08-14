@@ -21,11 +21,7 @@
                         @error('phone') <p class="text-rose-600 text-xs mt-1">{{ $message }}</p> @enderror
                     </div>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Password</label>
-                        <input type="password" name="password" class="mt-1 w-full border-gray-300 rounded-md" required minlength="6" />
-                        @error('password') <p class="text-rose-600 text-xs mt-1">{{ $message }}</p> @enderror
-                    </div>
+                    <p class="text-xs text-gray-500">Password default: <code class="bg-gray-100 px-1 rounded">{{ config('bimbel.default_password', 'password') }}</code> (akan diminta ganti saat login pertama)</p>
 
                     <hr class="my-4">
 

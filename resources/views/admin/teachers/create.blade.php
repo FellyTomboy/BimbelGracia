@@ -31,6 +31,7 @@
                         <input type="text" name="whatsapp" value="{{ old('whatsapp') }}" class="mt-1 w-full border-gray-300 rounded-md" placeholder="08XXXXXXXXXX" required />
                         @error('whatsapp')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
                     </div>
+                    <p class="text-xs text-gray-500">Password default: <code class="bg-gray-100 px-1 rounded">{{ config('bimbel.default_password', 'password') }}</code> (akan diminta ganti saat login pertama)</p>
                     <div class="grid md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Jurusan</label>

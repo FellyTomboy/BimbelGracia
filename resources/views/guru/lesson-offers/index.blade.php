@@ -68,7 +68,7 @@
                                         @if ($contact)
                                             <div class="flex items-center gap-2">
                                                 <textarea class="w-full rounded-xl border-gray-200 text-sm bg-gray-50" rows="2" readonly>{{ $message }}</textarea>
-                                                <a href="https://wa.me/{{ $contact }}?text={{ urlencode($message) }}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 transition-colors whitespace-nowrap">Chat WA</a>
+                                                <a href="https://wa.me/{{ App\Helpers\WhatsappHelper::toWaFormat($contact) }}?text={{ urlencode($message) }}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 transition-colors whitespace-nowrap">Chat WA</a>
                                             </div>
                                         @else
                                             <span class="text-gray-500 text-sm">Kontak admin belum diatur.</span>

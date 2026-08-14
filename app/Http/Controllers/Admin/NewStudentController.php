@@ -37,7 +37,7 @@ class NewStudentController extends Controller
         }
 
         $parentName = $newStudent->parent_name;
-        $parentWhatsapp = $newStudent->whatsapp;
+        $parentWhatsapp = $this->cleanPhone($newStudent->whatsapp);
         $address = $newStudent->address;
         $studentsData = $newStudent->students_data ?? [];
 
@@ -114,5 +114,24 @@ class NewStudentController extends Controller
         return redirect()
             ->route('admin.new-students.index')
             ->with('status', 'Semua data pendaftar berhasil dihapus.');
+    }
+
+    private function cleanPhone(string $phone): string
+    {
+        $phone = preg_replace('/[^0-9]/', '', $phone);
+
+        // Keep as 08XXXXXXXXX format in database
+        if (strlen($phone) > 13) {
+            $phone = substr($phone, -13);
+        }
+
+        // Ensure starts with 08
+        if (str_starts_with($phone, '62')) {
+            $phone = '0' . substr($phone, 2);
+        } elseif (! str_starts_with($phone, '0')) {
+            $phone = '0' . $phone;
+        }
+
+        return $phone;
     }
 }

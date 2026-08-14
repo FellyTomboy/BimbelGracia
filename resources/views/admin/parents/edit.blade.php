@@ -79,9 +79,9 @@
                                         <td class="py-2 pr-4">{{ $student->display_name }}</td>
                                         <td class="py-2 pr-4">{{ $student->status }}</td>
                                         <td class="py-2">
-                                            <form method="POST" action="{{ route('admin.parents.remove-student', [$parent->id, $student->id]) }}" onsubmit="return confirm('Hapus murid {{ $student->display_name }}?')" class="inline">
+                                            <form method="POST" action="{{ route('admin.parents.remove-student', [$parent->id, $student->id]) }}" onsubmit="return confirm('Hibernasi murid {{ $student->display_name }}?')" class="inline">
                                                 @csrf @method('DELETE')
-                                                <button type="submit" class="text-rose-600 hover:text-rose-900">Hapus</button>
+                                                <button type="submit" class="text-rose-600 hover:text-rose-900">Hibernasi</button>
                                             </form>
                                         </td>
                                     </tr>

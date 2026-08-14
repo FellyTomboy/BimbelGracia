@@ -142,8 +142,8 @@ class TeacherController extends Controller
         $displayName = trim((string) ($validated['full_name'] ?? '')) ?: trim((string) ($validated['name'] ?? '')) ?: null;
         $nickname = trim((string) ($validated['nickname'] ?? '')) ?: $displayName;
 
-        $defaultPassword = config('bimbel.default_password', '12345678');
-        $phone = $validated['whatsapp'];
+        $defaultPassword = config('bimbel.default_password', 'password');
+        $phone = $this->cleanPhone($validated['whatsapp']);
 
         $user = User::create([
             'name' => $displayName ?: 'Guru',
@@ -199,7 +199,7 @@ class TeacherController extends Controller
 
         $displayName = trim((string) ($validated['full_name'] ?? '')) ?: trim((string) ($validated['name'] ?? '')) ?: $teacher->full_name ?: $teacher->name ?: $teacher->nickname;
         $nickname = trim((string) ($validated['nickname'] ?? '')) ?: $teacher->nickname ?: $displayName;
-        $phone = $validated['whatsapp'];
+        $phone = $this->cleanPhone($validated['whatsapp']);
 
         $teacher->update([
             'name' => $displayName ?: $teacher->name ?: 'Guru',
@@ -263,8 +263,28 @@ class TeacherController extends Controller
             'must_change_password' => false,
         ]);
 
-        return redirect()->route('admin.teachers.index')
+        return redirect()->route('admin.teachers.edit', $teacher)
             ->with('status', 'Password guru berhasil diubah.');
+    }
+
+    private function cleanPhone(string $phone): string
+    {
+        $phone = preg_replace('/[^0-9]/', '', $phone);
+
+        // Keep as 08XXXXXXXXX format in database
+        // Only convert to 628 when generating wa.me links (via WhatsappHelper)
+        if (strlen($phone) > 13) {
+            $phone = substr($phone, -13);
+        }
+
+        // Ensure starts with 08
+        if (str_starts_with($phone, '62')) {
+            $phone = '0' . substr($phone, 2);
+        } elseif (! str_starts_with($phone, '0')) {
+            $phone = '0' . $phone;
+        }
+
+        return $phone;
     }
 
     public function bulkDestroy(Request $request): RedirectResponse

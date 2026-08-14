@@ -74,18 +74,12 @@
                                                 <a href="{{ route('admin.parents.edit', $parent->id) }}" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors">
                                                     Edit
                                                 </a>
-                                                @if ($parent->students->count() === 0)
-                                                    <form method="POST" action="{{ route('admin.parents.hibernate', $parent->id) }}" onsubmit="return confirm('Hibernasi parent ini?')">
-                                                        @csrf
-                                                        <button type="submit" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">
-                                                            Hibernasi
-                                                        </button>
-                                                    </form>
-                                                @else
-                                                    <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-400 bg-gray-50 cursor-not-allowed" title="Hapus murid terlebih dahulu">
+                                                <form method="POST" action="{{ route('admin.parents.hibernate', $parent->id) }}" onsubmit="return confirm('Hibernasi parent ini? Semua murid di bawahnya juga akan dihibernasi.')">
+                                                    @csrf
+                                                    <button type="submit" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">
                                                         Hibernasi
-                                                    </span>
-                                                @endif
+                                                    </button>
+                                                </form>
                                             </div>
                                         </td>
                                     </tr>

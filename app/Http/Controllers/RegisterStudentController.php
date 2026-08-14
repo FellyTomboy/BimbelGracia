@@ -52,7 +52,7 @@ class RegisterStudentController extends Controller
         NewStudent::create([
             'name' => $validated['parent_name'],
             'parent_name' => $validated['parent_name'],
-            'whatsapp' => $validated['whatsapp'],
+            'whatsapp' => $this->cleanPhone($validated['whatsapp']),
             'address' => $validated['address'] ?? null,
             'students_data' => $validated['students'],
             'notes' => $validated['notes'] ?? null,
@@ -66,5 +66,24 @@ class RegisterStudentController extends Controller
     public function success(): View
     {
         return view('register-student.success');
+    }
+
+    private function cleanPhone(string $phone): string
+    {
+        $phone = preg_replace('/[^0-9]/', '', $phone);
+
+        // Keep as 08XXXXXXXXX format in database
+        if (strlen($phone) > 13) {
+            $phone = substr($phone, -13);
+        }
+
+        // Ensure starts with 08
+        if (str_starts_with($phone, '62')) {
+            $phone = '0' . substr($phone, 2);
+        } elseif (! str_starts_with($phone, '0')) {
+            $phone = '0' . $phone;
+        }
+
+        return $phone;
     }
 }
