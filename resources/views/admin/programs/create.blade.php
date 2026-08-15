@@ -14,38 +14,49 @@
                         <input name="name" value="{{ old('name') }}" class="mt-1 w-full border-gray-300 rounded-md" required />
                         @error('name')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
                     </div>
+
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Tipe</label>
-                        <select name="type" class="mt-1 w-full border-gray-300 rounded-md" required>
+                        <select name="type" id="program-type" class="mt-1 w-full border-gray-300 rounded-md" required>
                             <option value="">Pilih tipe</option>
                             <option value="privat" @selected(old('type') === 'privat')>privat</option>
                             <option value="kelas" @selected(old('type') === 'kelas')>kelas</option>
-                            <option value="online" @selected(old('type') === 'online')>online</option>
                         </select>
                         @error('type')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
                     </div>
-                    <div>
+
+                    {{-- Mapel: hanya tampil untuk privat --}}
+                    <div id="field-subject">
                         <label class="block text-sm font-medium text-gray-700">Mapel</label>
                         <input name="subject" value="{{ old('subject') }}" class="mt-1 w-full border-gray-300 rounded-md" />
                         @error('subject')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Deskripsi</label>
-                        <textarea name="description" rows="3" class="mt-1 w-full border-gray-300 rounded-md">{{ old('description') }}</textarea>
-                        @error('description')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+
+                    {{-- Harga untuk privat --}}
+                    <div id="section-privat-price" class="hidden">
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Default Harga Ortu</label>
+                                <input type="number" name="default_parent_rate" value="{{ old('default_parent_rate', 0) }}" min="1" step="5000" class="mt-1 w-full border-gray-300 rounded-md" />
+                                @error('default_parent_rate')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Default Gaji Guru</label>
+                                <input type="number" name="default_teacher_rate" value="{{ old('default_teacher_rate', 0) }}" min="1" step="5000" class="mt-1 w-full border-gray-300 rounded-md" />
+                                @error('default_teacher_rate')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                            </div>
+                        </div>
                     </div>
-                    <div class="grid md:grid-cols-2 gap-4">
+
+                    {{-- Harga paket untuk kelas --}}
+                    <div id="section-kelas-price" class="hidden">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">Default Harga Ortu</label>
-                            <input type="number" name="default_parent_rate" value="{{ old('default_parent_rate', 0) }}" step="5000" class="mt-1 w-full border-gray-300 rounded-md" required />
+                            <label class="block text-sm font-medium text-gray-700">Harga Paket Kelas</label>
+                            <input type="number" name="default_parent_rate" value="{{ old('default_parent_rate', 0) }}" min="1" step="5000" class="mt-1 w-full border-gray-300 rounded-md" />
                             @error('default_parent_rate')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Default Gaji Guru</label>
-                            <input type="number" name="default_teacher_rate" value="{{ old('default_teacher_rate', 0) }}" step="5000" class="mt-1 w-full border-gray-300 rounded-md" required />
-                            @error('default_teacher_rate')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
-                        </div>
                     </div>
+
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Status</label>
                         <select name="status" class="mt-1 w-full border-gray-300 rounded-md" required>
@@ -53,6 +64,12 @@
                             <option value="hibernasi" @selected(old('status') === 'hibernasi')>hibernasi</option>
                         </select>
                         @error('status')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Deskripsi</label>
+                        <textarea name="description" rows="3" class="mt-1 w-full border-gray-300 rounded-md">{{ old('description') }}</textarea>
+                        @error('description')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
                     </div>
 
                     <div class="flex justify-end gap-3">
@@ -63,4 +80,41 @@
             </div>
         </div>
     </div>
+
+    <style>
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
+            appearance: textfield;
+        }
+    </style>
+
+    <script>
+        const typeSelect = document.getElementById('program-type');
+        const fieldSubject = document.getElementById('field-subject');
+        const sectionPrivat = document.getElementById('section-privat-price');
+        const sectionKelas = document.getElementById('section-kelas-price');
+
+        function toggleFields(type) {
+            if (type === 'kelas') {
+                fieldSubject.classList.add('hidden');
+                sectionPrivat.classList.add('hidden');
+                sectionKelas.classList.remove('hidden');
+            } else {
+                fieldSubject.classList.remove('hidden');
+                sectionPrivat.classList.remove('hidden');
+                sectionKelas.classList.add('hidden');
+            }
+        }
+
+        toggleFields(typeSelect.value);
+
+        typeSelect.addEventListener('change', () => {
+            toggleFields(typeSelect.value);
+        });
+    </script>
 </x-app-layout>

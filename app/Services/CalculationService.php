@@ -47,32 +47,8 @@ class CalculationService
                 $s = $attendance->students->firstWhere('id', $student->id);
                 return (int) ($s?->pivot?->total_present ?? 0);
             });
-            $penalty = 0;
-            if ($enrollment && $enrollment->hasAttendancePenalty($totalSessions, $studentTotalPresent)) {
-                $penalty = $totalCount * 5000;
-            }
-
-            $discount = 0;
-            if ($enrollment) {
-                $discountRecord = EnrollmentStudentDiscount::where('enrollment_id', $enrollment->id)
-                    ->where('student_id', $student->id)
-                    ->where('month', $month)
-                    ->where('year', $year)
-                    ->first();
-                if ($discountRecord) {
-                    $type = strtolower($discountRecord->discount_type ?? '');
-                    $value = (int) ($discountRecord->discount_value ?? 0);
-                    if ($type === 'percent' || $type === 'percentage') {
-                        $percent = max(0, min(100, $value));
-                        $discount = (int) round($subtotal * $percent / 100);
-                    } elseif ($type === 'amount') {
-                        $discount = min($value, $subtotal);
-                    } elseif ($type === 'final') {
-                        $finalTotal = max(0, min($value, $subtotal));
-                        $discount = $subtotal - $finalTotal;
-                    }
-                }
-            }
+            $penalty = $this->resolveAttendancePenalty($enrollment, $totalCount, $studentTotalPresent);
+            $discount = $this->resolveDiscountForBilling($enrollment, $student->id, $month, $year, $subtotal);
 
             $detailLabel = $presentCount > 1 ? ' (grup ' . $presentCount . ' siswa)' : '';
 
@@ -102,6 +78,8 @@ class CalculationService
             $attendancePercent = $agreedSessions > 0 ? ($studentTotalPresent / $agreedSessions) * 100 : 0;
             $finalRate = $attendancePercent <= 50 ? (int) round((float) ($enrollment->parent_rate ?? 0) * 0.5) : (int) ($enrollment->parent_rate ?? 0);
 
+            $discount = $this->resolveDiscountForBilling($enrollment, $student->id, $month, $year, $finalRate);
+
             $rows->push([
                 'enrollment_id' => $enrollmentId,
                 'program' => $enrollment?->program?->name ?? '-',
@@ -109,9 +87,9 @@ class CalculationService
                 'count' => 1,
                 'rate' => $finalRate,
                 'subtotal' => $finalRate,
-                'discount' => 0,
+                'discount' => $discount,
                 'penalty' => 0,
-                'total' => $finalRate,
+                'total' => $finalRate - $discount,
                 'detail' => sprintf('Paket %d sesi - Hadir %d/%d (%d%%)', $agreedSessions, $studentTotalPresent, $agreedSessions, (int) $attendancePercent),
                 'present_count' => 1,
                 'type' => 'kelas',
@@ -126,6 +104,43 @@ class CalculationService
             'total_discount' => $rows->sum('discount'),
             'total_penalty' => $rows->sum('penalty'),
         ];
+    }
+
+    private function resolveAttendancePenalty(?Enrollment $enrollment, int $totalSessions, int $studentTotalPresent): int
+    {
+        if (! $enrollment || ! $enrollment->hasAttendancePenalty($totalSessions, $studentTotalPresent)) {
+            return 0;
+        }
+        return $totalSessions * 5000;
+    }
+
+    private function resolveDiscountForBilling(?Enrollment $enrollment, int $studentId, int $month, int $year, int $baseTotal): int
+    {
+        if (! $enrollment) {
+            return 0;
+        }
+        $record = EnrollmentStudentDiscount::where('enrollment_id', $enrollment->id)
+            ->where('student_id', $studentId)
+            ->where('month', $month)
+            ->where('year', $year)
+            ->first();
+        if (! $record) {
+            return 0;
+        }
+        $type = strtolower((string) ($record->discount_type ?? ''));
+        $value = (int) ($record->discount_value ?? 0);
+        if ($type === 'percent' || $type === 'percentage') {
+            $percent = max(0, min(100, $value));
+            return (int) round($baseTotal * $percent / 100);
+        }
+        if ($type === 'amount') {
+            return min($value, $baseTotal);
+        }
+        if ($type === 'final') {
+            $finalTotal = max(0, min($value, $baseTotal));
+            return $baseTotal - $finalTotal;
+        }
+        return 0;
     }
 
     /**

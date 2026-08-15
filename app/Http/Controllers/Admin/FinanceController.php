@@ -32,19 +32,46 @@ class FinanceController extends Controller
             ->where('enrollments.type', '!=', 'kelas')
             ->sum(DB::raw('attendance_student.total_present * enrollment_attendances.parent_rate'));
 
-        // Class gross revenue (programs named "Kelas%")
-        $classGross = DB::table('enrollment_attendances')
-            ->join('enrollments', 'enrollment_attendances.enrollment_id', '=', 'enrollments.id')
-            ->join('attendance_student', 'enrollment_attendances.id', '=', 'attendance_student.attendance_id')
-            ->join('programs', 'enrollments.program_id', '=', 'programs.id')
-            ->whereIn('enrollment_attendances.status_validation', ['terima', 'terlambat'])
-            ->where('enrollment_attendances.month', $month)
-            ->where('enrollment_attendances.year', $year)
-            ->where('enrollments.type', '=', 'kelas')
-            ->sum(DB::raw('attendance_student.total_present * enrollment_attendances.parent_rate'));
+        // Class gross revenue: monthly package per student with 50% attendance rule
+        // Mirrors CalculationService billing logic:
+        // Per student, per enrollment, per month:
+        //   - if student attended <= 50% of agreed_sessions → charge 50% of parent_rate
+        //   - if student attended >  50% of agreed_sessions → charge 100% of parent_rate
+        //   - charge once per present session the student attended (not total_present × rate)
+        // Note: each attendance record where student was present = 1 session of the package.
+        $classGross = DB::table('enrollment_attendances as ea')
+            ->join('enrollments as e', 'ea.enrollment_id', '=', 'e.id')
+            ->join('attendance_student as ats', 'ea.id', '=', 'ats.attendance_id')
+            ->whereIn('ea.status_validation', ['terima', 'terlambat'])
+            ->where('ea.month', $month)
+            ->where('ea.year', $year)
+            ->where('e.type', '=', 'kelas')
+            ->selectRaw('
+                SUM(
+                    CASE
+                        WHEN ats.total_present > 0
+                             AND (ats.total_present * 1.0 / COALESCE(NULLIF(e.agreed_sessions_per_month, 0), 4)) <= 0.5
+                        THEN ROUND(ea.parent_rate * 0.5)
+                        WHEN ats.total_present > 0 THEN ea.parent_rate
+                        ELSE 0
+                    END
+                )
+            ')
+            ->value('class_revenue') ?? 0;
 
-        // Teacher cost: full rate for 'terima', 90% rate for 'terlambat' (10% penalty)
-        $privatTeacherCost = DB::table('enrollment_attendances')
+        $activeClassStudents = DB::table('monthly_student_snapshots')
+            ->where('month', $month)
+            ->where('year', $year)
+            ->value('class_students_count') ?? 0;
+
+        $gross = $privatGross + $classGross;
+
+        // Teacher cost: privat (full rate for terima, 90% for terlambat)
+        // Mathematically equivalent to: gross - (late_count * rate * 0.1)
+        //   Terima:   pays full rate                          → rate × 1.0
+        //   Terlambat: pays 90% of rate (10% deducted)     → rate × 0.9
+        // This mirrors CalculationService/AnalysisController formula: penalty = lateCount × rate × 0.1
+        $privatTeacherCostRaw = DB::table('enrollment_attendances')
             ->join('enrollments', 'enrollment_attendances.enrollment_id', '=', 'enrollments.id')
             ->join('programs', 'enrollments.program_id', '=', 'programs.id')
             ->selectRaw('
@@ -57,8 +84,21 @@ class FinanceController extends Controller
             ->where('enrollments.type', '!=', 'kelas')
             ->value('total') ?? 0;
 
-        $gross = $privatGross + $classGross;
-        $teacherCost = (int) $privatTeacherCost;
+        // Teacher cost: kelas (full rate for terima, 90% for terlambat)
+        // Same formula as privat — rate is stored as snapshot in enrollment_attendances.teacher_rate
+        $classTeacherCostRaw = DB::table('enrollment_attendances')
+            ->join('enrollments', 'enrollment_attendances.enrollment_id', '=', 'enrollments.id')
+            ->selectRaw('
+                SUM(CASE WHEN enrollment_attendances.status_validation = ? THEN enrollment_attendances.teacher_rate ELSE 0 END) +
+                SUM(CASE WHEN enrollment_attendances.status_validation = ? THEN enrollment_attendances.teacher_rate * 0.9 ELSE 0 END) as total
+            ', ['terima', 'terlambat'])
+            ->whereIn('enrollment_attendances.status_validation', ['terima', 'terlambat'])
+            ->where('enrollment_attendances.month', $month)
+            ->where('enrollment_attendances.year', $year)
+            ->where('enrollments.type', '=', 'kelas')
+            ->value('total') ?? 0;
+
+        $teacherCost = (int) $privatTeacherCostRaw + (int) $classTeacherCostRaw;
 
         $net = $gross - $teacherCost;
 
@@ -90,7 +130,7 @@ class FinanceController extends Controller
             'teacherCost' => $teacherCost,
             'net' => $net,
             'activeStudents' => $activeStudents,
-            'activeClassStudents' => 0,
+            'activeClassStudents' => $activeClassStudents,
             'activeTeachers' => $activeTeachers,
             'needsFix' => $needsFix,
 
@@ -206,21 +246,29 @@ class FinanceController extends Controller
                 ->groupBy('enrollment_attendances.year')
                 ->pluck('gross', 'year');
 
-            $classGross = DB::table('enrollment_attendances')
-                ->join('enrollments', 'enrollment_attendances.enrollment_id', '=', 'enrollments.id')
-                ->join('attendance_student', 'enrollment_attendances.id', '=', 'attendance_student.attendance_id')
-                ->join('programs', 'enrollments.program_id', '=', 'programs.id')
-                ->selectRaw('enrollment_attendances.year, SUM(attendance_student.total_present * enrollment_attendances.parent_rate) as gross')
-                ->whereIn('enrollment_attendances.status_validation', ['terima', 'terlambat'])
-                ->whereBetween('enrollment_attendances.year', [$rangeStart->year, $rangeEnd->year])
-                ->where('enrollments.type', '=', 'kelas')
-                ->groupBy('enrollment_attendances.year')
+            $classGross = DB::table('enrollment_attendances as ea')
+                ->join('enrollments as e', 'ea.enrollment_id', '=', 'e.id')
+                ->join('attendance_student as ats', 'ea.id', '=', 'ats.attendance_id')
+                ->selectRaw('ea.year, SUM(
+                    CASE
+                        WHEN ats.total_present > 0
+                             AND (ats.total_present * 1.0 / COALESCE(NULLIF(e.agreed_sessions_per_month, 0), 4)) <= 0.5
+                        THEN ROUND(ea.parent_rate * 0.5)
+                        WHEN ats.total_present > 0 THEN ea.parent_rate
+                        ELSE 0
+                    END
+                ) as gross')
+                ->whereIn('ea.status_validation', ['terima', 'terlambat'])
+                ->whereBetween('ea.year', [$rangeStart->year, $rangeEnd->year])
+                ->where('e.type', '=', 'kelas')
+                ->groupBy('ea.year')
                 ->pluck('gross', 'year');
 
             $cost = DB::table('enrollment_attendances')
                 ->join('enrollments', 'enrollment_attendances.enrollment_id', '=', 'enrollments.id')
                 ->join('programs', 'enrollments.program_id', '=', 'programs.id')
                 ->selectRaw('enrollment_attendances.year, SUM(CASE WHEN enrollment_attendances.status_validation = ? THEN enrollment_attendances.teacher_rate WHEN enrollment_attendances.status_validation = ? THEN enrollment_attendances.teacher_rate * 0.9 ELSE 0 END) as cost', ['terima', 'terlambat'])
+                // Terima: rate × 1.0; Terlambat: rate × 0.9 (equivalent to: gross - lateCount × rate × 0.1)
                 ->whereIn('enrollment_attendances.status_validation', ['terima', 'terlambat'])
                 ->whereBetween('enrollment_attendances.year', [$rangeStart->year, $rangeEnd->year])
                 ->where('enrollments.type', '!=', 'kelas')
@@ -268,22 +316,29 @@ class FinanceController extends Controller
             ->get()
             ->keyBy(fn ($r) => sprintf('%04d-%02d', $r->year, $r->month));
 
-        $classGross = DB::table('enrollment_attendances')
-            ->join('enrollments', 'enrollment_attendances.enrollment_id', '=', 'enrollments.id')
-            ->join('attendance_student', 'enrollment_attendances.id', '=', 'attendance_student.attendance_id')
-            ->join('programs', 'enrollments.program_id', '=', 'programs.id')
-            ->selectRaw('enrollment_attendances.year, enrollment_attendances.month, SUM(attendance_student.total_present * enrollment_attendances.parent_rate) as gross')
-            ->whereIn('enrollment_attendances.status_validation', ['terima', 'terlambat'])
-            ->where('enrollments.type', '=', 'kelas')
+        $classGross = DB::table('enrollment_attendances as ea')
+            ->join('enrollments as e', 'ea.enrollment_id', '=', 'e.id')
+            ->join('attendance_student as ats', 'ea.id', '=', 'ats.attendance_id')
+            ->selectRaw('ea.year, ea.month, SUM(
+                CASE
+                    WHEN ats.total_present > 0
+                         AND (ats.total_present * 1.0 / COALESCE(NULLIF(e.agreed_sessions_per_month, 0), 4)) <= 0.5
+                    THEN ROUND(ea.parent_rate * 0.5)
+                    WHEN ats.total_present > 0 THEN ea.parent_rate
+                    ELSE 0
+                END
+            ) as gross')
+            ->whereIn('ea.status_validation', ['terima', 'terlambat'])
+            ->where('e.type', '=', 'kelas')
             ->where(function ($builder) use ($conditions) {
                 foreach ($conditions as $condition) {
                     $builder->orWhere(fn ($sub) => $sub
-                        ->where('enrollment_attendances.month', $condition['month'])
-                        ->where('enrollment_attendances.year', $condition['year'])
+                        ->where('ea.month', $condition['month'])
+                        ->where('ea.year', $condition['year'])
                     );
                 }
             })
-            ->groupBy('enrollment_attendances.year', 'enrollment_attendances.month')
+            ->groupBy('ea.year', 'ea.month')
             ->get()
             ->keyBy(fn ($r) => sprintf('%04d-%02d', $r->year, $r->month));
 

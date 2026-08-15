@@ -38,7 +38,12 @@
                                 @endforeach
                             </div>
                         </div>
-                        <span class="font-semibold">Total: Rp {{ number_format($summary['total']) }}</span>
+                        <div class="text-right">
+                            @if (isset($summary['total_before']) && $summary['total_before'] > $summary['total'])
+                                <div class="text-xs text-gray-400 line-through">Rp {{ number_format($summary['total_before']) }}</div>
+                            @endif
+                            <span class="font-semibold">Rp {{ number_format($summary['total']) }}</span>
+                        </div>
                     </div>
                     <div class="p-4 text-gray-900 overflow-x-auto">
                         @foreach ($summary['students'] as $studentEntry)
@@ -51,6 +56,8 @@
                                             <th class="py-1">Tarif</th>
                                             <th class="py-1">Jumlah</th>
                                             <th class="py-1">Subtotal</th>
+                                            <th class="py-1">Diskon</th>
+                                            <th class="py-1">Total Akhir</th>
                                             <th class="py-1">Status</th>
                                             <th class="py-1">Bukti</th>
                                             <th class="py-1">Aksi</th>
@@ -63,6 +70,17 @@
                                                 <td class="py-1">Rp {{ number_format($line['rate']) }}</td>
                                                 <td class="py-1">{{ $line['count'] }}x</td>
                                                 <td class="py-1">Rp {{ number_format($line['total']) }}</td>
+                                                <td class="py-1">
+                                                    @if (($line['discount_amount'] ?? 0) > 0)
+                                                        <span class="text-rose-600 text-xs">-Rp {{ number_format($line['discount_amount']) }}</span>
+                                                        @if ($line['discount_label'])
+                                                            <span class="text-gray-400 text-xs block">{{ $line['discount_label'] }}</span>
+                                                        @endif
+                                                    @else
+                                                        <span class="text-gray-400 text-xs">-</span>
+                                                    @endif
+                                                </td>
+                                                <td class="py-1 font-medium">Rp {{ number_format($line['total_after'] ?? $line['total']) }}</td>
                                                 <td class="py-1">{{ $line['payment_status'] }}</td>
                                                 <td class="py-1">
                                                     @if ($line['proof_url'])

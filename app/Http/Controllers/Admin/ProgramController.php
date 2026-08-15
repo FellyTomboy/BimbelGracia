@@ -62,10 +62,14 @@ class ProgramController extends Controller
             'type' => ['required', 'in:privat,kelas'],
             'subject' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'default_parent_rate' => ['required', 'integer', 'min:0'],
-            'default_teacher_rate' => ['required', 'integer', 'min:0'],
+            'default_parent_rate' => ['required', 'integer', 'min:1'],
+            'default_teacher_rate' => ['required_if:type,privat', 'nullable', 'integer', 'min:1'],
             'status' => ['required', 'in:active,hibernasi'],
         ]);
+
+        if ($validated['type'] === 'kelas') {
+            $validated['default_teacher_rate'] = null;
+        }
 
         Program::create($validated);
 
@@ -86,10 +90,14 @@ class ProgramController extends Controller
             'type' => ['required', 'in:privat,kelas'],
             'subject' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'default_parent_rate' => ['required', 'integer', 'min:0'],
-            'default_teacher_rate' => ['required', 'integer', 'min:0'],
+            'default_parent_rate' => ['required', 'integer', 'min:1'],
+            'default_teacher_rate' => ['required_if:type,privat', 'nullable', 'integer', 'min:1'],
             'status' => ['required', 'in:active,hibernasi'],
         ]);
+
+        if ($validated['type'] === 'kelas') {
+            $validated['default_teacher_rate'] = null;
+        }
 
         $program->update($validated);
 

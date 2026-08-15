@@ -133,11 +133,23 @@ class StudentController extends Controller
             'parent_id' => $parentId,
         ]);
 
+        // Also restore any enrollments that were hibernated along with the student
+        $enrollmentCount = $student->enrollments()->onlyTrashed()->count();
+        if ($enrollmentCount > 0) {
+            $student->enrollments()->onlyTrashed()->update(['status' => 'active']);
+            $student->enrollments()->onlyTrashed()->restore();
+        }
+
         $this->snapshotSyncService->syncAll();
+
+        $message = 'Murid berhasil dipulihkan.';
+        if ($enrollmentCount > 0) {
+            $message .= " {$enrollmentCount} enrollment yang hibernasi juga dipulihkan.";
+        }
 
         return redirect()
             ->route('admin.students.inactive')
-            ->with('status', 'Murid berhasil dipulihkan.');
+            ->with('status', $message);
     }
 
     private function createParent(string $name, string $phone): ParentModel

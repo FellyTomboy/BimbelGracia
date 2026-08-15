@@ -43,6 +43,9 @@
                 <th>Tarif</th>
                 <th>Jumlah</th>
                 <th>Subtotal</th>
+                <th>Diskon</th>
+                <th>Denda</th>
+                <th>Total</th>
             </tr>
         </thead>
         <tbody>
@@ -51,6 +54,21 @@
                     <td>{{ $row['program'] }} - {{ $row['teacher'] }}{{ $row['detail'] }}</td>
                     <td>Rp {{ number_format($row['rate']) }}</td>
                     <td>{{ $row['count'] }}x</td>
+                    <td>Rp {{ number_format($row['subtotal']) }}</td>
+                    <td>
+                        @if (($row['discount'] ?? 0) > 0)
+                            <span style="color:#b91c1c;">-Rp {{ number_format($row['discount']) }}</span>
+                        @else
+                            -
+                        @endif
+                    </td>
+                    <td>
+                        @if (($row['penalty'] ?? 0) > 0)
+                            <span style="color:#b91c1c;">+Rp {{ number_format($row['penalty']) }}</span>
+                        @else
+                            -
+                        @endif
+                    </td>
                     <td>Rp {{ number_format($row['total']) }}</td>
                 </tr>
             @endforeach

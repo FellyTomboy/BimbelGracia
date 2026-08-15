@@ -69,9 +69,9 @@
                         <tbody class="divide-y divide-gray-50">
                             @forelse ($attendances as $attendance)
                                 @php
-                                    $rate = $attendance->enrollment?->teacher_rate ?? 0;
+                                    $rate = $attendance->teacher_rate ?? $attendance->enrollment?->teacher_rate ?? 0;
                                     $isLate = $attendance->status_validation === 'terlambat';
-                                    $penalty = $isLate ? $rate * 0.1 : 0;
+                                    $penalty = $isLate ? (int) ($rate * 0.1) : 0;
                                     $total = $rate - $penalty;
                                 @endphp
                                 <tr class="hover:bg-gray-50/50 transition-colors">

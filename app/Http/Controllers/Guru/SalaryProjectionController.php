@@ -24,6 +24,7 @@ class SalaryProjectionController extends Controller
 
         $attendances = MonthlyAttendance::with(['enrollment.program', 'enrollment.teacher', 'students'])
             ->when($teacher, fn ($query) => $query->whereHas('enrollment', fn ($sub) => $sub->where('teacher_id', $teacher->id)))
+            ->whereIn('status_validation', ['terima', 'terlambat'])
             ->where('month', $month)
             ->where('year', $year)
             ->orderByDesc('year')
@@ -57,31 +58,27 @@ class SalaryProjectionController extends Controller
     private function buildTotals($attendances): array
     {
         $rows = $attendances->map(function (MonthlyAttendance $attendance) {
-            $rate = $attendance->enrollment?->teacher_rate ?? 0;
+            // Use snapshot rate from attendance record (captured at time of validation), not current enrollment rate
+            $rate = (int) ($attendance->teacher_rate ?? $attendance->enrollment?->teacher_rate ?? 0);
             $isLate = $attendance->status_validation === 'terlambat';
-            $penalty = $isLate ? 0.1 : 0;
-            $total = $rate * (1 - $penalty);
-
-            $status = match ($attendance->status_validation) {
-                'terima' => 'validated',
-                'terlambat' => 'validated',
-                'ditolak' => 'rejected',
-                default => 'pending',
-            };
+            $penalty = $isLate ? (int) ($rate * 0.1) : 0;
+            $total = $rate - $penalty;
 
             return [
-                'status' => $status,
+                'status' => 'validated',
                 'total' => $total,
-                'penalty' => $isLate ? $rate * 0.1 : 0,
+                'penalty' => $penalty,
+                'rate' => $rate,
+                'is_late' => $isLate,
             ];
         });
 
-        $latePenalty = (int) $rows->sum('penalty');
+        $latePenalty = $rows->sum('penalty');
 
         return [
-            'validated' => (int) $rows->whereIn('status', ['validated'])->sum('total'),
-            'pending' => (int) $rows->where('status', 'pending')->sum('total'),
-            'rejected' => (int) $rows->where('status', 'rejected')->sum('total'),
+            'validated' => (int) $rows->sum('total'),
+            'pending' => 0,
+            'rejected' => 0,
             'late_penalty' => $latePenalty,
             'grand' => (int) $rows->sum('total'),
         ];
@@ -106,7 +103,7 @@ class SalaryProjectionController extends Controller
 
         $query = DB::table('enrollment_attendances')
             ->join('enrollments', 'enrollment_attendances.enrollment_id', '=', 'enrollments.id')
-            ->selectRaw('enrollment_attendances.year, enrollment_attendances.month, SUM(CASE WHEN enrollment_attendances.status_validation = ? THEN enrollments.teacher_rate WHEN enrollment_attendances.status_validation = ? THEN enrollments.teacher_rate * 0.9 ELSE 0 END) as total', ['terima', 'terlambat'])
+            ->selectRaw('enrollment_attendances.year, enrollment_attendances.month, SUM(CASE WHEN enrollment_attendances.status_validation = ? THEN enrollment_attendances.teacher_rate WHEN enrollment_attendances.status_validation = ? THEN enrollment_attendances.teacher_rate * 0.9 ELSE 0 END) as total', ['terima', 'terlambat'])
             ->whereIn('enrollment_attendances.status_validation', ['terima', 'terlambat'])
             ->where('enrollments.teacher_id', $teacherId)
             ->where(function ($builder) use ($conditions) {

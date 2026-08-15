@@ -169,7 +169,10 @@ class AnalysisController extends Controller
                 return [
                     'teacher' => $teacher,
                     'lines' => $lines,
-                    'total' => $grandTotal,
+                    'total' => $finalTotal,
+                    'gross' => $grandTotal,
+                    'late_penalty' => $latePenalty,
+                    'late_count' => $lateCountTotal,
                     'message' => $message,
                 ];
             })
@@ -189,25 +192,29 @@ class AnalysisController extends Controller
         $attendances = $this->baseAttendanceQuery($month, $year)->get();
         $rows = $this->attendanceRows($attendances);
 
+        $discounts = $this->enrollmentDiscountsByPeriod($month, $year);
+
         $summaries = $rows
             ->groupBy(function (array $row) {
                 $parent = $row['student']->parent;
                 return $parent?->id ?? 'unknown';
             })
-            ->map(function (Collection $items) {
+            ->map(function (Collection $items) use ($month, $year) {
                 $firstRow = $items->first();
                 $parent = $firstRow['student']->parent;
                 $parentName = $parent?->name ?? 'Unknown';
 
                 $students = $items
                     ->groupBy(fn (array $row) => $row['student']->id)
-                    ->map(function (Collection $studentItems) {
+                    ->map(function (Collection $studentItems) use ($month, $year) {
                         $student = $studentItems->first()['student'];
+                        $studentId = $student?->id;
                         $lines = $studentItems
                             ->groupBy(fn (array $row) => $row['enrollment']->id)
-                            ->map(function (Collection $enrollmentItems) {
+                            ->map(function (Collection $enrollmentItems) use ($month, $year, $studentId) {
                                 $row = $enrollmentItems->first();
                                 $enrollment = $row['enrollment'];
+                                $enrollmentId = $enrollment?->id;
                                 $teacherName = $row['teacher']?->name ?? '-';
                                 $programName = $row['program']?->name ?? '-';
                                 $type = $enrollment?->isKelas() ? 'kelas' : 'privat';
@@ -231,6 +238,9 @@ class AnalysisController extends Controller
                                     $label = sprintf('%s (%s)', $teacherName, $programName);
                                 }
 
+                                $discountModel = $discounts[$this->discountKey($enrollmentId, $studentId)] ?? null;
+                                $discount = $this->resolveDiscount($total, $discountModel?->discount_type, $discountModel?->discount_value);
+
                                 $att = $row['attendance'];
 
                                 return [
@@ -238,6 +248,10 @@ class AnalysisController extends Controller
                                     'count' => $count,
                                     'rate' => $rate,
                                     'total' => $total,
+                                    'total_after' => $discount['total'],
+                                    'discount_type' => $discount['type'],
+                                    'discount_amount' => $discount['amount'],
+                                    'discount_label' => $discount['label'],
                                     'payment_status' => $att->parent_payment_status,
                                     'attendance_id' => $att->id,
                                     'proof_url' => $att->payment_proof,
@@ -249,7 +263,8 @@ class AnalysisController extends Controller
                         return [
                             'student' => $student,
                             'lines' => $lines,
-                            'total' => $lines->sum('total'),
+                            'total' => $lines->sum('total_after'),
+                            'total_before' => $lines->sum('total'),
                         ];
                     })
                     ->values();
@@ -258,6 +273,7 @@ class AnalysisController extends Controller
                     'parent_name' => $parentName,
                     'students' => $students,
                     'total' => $students->sum('total'),
+                    'total_before' => $students->sum('total_before'),
                 ];
             })
             ->values();

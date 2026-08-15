@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Enums\UserRole;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
 
@@ -104,6 +105,15 @@ class ParentController extends Controller
             foreach ($validated['students'] as $studentData) {
                 $nickname = trim((string) ($studentData['nickname'] ?? $studentData['name'] ?? ''));
                 if ($nickname !== '') {
+                    $existing = Student::where('parent_id', $parent->id)
+                        ->whereRaw('LOWER(TRIM(nickname)) = ?', [strtolower($nickname)])
+                        ->first();
+                    if ($existing) {
+                        return back()->withErrors([
+                            'students' => "Murid \"{$nickname}\" sudah terdaftar di bawah parent ini.",
+                        ])->withInput();
+                    }
+
                     $fullName = trim((string) ($studentData['full_name'] ?? '')) ?: null;
                     Student::create([
                         'parent_id' => $parent->id,
@@ -172,14 +182,15 @@ class ParentController extends Controller
     public function hibernate(ParentModel $parent): RedirectResponse
     {
         // Cascade: hibernasi parent + semua murid di bawahnya
-        foreach ($parent->students as $student) {
-            $student->status = 'hibernasi';
-            $student->save();
-            $student->delete();
-        }
+        DB::transaction(function () use ($parent): void {
+            foreach ($parent->students as $student) {
+                $student->update(['status' => 'hibernasi']);
+                $student->delete();
+            }
 
-        $parent->user->delete();
-        $parent->delete();
+            $parent->user->delete();
+            $parent->delete();
+        });
 
         return redirect()->route('admin.parents.index')
             ->with('status', 'Parent beserta semua murid berhasil dihibernasi.');
@@ -214,26 +225,41 @@ class ParentController extends Controller
         ]);
 
         $count = 0;
+        $skipped = 0;
 
         foreach ($validated['ids'] as $id) {
             $parent = ParentModel::find($id);
-            if ($parent) {
-                // Cascade: hibernasi parent + semua murid di bawahnya
+            if (! $parent) {
+                continue;
+            }
+
+            // Count active enrollments before hibernating
+            $activeEnrollments = $parent->students->flatMap->enrollments->where('status', 'active')->count();
+
+            DB::transaction(function () use ($parent): void {
                 foreach ($parent->students as $student) {
-                    $student->status = 'hibernasi';
-                    $student->save();
+                    $student->update(['status' => 'hibernasi']);
                     $student->delete();
                 }
 
                 $parent->user->delete();
                 $parent->delete();
-                $count++;
+            });
+
+            if ($activeEnrollments > 0) {
+                $skipped++;
             }
+            $count++;
+        }
+
+        $message = "{$count} parent beserta murid-muridnya berhasil dihibernasi.";
+        if ($skipped > 0) {
+            $message .= " {$skipped} di antaranya memiliki enrollment aktif yang tetap dipertahankan.";
         }
 
         return redirect()
             ->route('admin.parents.index')
-            ->with('status', "{$count} parent beserta murid-muridnya berhasil dihibernasi.");
+            ->with('status', $message);
     }
 
     public function addStudent(Request $request, ParentModel $parent): RedirectResponse
@@ -243,9 +269,17 @@ class ParentController extends Controller
             'full_name' => ['nullable', 'string', 'max:255'],
         ]);
 
+        $nickname = trim($validated['nickname']);
+        $existing = Student::where('parent_id', $parent->id)
+            ->whereRaw('LOWER(TRIM(nickname)) = ?', [strtolower($nickname)])
+            ->first();
+        if ($existing) {
+            return back()->withErrors(['nickname' => "Murid \"{$nickname}\" sudah terdaftar di bawah parent ini."])->withInput();
+        }
+
         $student = Student::create([
             'parent_id' => $parent->id,
-            'nickname' => $validated['nickname'],
+            'nickname' => $nickname,
             'full_name' => $validated['full_name'] ?? null,
         ]);
 
@@ -260,9 +294,10 @@ class ParentController extends Controller
             abort(404);
         }
 
-        $student->status = 'hibernasi';
-        $student->save();
-        $student->delete();
+        DB::transaction(function () use ($student): void {
+            $student->update(['status' => 'hibernasi']);
+            $student->delete();
+        });
 
         return redirect()
             ->route('admin.parents.edit', $parent)

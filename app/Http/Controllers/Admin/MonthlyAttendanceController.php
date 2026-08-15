@@ -68,6 +68,8 @@ class MonthlyAttendanceController extends Controller
 
         $attendance->update([
             'enrollment_id' => $enrollment->id,
+            'parent_rate' => $enrollment->parent_rate,
+            'teacher_rate' => $enrollment->teacher_rate,
             'status_validation' => 'pending',
             'validated_at' => null,
             'validated_by' => null,
