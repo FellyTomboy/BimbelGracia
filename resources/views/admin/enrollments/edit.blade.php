@@ -94,7 +94,11 @@
                         <h3 class="font-semibold text-gray-800">Harga Bertingkat (Pricing Tiers)</h3>
                         <p class="text-xs text-gray-500">Atur harga berbeda berdasarkan jumlah murid yang hadir.</p>
 
-                        <div x-data="{ count: {{ old('student_count', $studentCount > 0 ? $studentCount : 3) }} }">
+                        <div x-data="{
+                            count: {{ old('student_count', $studentCount > 0 ? $studentCount : 3) }},
+                            parentTiers: {{ json_encode($tiers['parent_rate'] ?? []) }},
+                            teacherTiers: {{ json_encode($tiers['teacher_rate'] ?? []) }}
+                        }">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Jumlah Murid di Enrollment Ini</label>
                                 <input type="number" name="student_count" x-model="count" min="1" max="10" class="mt-1 w-full sm:w-24 border-gray-300 rounded-md" required />
@@ -109,7 +113,7 @@
                                                 <td class="py-1 pr-2 text-gray-600 whitespace-nowrap" x-text="i + ' murid:'"></td>
                                                 <td class="py-1">
                                                     <input type="number" name="pricing_tiers_parent[i]" x-bind:name="'pricing_tiers_parent[' + i + ']'" min="0" step="5000" class="w-full border-gray-300 rounded-md text-sm"
-                                                        x-bind:value="'{{ $tiers['parent_rate'][(string) $i] ?? '' }}'"
+                                                        x-bind:value="parentTiers[i] ?? ''"
                                                         x-bind:placeholder="'Rp ' + (i * 100000)" />
                                                 </td>
                                             </tr>
@@ -124,7 +128,7 @@
                                                 <td class="py-1 pr-2 text-gray-600 whitespace-nowrap" x-text="i + ' murid:'"></td>
                                                 <td class="py-1">
                                                     <input type="number" name="pricing_tiers_teacher[i]" x-bind:name="'pricing_tiers_teacher[' + i + ']'" min="0" step="5000" class="w-full border-gray-300 rounded-md text-sm"
-                                                        x-bind:value="'{{ $tiers['teacher_rate'][(string) $i] ?? '' }}'"
+                                                        x-bind:value="teacherTiers[i] ?? ''"
                                                         x-bind:placeholder="'Rp ' + (i * 50000)" />
                                                 </td>
                                             </tr>
@@ -158,11 +162,11 @@
                         <div id="sessions-kelas" class="hidden">
                             <select name="agreed_sessions_per_month" id="agreed-sessions-select" class="mt-1 w-full sm:w-48 border-gray-300 rounded-md">
                                 <option value="">Pilih frekuensi</option>
-                                <option value="2" @selected(old('agreed_sessions_per_month', $enrollment->agreed_sessions_per_month ?? 4) == 2)>2x seminggu (8x sebulan)</option>
-                                <option value="3" @selected(old('agreed_sessions_per_month', $enrollment->agreed_sessions_per_month ?? 4) == 3)>3x seminggu (12x sebulan)</option>
-                                <option value="4" @selected(old('agreed_sessions_per_month', $enrollment->agreed_sessions_per_month ?? 4) == 4)>4x seminggu (16x sebulan)</option>
+                                <option value="8" @selected(old('agreed_sessions_per_month', $enrollment->agreed_sessions_per_month ?? 16) == 8)>2x seminggu (8x sebulan)</option>
+                                <option value="12" @selected(old('agreed_sessions_per_month', $enrollment->agreed_sessions_per_month ?? 16) == 12)>3x seminggu (12x sebulan)</option>
+                                <option value="16" @selected(old('agreed_sessions_per_month', $enrollment->agreed_sessions_per_month ?? 16) == 16)>4x seminggu (16x sebulan)</option>
                             </select>
-                            <p class="text-xs text-gray-500 mt-1">Untuk perhitungan biaya paket les setengah/penuh.</p>
+                            <p class="text-xs text-gray-500 mt-1">Jumlah sesi paket dalam sebulan. Digunakan untuk perhitungan biaya paket les setengah/penuh.</p>
                         </div>
                         @error('agreed_sessions_per_month')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
                     </div>

@@ -104,10 +104,16 @@
                 fieldSubject.classList.add('hidden');
                 sectionPrivat.classList.add('hidden');
                 sectionKelas.classList.remove('hidden');
+                // Disable hidden privat fields so they don't override nilai
+                sectionPrivat.querySelectorAll('input').forEach(el => el.disabled = true);
+                sectionKelas.querySelectorAll('input').forEach(el => el.disabled = false);
             } else {
                 fieldSubject.classList.remove('hidden');
                 sectionPrivat.classList.remove('hidden');
                 sectionKelas.classList.add('hidden');
+                // Enable privat fields, disable hidden kelas fields
+                sectionPrivat.querySelectorAll('input').forEach(el => el.disabled = false);
+                sectionKelas.querySelectorAll('input').forEach(el => el.disabled = true);
             }
         }
 

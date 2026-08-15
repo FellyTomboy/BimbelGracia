@@ -151,11 +151,11 @@
                         <div id="sessions-kelas" class="hidden">
                             <select name="agreed_sessions_per_month" id="agreed-sessions-select" class="mt-1 w-full sm:w-48 border-gray-300 rounded-md">
                                 <option value="">Pilih frekuensi</option>
-                                <option value="2" @selected(old('agreed_sessions_per_month', 4) == 2)>2x seminggu (8x sebulan)</option>
-                                <option value="3" @selected(old('agreed_sessions_per_month', 4) == 3)>3x seminggu (12x sebulan)</option>
-                                <option value="4" @selected(old('agreed_sessions_per_month', 4) == 4)>4x seminggu (16x sebulan)</option>
+                                <option value="8" @selected(old('agreed_sessions_per_month', 16) == 8)>2x seminggu (8x sebulan)</option>
+                                <option value="12" @selected(old('agreed_sessions_per_month', 16) == 12)>3x seminggu (12x sebulan)</option>
+                                <option value="16" @selected(old('agreed_sessions_per_month', 16) == 16)>4x seminggu (16x sebulan)</option>
                             </select>
-                            <p class="text-xs text-gray-500 mt-1">Untuk perhitungan biaya paket les setengah/penuh.</p>
+                            <p class="text-xs text-gray-500 mt-1">Jumlah sesi paket dalam sebulan. Digunakan untuk perhitungan biaya paket les setengah/penuh.</p>
                         </div>
                         @error('agreed_sessions_per_month')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
                     </div>
