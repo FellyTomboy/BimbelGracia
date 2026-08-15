@@ -64,17 +64,35 @@ class EnrollmentController extends Controller
         return view('admin.enrollments.create', compact('programs', 'teachers', 'students'));
     }
 
+    public function isKelasMode(Request $request): bool
+    {
+        if ($request->input('type') !== 'kelas') {
+            return false;
+        }
+
+        $program = Program::find($request->input('program_id'));
+
+        return $program && $program->type === 'kelas';
+    }
+
     public function store(Request $request): RedirectResponse
     {
-        $validated = $request->validate([
+        $isKelas = $this->isKelasMode($request);
+        $studentIds = $request->input('student_ids', []);
+
+        $rules = [
             'program_id' => ['required', 'exists:programs,id'],
             'type' => ['required', 'in:privat,kelas'],
             'teacher_id' => [
-                $request->input('type') === 'privat' ? 'required' : 'nullable',
+                $isKelas ? 'nullable' : 'required',
                 'exists:teachers,id',
             ],
-            'parent_rate' => ['required', 'integer', 'min:0'],
-            'teacher_rate' => ['required', 'integer', 'min:0'],
+            'parent_rate' => ['nullable', 'integer', 'min:0'],
+            'teacher_rate' => [
+                ($isKelas || count($studentIds) > 1) ? 'nullable' : 'required',
+                'integer',
+                'min:0',
+            ],
             'pricing_tiers_parent' => ['nullable', 'array'],
             'pricing_tiers_parent.*' => ['integer', 'min:0'],
             'pricing_tiers_teacher' => ['nullable', 'array'],
@@ -83,7 +101,22 @@ class EnrollmentController extends Controller
             'status' => ['required', 'in:active,hibernasi'],
             'student_ids' => ['required', 'array', 'min:1'],
             'student_ids.*' => ['integer', 'exists:students,id'],
-        ]);
+        ];
+
+        // For kelas mode, only allow 1 student
+        if ($isKelas) {
+            $rules['student_ids'] = ['required', 'array', 'min:1', 'max:1'];
+        }
+
+        $validated = $request->validate($rules);
+
+        // Ensure default values when fields are hidden
+        if ($isKelas) {
+            $validated['teacher_rate'] = $validated['teacher_rate'] ?? 0;
+        } elseif (count($studentIds) > 1) {
+            $validated['teacher_rate'] = $validated['teacher_rate'] ?? 0;
+            $validated['parent_rate'] = $validated['parent_rate'] ?? 0;
+        }
 
         // Build pricing_tiers from request or fallback to single-tier
         $pricingTiers = null;
@@ -140,15 +173,22 @@ class EnrollmentController extends Controller
 
     public function update(Request $request, Enrollment $enrollment): RedirectResponse
     {
-        $validated = $request->validate([
+        $isKelas = $this->isKelasMode($request);
+        $studentIds = $request->input('student_ids', []);
+
+        $rules = [
             'program_id' => ['required', 'exists:programs,id'],
             'type' => ['required', 'in:privat,kelas'],
             'teacher_id' => [
-                $request->input('type') === 'privat' ? 'required' : 'nullable',
+                $isKelas ? 'nullable' : 'required',
                 'exists:teachers,id',
             ],
-            'parent_rate' => ['required', 'integer', 'min:0'],
-            'teacher_rate' => ['required', 'integer', 'min:0'],
+            'parent_rate' => ['nullable', 'integer', 'min:0'],
+            'teacher_rate' => [
+                ($isKelas || count($studentIds) > 1) ? 'nullable' : 'required',
+                'integer',
+                'min:0',
+            ],
             'pricing_tiers_parent' => ['nullable', 'array'],
             'pricing_tiers_parent.*' => ['integer', 'min:0'],
             'pricing_tiers_teacher' => ['nullable', 'array'],
@@ -158,7 +198,22 @@ class EnrollmentController extends Controller
             'status' => ['required', 'in:active,hibernasi'],
             'student_ids' => ['required', 'array', 'min:1'],
             'student_ids.*' => ['integer', 'exists:students,id'],
-        ]);
+        ];
+
+        // For kelas mode, only allow 1 student
+        if ($isKelas) {
+            $rules['student_ids'] = ['required', 'array', 'min:1', 'max:1'];
+        }
+
+        $validated = $request->validate($rules);
+
+        // Ensure default values when fields are hidden
+        if ($isKelas) {
+            $validated['teacher_rate'] = $validated['teacher_rate'] ?? 0;
+        } elseif (count($studentIds) > 1) {
+            $validated['teacher_rate'] = $validated['teacher_rate'] ?? 0;
+            $validated['parent_rate'] = $validated['parent_rate'] ?? 0;
+        }
 
         // Build pricing_tiers from request or fallback to single-tier
         $pricingTiers = null;
