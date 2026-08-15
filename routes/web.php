@@ -69,13 +69,13 @@ Route::middleware(['auth', 'password.force'])->group(function () {
             Route::post('teachers/bulk-destroy', [TeacherController::class, 'bulkDestroy'])
                 ->name('teachers.bulk-destroy');
 
+            Route::post('programs/bulk-destroy', [ProgramController::class, 'bulkDestroy'])
+                ->name('programs.bulk-destroy');
             Route::resource('programs', ProgramController::class)->except(['show']);
             Route::get('programs/inactive', [ProgramController::class, 'inactive'])
                 ->name('programs.inactive');
             Route::post('programs/{program}/restore', [ProgramController::class, 'restore'])
                 ->name('programs.restore');
-            Route::post('programs/bulk-destroy', [ProgramController::class, 'bulkDestroy'])
-                ->name('programs.bulk-destroy');
 
             Route::resource('enrollments', EnrollmentController::class)->except(['show']);
             Route::get('enrollments/inactive', [EnrollmentController::class, 'inactive'])
