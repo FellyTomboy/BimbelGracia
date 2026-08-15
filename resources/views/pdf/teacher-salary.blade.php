@@ -50,9 +50,9 @@
                 <th>Murid / Program</th>
                 <th>Tarif</th>
                 <th>Jumlah</th>
-                <th>Subtotal</th>
+                <th>Gaji Kotor</th>
                 <th>Denda</th>
-                <th>Total</th>
+                <th>Gaji Bersih</th>
             </tr>
         </thead>
         <tbody>

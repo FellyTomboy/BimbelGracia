@@ -79,7 +79,7 @@ class InvoiceService
     {
         $monthName = $this->monthName($month);
         $allRows = collect();
-        $grandTotal = 0;
+        $grandGross = 0;
         $grandDiscount = 0;
         $grandPenalty = 0;
         $allPenalties = [];
@@ -93,7 +93,7 @@ class InvoiceService
             // Tag each row with student name
             $taggedRows = $result['rows']->map(fn ($r) => array_merge($r, ['student_name' => $student->display_name]));
             $allRows = $allRows->concat($taggedRows);
-            $grandTotal += $result['grand_total'];
+            $grandGross += $result['rows']->sum('subtotal');
             $grandDiscount += $result['total_discount'];
             $grandPenalty += $result['total_penalty'];
 
@@ -121,6 +121,9 @@ class InvoiceService
             }
         }
 
+        // grandTotal = billable amount after discount and penalties
+        $grandTotal = $grandGross - $grandDiscount + $grandPenalty;
+
         $parentName = $students->first()?->parent?->name ?? 'Orang Tua';
         $parentId = $students->first()?->parent?->id ?? 'unknown';
         $period = sprintf('%02d-%04d', $month, $year);
@@ -132,9 +135,10 @@ class InvoiceService
             'year' => $year,
             'monthName' => $monthName,
             'rows' => $allRows,
+            'grandGross' => $grandGross,
+            'grandDiscount' => $grandDiscount,
+            'grandPenalty' => $grandPenalty,
             'grandTotal' => $grandTotal,
-            'totalDiscount' => $grandDiscount,
-            'totalPenalty' => $grandPenalty,
             'penalties' => $allPenalties,
         ]);
 
