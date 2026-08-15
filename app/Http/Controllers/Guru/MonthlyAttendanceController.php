@@ -191,6 +191,8 @@ class MonthlyAttendanceController extends Controller
             'lesson_date' => ['required', 'date', 'before_or_equal:today'],
             'notes' => ['nullable', 'string'],
             'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:5120'],
+            'student_ids' => ['nullable', 'array'],
+            'student_ids.*' => ['integer', 'exists:students,id'],
         ]);
 
         $lessonDate = Carbon::parse($validated['lesson_date']);
@@ -220,11 +222,18 @@ class MonthlyAttendanceController extends Controller
 
         $attendance->update($updateData);
 
-        // All students are marked as present (teacher fills attendance only when student attends)
-        $attendance->load('enrollment.students');
-        $attendance->students()->sync(
-            $attendance->enrollment->students->mapWithKeys(fn ($student) => [$student->id => ['total_present' => 1]])
-        );
+        // Only sync students if explicitly provided in request.
+        // This prevents guru from overwriting admin's student selection for class sessions.
+        if (array_key_exists('student_ids', $validated)) {
+            $studentIds = $validated['student_ids'] ?? [];
+            if (! empty($studentIds)) {
+                $attendance->students()->sync(
+                    collect($studentIds)->mapWithKeys(fn ($id) => [$id => ['total_present' => 1]])
+                );
+            } else {
+                $attendance->students()->detach();
+            }
+        }
 
         return redirect()
             ->route('guru.presensi.index')

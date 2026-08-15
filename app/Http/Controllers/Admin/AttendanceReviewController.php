@@ -30,7 +30,7 @@ class AttendanceReviewController extends Controller
         return view('admin.notifications.index', compact('attendances'));
     }
 
-    public function confirm(Request $request, MonthlyAttendance $attendance): RedirectResponse
+    public function upholdParentRejection(Request $request, MonthlyAttendance $attendance): RedirectResponse
     {
         abort_unless($attendance->parent_review_status === 'pending', 404);
 
@@ -41,7 +41,7 @@ class AttendanceReviewController extends Controller
             'validated_by' => $request->user()->id,
         ]);
 
-        return back()->with('status', 'Penolakan orangtua dikonfirmasi. Status presensi sekarang ditolak.');
+        return back()->with('status', 'Penolakan orangtua diterima. Status presensi sekarang ditolak.');
     }
 
     public function dismiss(MonthlyAttendance $attendance): RedirectResponse

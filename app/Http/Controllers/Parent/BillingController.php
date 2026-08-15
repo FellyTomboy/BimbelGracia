@@ -29,6 +29,7 @@ class BillingController extends Controller
         $attendances = MonthlyAttendance::with(['enrollment.teacher', 'enrollment.program', 'students'])
             ->when(!empty($studentIds), fn ($query) => $query->whereHas('students', fn ($sub) => $sub->whereIn('students.id', $studentIds)))
             ->whereIn('status_validation', ['terima', 'terlambat'])
+            ->where(fn ($query) => $query->whereNull('parent_review_status')->orWhere('parent_review_status', '!=', 'pending'))
             ->orderByDesc('year')
             ->orderByDesc('month')
             ->get();
@@ -70,9 +71,8 @@ class BillingController extends Controller
                 }
 
                 // Check if parent invoice PDF exists
-                $parentName = $parent?->name ?? 'unknown';
-                $parentSlug = str_replace(' ', '_', strtolower($parentName));
-                $parentInvoicePath = sprintf('pdf/invoice/%s/%02d-%04d.pdf', $parentSlug, (int) $month, (int) $year);
+                $parentId = $parent?->id ?? 'unknown';
+                $parentInvoicePath = sprintf('pdf/invoice/parent_%s/%02d-%04d.pdf', $parentId, (int) $month, (int) $year);
                 $hasInvoice = Storage::disk('public')->exists($parentInvoicePath);
                 $invoiceUrl = $hasInvoice ? asset('storage/' . $parentInvoicePath) : null;
 
@@ -112,12 +112,11 @@ class BillingController extends Controller
             'payment_proof' => ['required', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
         ]);
 
-        $parentName = $parent?->name ?? 'unknown';
-        $parentSlug = str_replace(' ', '_', strtolower($parentName));
+        $parentId = $parent?->id ?? 'unknown';
         $file = $validated['payment_proof'];
         $extension = $file->getClientOriginalExtension();
         $period = sprintf('%02d-%04d', $attendance->month, $attendance->year);
-        $path = sprintf('photo/transfer-proof/%s/%s.%s', $parentSlug, $period, $extension);
+        $path = sprintf('photo/transfer-proof/parent_%s/%s.%s', $parentId, $period, $extension);
         $file->storeAs(dirname($path), basename($path), 'public');
 
         $attendance->update([
@@ -203,6 +202,7 @@ class BillingController extends Controller
         $attendances = MonthlyAttendance::with(['enrollment.teacher', 'enrollment.program', 'students'])
             ->whereHas('students', fn ($sub) => $sub->whereIn('students.id', $studentIds))
             ->whereIn('status_validation', ['terima', 'terlambat'])
+            ->where(fn ($query) => $query->whereNull('parent_review_status')->orWhere('parent_review_status', '!=', 'pending'))
             ->where('month', $month)
             ->where('year', $year)
             ->get();

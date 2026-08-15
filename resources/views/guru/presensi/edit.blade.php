@@ -38,6 +38,53 @@
                         @error('notes')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
                     </div>
 
+                    @if ($attendance->enrollment?->isKelas())
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                Murid yang Hadir
+                                <span class="text-xs text-gray-400">(kosongkan jika hanya ingin mengubah tanggal/foto/keterangan)</span>
+                            </label>
+                            @php
+                                $presentStudentIds = $attendance->students->pluck('id')->toArray();
+                            @endphp
+                            <div class="grid grid-cols-2 gap-1 max-h-48 overflow-y-auto border border-gray-200 rounded-md p-2">
+                                @forelse ($attendance->enrollment->students as $student)
+                                    <label class="flex items-center gap-2 text-sm">
+                                        <input type="checkbox" name="student_ids[]" value="{{ $student->id }}"
+                                            {{ in_array($student->id, old('student_ids', $presentStudentIds)) ? 'checked' : '' }}
+                                            class="rounded border-gray-300 text-indigo-600" />
+                                        {{ $student->display_name }}
+                                    </label>
+                                @empty
+                                    <p class="text-xs text-gray-400 col-span-2">Belum ada murid terdaftar.</p>
+                                @endforelse
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">Kosongkan semua checkbox jika tidak ingin mengubah daftar murid.</p>
+                            @error('student_ids.*')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                        </div>
+                    @else
+                        {{-- Private session: guru must select attending students --}}
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Murid yang Hadir</label>
+                            @php
+                                $presentStudentIds = $attendance->students->pluck('id')->toArray();
+                            @endphp
+                            <div class="grid grid-cols-2 gap-1 max-h-48 overflow-y-auto border border-gray-200 rounded-md p-2">
+                                @forelse ($attendance->enrollment->students as $student)
+                                    <label class="flex items-center gap-2 text-sm">
+                                        <input type="checkbox" name="student_ids[]" value="{{ $student->id }}"
+                                            {{ in_array($student->id, old('student_ids', $presentStudentIds)) ? 'checked' : '' }}
+                                            class="rounded border-gray-300 text-indigo-600" />
+                                        {{ $student->display_name }}
+                                    </label>
+                                @empty
+                                    <p class="text-xs text-gray-400 col-span-2">Tidak ada murid terdaftar.</p>
+                                @endforelse
+                            </div>
+                            @error('student_ids.*')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                        </div>
+                    @endif
+
                     <div class="flex justify-end gap-3">
                         <a href="{{ route('guru.presensi.index') }}" class="px-4 py-2 rounded-md border">Batal</a>
                         <button type="submit" class="px-4 py-2 rounded-md bg-slate-900 text-white">Simpan</button>

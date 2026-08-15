@@ -63,9 +63,10 @@ class InvoiceService
         ]);
 
         $parentName = $student->parent?->name ?? 'unknown';
-        $parentSlug = str_replace(' ', '_', strtolower($parentName));
+        $parentId = $student->parent?->id ?? 'unknown';
         $period = sprintf('%02d-%04d', $month, $year);
-        $filename = sprintf('pdf/invoice/%s/%s.pdf', $parentSlug, $period);
+        // Use parent ID for stable path — won't break when parent name changes
+        $filename = sprintf('pdf/invoice/parent_%s/%s.pdf', $parentId, $period);
         Storage::disk('public')->put($filename, $pdf->output());
 
         return $filename;
@@ -121,6 +122,8 @@ class InvoiceService
         }
 
         $parentName = $students->first()?->parent?->name ?? 'Orang Tua';
+        $parentId = $students->first()?->parent?->id ?? 'unknown';
+        $period = sprintf('%02d-%04d', $month, $year);
 
         $pdf = Pdf::loadView('pdf.parent-invoice', [
             'parentName' => $parentName,
@@ -135,9 +138,8 @@ class InvoiceService
             'penalties' => $allPenalties,
         ]);
 
-        $parentSlug = str_replace(' ', '_', strtolower($parentName));
-        $period = sprintf('%02d-%04d', $month, $year);
-        $filename = sprintf('pdf/invoice/%s/%s.pdf', $parentSlug, $period);
+        // Use parent ID for stable path — won't break when parent name changes
+        $filename = sprintf('pdf/invoice/parent_%s/%s.pdf', $parentId, $period);
         Storage::disk('public')->put($filename, $pdf->output());
 
         return $filename;

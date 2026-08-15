@@ -29,7 +29,7 @@ class FinanceController extends Controller
             ->whereIn('enrollment_attendances.status_validation', ['terima', 'terlambat'])
             ->where('enrollment_attendances.month', $month)
             ->where('enrollment_attendances.year', $year)
-            ->where('programs.name', 'not like', 'Kelas%')
+            ->where('enrollments.type', '!=', 'kelas')
             ->sum(DB::raw('attendance_student.total_present * enrollment_attendances.parent_rate'));
 
         // Class gross revenue (programs named "Kelas%")
@@ -40,7 +40,7 @@ class FinanceController extends Controller
             ->whereIn('enrollment_attendances.status_validation', ['terima', 'terlambat'])
             ->where('enrollment_attendances.month', $month)
             ->where('enrollment_attendances.year', $year)
-            ->where('programs.name', 'like', 'Kelas%')
+            ->where('enrollments.type', '=', 'kelas')
             ->sum(DB::raw('attendance_student.total_present * enrollment_attendances.parent_rate'));
 
         // Teacher cost: full rate for 'terima', 90% rate for 'terlambat' (10% penalty)
@@ -54,7 +54,7 @@ class FinanceController extends Controller
             ->whereIn('enrollment_attendances.status_validation', ['terima', 'terlambat'])
             ->where('enrollment_attendances.month', $month)
             ->where('enrollment_attendances.year', $year)
-            ->where('programs.name', 'not like', 'Kelas%')
+            ->where('enrollments.type', '!=', 'kelas')
             ->value('total') ?? 0;
 
         $gross = $privatGross + $classGross;
@@ -202,7 +202,7 @@ class FinanceController extends Controller
                 ->selectRaw('enrollment_attendances.year, SUM(attendance_student.total_present * enrollment_attendances.parent_rate) as gross')
                 ->whereIn('enrollment_attendances.status_validation', ['terima', 'terlambat'])
                 ->whereBetween('enrollment_attendances.year', [$rangeStart->year, $rangeEnd->year])
-                ->where('programs.name', 'not like', 'Kelas%')
+                ->where('enrollments.type', '!=', 'kelas')
                 ->groupBy('enrollment_attendances.year')
                 ->pluck('gross', 'year');
 
@@ -213,7 +213,7 @@ class FinanceController extends Controller
                 ->selectRaw('enrollment_attendances.year, SUM(attendance_student.total_present * enrollment_attendances.parent_rate) as gross')
                 ->whereIn('enrollment_attendances.status_validation', ['terima', 'terlambat'])
                 ->whereBetween('enrollment_attendances.year', [$rangeStart->year, $rangeEnd->year])
-                ->where('programs.name', 'like', 'Kelas%')
+                ->where('enrollments.type', '=', 'kelas')
                 ->groupBy('enrollment_attendances.year')
                 ->pluck('gross', 'year');
 
@@ -223,7 +223,7 @@ class FinanceController extends Controller
                 ->selectRaw('enrollment_attendances.year, SUM(CASE WHEN enrollment_attendances.status_validation = ? THEN enrollment_attendances.teacher_rate WHEN enrollment_attendances.status_validation = ? THEN enrollment_attendances.teacher_rate * 0.9 ELSE 0 END) as cost', ['terima', 'terlambat'])
                 ->whereIn('enrollment_attendances.status_validation', ['terima', 'terlambat'])
                 ->whereBetween('enrollment_attendances.year', [$rangeStart->year, $rangeEnd->year])
-                ->where('programs.name', 'not like', 'Kelas%')
+                ->where('enrollments.type', '!=', 'kelas')
                 ->groupBy('enrollment_attendances.year')
                 ->pluck('cost', 'year');
 
@@ -255,7 +255,7 @@ class FinanceController extends Controller
             ->join('programs', 'enrollments.program_id', '=', 'programs.id')
             ->selectRaw('enrollment_attendances.year, enrollment_attendances.month, SUM(attendance_student.total_present * enrollment_attendances.parent_rate) as gross')
             ->whereIn('enrollment_attendances.status_validation', ['terima', 'terlambat'])
-            ->where('programs.name', 'not like', 'Kelas%')
+            ->where('enrollments.type', '!=', 'kelas')
             ->where(function ($builder) use ($conditions) {
                 foreach ($conditions as $condition) {
                     $builder->orWhere(fn ($sub) => $sub
@@ -274,7 +274,7 @@ class FinanceController extends Controller
             ->join('programs', 'enrollments.program_id', '=', 'programs.id')
             ->selectRaw('enrollment_attendances.year, enrollment_attendances.month, SUM(attendance_student.total_present * enrollment_attendances.parent_rate) as gross')
             ->whereIn('enrollment_attendances.status_validation', ['terima', 'terlambat'])
-            ->where('programs.name', 'like', 'Kelas%')
+            ->where('enrollments.type', '=', 'kelas')
             ->where(function ($builder) use ($conditions) {
                 foreach ($conditions as $condition) {
                     $builder->orWhere(fn ($sub) => $sub
@@ -292,7 +292,7 @@ class FinanceController extends Controller
             ->join('programs', 'enrollments.program_id', '=', 'programs.id')
             ->selectRaw('enrollment_attendances.year, enrollment_attendances.month, SUM(CASE WHEN enrollment_attendances.status_validation = ? THEN enrollment_attendances.teacher_rate WHEN enrollment_attendances.status_validation = ? THEN enrollment_attendances.teacher_rate * 0.9 ELSE 0 END) as cost', ['terima', 'terlambat'])
             ->whereIn('enrollment_attendances.status_validation', ['terima', 'terlambat'])
-            ->where('programs.name', 'not like', 'Kelas%')
+            ->where('enrollments.type', '!=', 'kelas')
             ->where(function ($builder) use ($conditions) {
                 foreach ($conditions as $condition) {
                     $builder->orWhere(fn ($sub) => $sub

@@ -35,8 +35,12 @@
                                     <td class="py-2">{{ $student->parent?->name ?? ($student->parent_id ? 'Parent dihapus' : 'Tidak ada parent') }}</td>
                                     <td class="py-2">hibernasi</td>
                                     <td class="py-2">
-                                        <form method="POST" action="{{ route('admin.students.restore', $student->id) }}" class="space-y-2">
+                                        <form method="POST" action="{{ route('admin.students.restore', $student->id) }}" class="space-y-2" onsubmit="return confirmRestore(this, {{ $student->parent_id ?? 'null' }});">
                                             @csrf
+                                            <div id="restore-warning-{{ $student->id }}" class="hidden bg-amber-50 border border-amber-300 text-amber-700 text-xs px-3 py-2 rounded-lg flex items-start gap-2">
+                                                <svg class="w-4 h-4 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                                <span>Murid akan dipindahkan ke parent yang berbeda dari parent awal.</span>
+                                            </div>
                                             <div>
                                                 <label class="block text-xs text-gray-500">Kembalikan ke Parent:</label>
                                                 <select name="parent_id" class="w-full border-gray-300 rounded-md text-xs">
@@ -69,3 +73,27 @@
         </div>
     </div>
 </x-app-layout>
+
+<script>
+    function confirmRestore(form, originalParentId) {
+        const selected = form.querySelector('[name="parent_id"]');
+        const newName = form.querySelector('[name="new_parent_name"]');
+        const newPhone = form.querySelector('[name="new_parent_phone"]');
+        const studentId = form.action.match(/\/(\d+)\/restore$/)?.[1];
+        const warning = document.getElementById('restore-warning-' + studentId);
+
+        const changed = (selected.value !== '' && parseInt(selected.value) !== originalParentId)
+            || (newName && newName.value.trim() !== '')
+            || (newPhone && newPhone.value.trim() !== '');
+
+        if (warning) {
+            warning.classList.toggle('hidden', !changed);
+        }
+
+        if (changed) {
+            return confirm('Murid ini akan dipindahkan ke parent yang berbeda dari parent awal. Lanjutkan?');
+        }
+
+        return true;
+    }
+</script>

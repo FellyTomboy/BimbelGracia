@@ -24,7 +24,7 @@ class ClassStudentSessionController extends Controller
             'enrollment.teacher',
             'students',
         ])
-            ->whereHas('enrollment.program', fn ($q) => $q->where('name', 'like', 'Kelas%'))
+            ->whereHas('enrollment', fn ($q) => $q->where('type', 'kelas'))
             ->whereBetween('lesson_date', [$start, $end])
             ->orderBy('lesson_date')
             ->orderBy('created_at')
@@ -37,8 +37,7 @@ class ClassStudentSessionController extends Controller
                     ->groupBy(function ($attendance) {
                         return implode('|', [
                             $attendance->lesson_date->format('Y-m-d'),
-                            $attendance->enrollment?->program?->name ?? '',
-                            $attendance->enrollment?->teacher?->name ?? '',
+                            $attendance->enrollment_id,
                         ]);
                     })
                     ->map(function ($groupedItems) {
@@ -73,7 +72,7 @@ class ClassStudentSessionController extends Controller
             'enrollment.teacher',
             'students',
         ])
-            ->whereHas('enrollment.program', fn ($q) => $q->where('name', 'like', 'Kelas%'))
+            ->whereHas('enrollment', fn ($q) => $q->where('type', 'kelas'))
             ->latest('lesson_date')
             ->get();
 

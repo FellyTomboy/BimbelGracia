@@ -60,7 +60,7 @@
                                     </td>
                                     <td class="py-3 px-4">
                                         <div class="flex flex-wrap gap-2">
-                                            <form method="POST" action="{{ route('admin.notifications.confirm', $attendance) }}" onsubmit="return confirm('Konfirmasi penolakan presensi ini?')">
+                                            <form method="POST" action="{{ route('admin.notifications.uphold-rejection', $attendance) }}" onsubmit="return confirm('Konfirmasi penolakan presensi ini?')">
                                                 @csrf
                                                 <button type="submit" class="px-3 py-1.5 rounded-lg bg-rose-600 text-white text-xs font-medium hover:bg-rose-700">Konfirmasi Ditolak</button>
                                             </form>

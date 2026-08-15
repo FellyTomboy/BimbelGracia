@@ -21,8 +21,14 @@
 
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Nama Parent <span class="text-xs text-gray-400">(opsional)</span></label>
-                        <input type="text" name="name" value="{{ old('name', $parent->name) }}" class="mt-1 w-full border-gray-300 rounded-md" placeholder="Kosongkan jika nomor baru" />
+                        <input type="text" name="name" value="{{ old('name', $parent->name) }}" class="mt-1 w-full border-gray-300 rounded-md" />
                         @error('name') <p class="text-rose-600 text-xs mt-1">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Alamat <span class="text-xs text-gray-400">(opsional)</span></label>
+                        <textarea name="address" rows="2" class="mt-1 w-full border-gray-300 rounded-md">{{ old('address', $parent->address) }}</textarea>
+                        @error('address') <p class="text-rose-600 text-xs mt-1">{{ $message }}</p> @enderror
                     </div>
 
                     <div>

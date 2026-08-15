@@ -16,13 +16,43 @@ use Illuminate\View\View;
 
 class ParentController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
-        $parents = ParentModel::with(['user', 'students'])
-            ->orderBy('id')
-            ->paginate(20);
+        $query = ParentModel::with(['user', 'students']);
 
-        return view('admin.parents.index', compact('parents'));
+        // Searching
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhereHas('user', fn($uq) => $uq->where('phone', 'like', "%{$search}%"))
+                    ->orWhereHas('students', fn($sq) => $sq->where('nickname', 'like', "%{$search}%")
+                        ->orWhere('full_name', 'like', "%{$search}%"));
+            });
+        }
+
+        // Sorting
+        $sortBy = $request->input('sort', 'id');
+        $sortDir = $request->input('dir', 'asc');
+        $allowedSorts = ['id', 'name', 'phone'];
+        if (!in_array($sortBy, $allowedSorts)) {
+            $sortBy = 'id';
+        }
+        if (!in_array($sortDir, ['asc', 'desc'])) {
+            $sortDir = 'asc';
+        }
+
+        if ($sortBy === 'phone') {
+            $query->join('users', 'parents.user_id', '=', 'users.id')
+                ->orderBy('users.phone', $sortDir)
+                ->select('parents.*');
+        } else {
+            $query->orderBy("parents.{$sortBy}", $sortDir);
+        }
+
+        $parents = $query->paginate(20)->appends($request->query());
+
+        return view('admin.parents.index', compact('parents', 'sortBy', 'sortDir'));
     }
 
     public function inactive(): View
@@ -44,7 +74,8 @@ class ParentController extends Controller
     {
         $validated = $request->validate([
             'name' => ['nullable', 'string', 'max:255'],
-            'phone' => ['required', 'string', 'max:20', 'unique:users,phone'],
+            'phone' => ['required', 'string', 'max:20', 'regex:/^08[0-9]{8,12}$/', 'unique:users,phone'],
+            'address' => ['nullable', 'string', 'max:500'],
             'students' => ['nullable', 'array'],
             'students.*.nickname' => ['nullable', 'string', 'max:255'],
             'students.*.full_name' => ['nullable', 'string', 'max:255'],
@@ -65,6 +96,7 @@ class ParentController extends Controller
         $parent = ParentModel::create([
             'user_id' => $user->id,
             'name' => $parentName,
+            'address' => trim((string) ($validated['address'] ?? '')) ?: null,
         ]);
 
         $studentCount = 0;
@@ -103,7 +135,8 @@ class ParentController extends Controller
     {
         $validated = $request->validate([
             'name' => ['nullable', 'string', 'max:255'],
-            'phone' => ['required', 'string', 'max:20', 'unique:users,phone,' . $parent->user_id],
+            'phone' => ['required', 'string', 'max:20', 'regex:/^08[0-9]{8,12}$/', 'unique:users,phone,' . $parent->user_id],
+            'address' => ['nullable', 'string', 'max:500'],
         ]);
 
         $phone = $this->cleanPhone($validated['phone']);
@@ -116,6 +149,7 @@ class ParentController extends Controller
 
         $parent->update([
             'name' => $parentName,
+            'address' => trim((string) ($validated['address'] ?? '')) ?: null,
         ]);
 
         return redirect()->route('admin.parents.index')

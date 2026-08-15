@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Murid;
 use App\Http\Controllers\Controller;
 use App\Models\MonthlyAttendance;
 use App\Models\Student;
+use App\Services\CalculationService;
 use App\Services\Pdf\InvoiceService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,6 +16,9 @@ use Illuminate\View\View;
 
 class BillingController extends Controller
 {
+    public function __construct(
+        private CalculationService $calculationService
+    ) {}
     public function index(Request $request): View
     {
         $parent = $request->user()?->parent;
@@ -24,6 +28,7 @@ class BillingController extends Controller
         $attendances = MonthlyAttendance::with(['enrollment.teacher', 'enrollment.program', 'students'])
             ->when($student, fn ($query) => $query->whereHas('students', fn ($sub) => $sub->where('students.id', $student->id)))
             ->whereIn('status_validation', ['terima', 'terlambat'])
+            ->where(fn ($query) => $query->whereNull('parent_review_status')->orWhere('parent_review_status', '!=', 'pending'))
             ->orderByDesc('year')
             ->orderByDesc('month')
             ->get();
@@ -40,13 +45,16 @@ class BillingController extends Controller
                 $hasProof = false;
                 $proofStatus = 'none';
 
-                foreach ($items as $attendance) {
-                    $s = $attendance->students->firstWhere('id', $student?->id ?? 0);
-                    $present = (int) ($s?->pivot?->total_present ?? 0);
-                    $rate = $attendance->enrollment?->parent_rate ?? 0;
-                    $total += $present * $rate;
+                // Calculate total using CalculationService
+                if ($student) {
+                    $studentAttendances = $items->filter(fn ($a) => $a->students->contains($student->id));
+                    if ($studentAttendances->isNotEmpty()) {
+                        $result = $this->calculationService->calculateStudentBilling($student, (int) $month, (int) $year, $studentAttendances);
+                        $total = $result['grand_total'];
+                    }
+                }
 
-                    // Aggregate status: if any is paid, show paid; if any has proof, show pending
+                foreach ($items as $attendance) {
                     if ($attendance->parent_payment_status === 'paid') {
                         $status = 'paid';
                     } elseif ($attendance->payment_proof_status === 'pending') {
@@ -62,9 +70,8 @@ class BillingController extends Controller
                 }
 
                 // Check if invoice PDF exists
-                $parentName = $parent?->name ?? 'unknown';
-                $parentSlug = str_replace(' ', '_', strtolower($parentName));
-                $invoicePath = sprintf('pdf/invoice/%s/%02d-%04d.pdf', $parentSlug, (int) $month, (int) $year);
+                $parentId = $parent?->id ?? 'unknown';
+                $invoicePath = sprintf('pdf/invoice/parent_%s/%02d-%04d.pdf', $parentId, (int) $month, (int) $year);
                 $hasInvoice = $student && Storage::disk('public')->exists($invoicePath);
 
                 return [
@@ -103,12 +110,11 @@ class BillingController extends Controller
             'payment_proof' => ['required', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
         ]);
 
-        $parentName = $parent?->name ?? 'unknown';
-        $parentSlug = str_replace(' ', '_', strtolower($parentName));
+        $parentId = $parent?->id ?? 'unknown';
         $file = $validated['payment_proof'];
         $extension = $file->getClientOriginalExtension();
         $period = sprintf('%02d-%04d', $attendance->month, $attendance->year);
-        $path = sprintf('photo/transfer-proof/%s/%s.%s', $parentSlug, $period, $extension);
+        $path = sprintf('photo/transfer-proof/parent_%s/%s.%s', $parentId, $period, $extension);
         $file->storeAs(dirname($path), basename($path), 'public');
 
         $attendance->update([
@@ -134,6 +140,7 @@ class BillingController extends Controller
         $attendances = MonthlyAttendance::with(['enrollment.teacher', 'enrollment.program', 'students'])
             ->whereHas('students', fn ($sub) => $sub->where('students.id', $student->id))
             ->whereIn('status_validation', ['terima', 'terlambat'])
+            ->where(fn ($query) => $query->whereNull('parent_review_status')->orWhere('parent_review_status', '!=', 'pending'))
             ->where('month', $month)
             ->where('year', $year)
             ->get();
@@ -151,13 +158,13 @@ class BillingController extends Controller
     {
         $rows = $attendances->map(function (MonthlyAttendance $attendance) use ($studentId) {
             $student = $attendance->students->firstWhere('id', $studentId);
-            $present = (int) ($student?->pivot?->total_present ?? 0);
-            $rate = $attendance->enrollment?->parent_rate ?? 0;
-            $total = $present * $rate;
-
+            if (!$student) {
+                return ['status' => $attendance->parent_payment_status ?? 'unknown', 'total' => 0];
+            }
+            $result = $this->calculationService->calculateStudentBilling($student, $attendance->month, $attendance->year, collect([$attendance]));
             return [
                 'status' => $attendance->parent_payment_status ?? 'unknown',
-                'total' => $total,
+                'total' => $result['grand_total'],
             ];
         });
 

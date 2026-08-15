@@ -428,6 +428,7 @@ class AnalysisController extends Controller
 
         $attendances = $this->baseAttendanceQuery($month, $year)
             ->whereHas('students', fn ($q) => $q->whereIn('students.id', $students->pluck('id')))
+            ->where(fn ($query) => $query->whereNull('parent_review_status')->orWhere('parent_review_status', '!=', 'pending'))
             ->get();
 
         if ($attendances->isEmpty()) {
@@ -516,11 +517,11 @@ class AnalysisController extends Controller
                     $parentRate = (int) ($attendance->parent_rate ?? $enrollment->parent_rate ?? 0);
                     $teacherRate = (int) ($attendance->teacher_rate ?? $enrollment->teacher_rate ?? 0);
                 } else {
-                    // For privat: use rates with penalty adjustment
-                    $parentRate = (int) ($attendance->parent_rate ?? $enrollment?->getAdjustedParentRate(
+                    // For privat: apply attendance penalty if student attended < 50% of agreed sessions
+                    $parentRate = (int) ($attendance->parent_rate ?? $enrollment?->applyAttendancePenaltyParent(
                         $presentCount, $totalSessionsThisMonth, $studentTotalPresent
                     ) ?? 0);
-                    $teacherRate = (int) ($attendance->teacher_rate ?? $enrollment?->getAdjustedTeacherRate(
+                    $teacherRate = (int) ($attendance->teacher_rate ?? $enrollment?->applyAttendancePenaltyTeacher(
                         $presentCount, $totalSessionsThisMonth, $studentTotalPresent
                     ) ?? 0);
                 }

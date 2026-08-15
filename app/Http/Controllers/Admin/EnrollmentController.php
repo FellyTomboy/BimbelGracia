@@ -6,10 +6,12 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Enrollment;
+use App\Models\MonthlyAttendance;
 use App\Models\Program;
 use App\Models\Student;
 use App\Models\Teacher;
 use App\Services\MonthlySnapshotSyncService;
+use Illuminate\Support\Facades\DB;
 use App\Traits\SearchAndSort;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -233,8 +235,12 @@ class EnrollmentController extends Controller
             ->where('status', 'active')
             ->update(['status' => 'hibernasi']);
 
+        // Only delete enrollments that no longer have active attendance records.
+        // Enrollments that have newly created attendances (race between step 1 and 2)
+        // are kept but remain hibernated — attendances stay valid.
         Enrollment::whereIn('id', $validated['ids'])
             ->where('status', 'hibernasi')
+            ->whereDoesntHave('attendances')
             ->delete();
 
         return redirect()

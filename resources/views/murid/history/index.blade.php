@@ -54,7 +54,11 @@
                                             {{ $attendance->lesson_date?->format('d/m/Y') ?? '-' }}
                                         </td>
                                         <td class="py-3 px-3 sm:px-4">
-                                            @if ($attendance->parent_review_status === 'pending')
+                                            @if ($attendance->status_validation === 'pending')
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">Menunggu Validasi</span>
+                                            @elseif ($attendance->status_validation === 'ditolak')
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-rose-50 text-rose-700 border border-rose-200">Ditolak Admin</span>
+                                            @elseif ($attendance->parent_review_status === 'pending')
                                                 <div class="flex flex-col gap-2">
                                                     <div class="flex flex-col gap-1">
                                                         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">Menunggu Admin</span>

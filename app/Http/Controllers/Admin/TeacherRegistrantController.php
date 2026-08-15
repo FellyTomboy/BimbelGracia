@@ -11,9 +11,11 @@ use App\Models\User;
 use App\Enums\UserRole;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use Throwable;
 
 class TeacherRegistrantController extends Controller
 {
@@ -55,18 +57,29 @@ class TeacherRegistrantController extends Controller
             'phone' => $phone,
         ]);
 
-        Teacher::create([
-            'user_id' => $user->id,
-            'name' => $teacherRegistrant->name,
-            'whatsapp' => $phone,
-            'major' => $teacherRegistrant->major,
-            'subjects' => $teacherRegistrant->subjects,
-            'address' => $teacherRegistrant->address,
-            'bank_name' => $teacherRegistrant->bank_name,
-            'bank_account' => $teacherRegistrant->bank_account,
-            'bank_owner' => $teacherRegistrant->bank_owner,
-            'status' => 'active',
-        ]);
+        try {
+            Teacher::create([
+                'user_id' => $user->id,
+                'name' => $teacherRegistrant->name,
+                'whatsapp' => $phone,
+                'major' => $teacherRegistrant->major,
+                'subjects' => $teacherRegistrant->subjects,
+                'address' => $teacherRegistrant->address,
+                'bank_name' => $teacherRegistrant->bank_name,
+                'bank_account' => $teacherRegistrant->bank_account,
+                'bank_owner' => $teacherRegistrant->bank_owner,
+                'status' => 'active',
+            ]);
+        } catch (Throwable) {
+            // Race condition: another concurrent convert() call already created a teacher
+            // with this whatsapp number. Roll back user, mark registrant converted.
+            $user->forceDelete();
+            $teacherRegistrant->update(['converted' => true]);
+
+            return redirect()
+                ->route('admin.teacher-registrants.index')
+                ->with('status', 'Nomor WA sudah terdaftar sebagai guru.');
+        }
 
         $teacherRegistrant->update(['converted' => true]);
 

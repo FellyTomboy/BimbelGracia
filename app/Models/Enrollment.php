@@ -111,15 +111,15 @@ class Enrollment extends Model
     }
 
     /**
-     * Get adjusted parent rate considering minimum attendance penalty.
-     * If student attends less than 50% of agreed sessions, rate increases by Rp 5.000.
+     * Get parent rate with attendance penalty applied.
+     * If student attends less than 50% of agreed sessions, base rate increases by Rp 5.000.
+     * Note: only applies to privat enrollments. For kelas, billing uses fixed 50% rule, not this method.
      */
-    public function getAdjustedParentRate(int $presentCount, int $totalSessionsThisMonth, int $studentTotalPresent): int
+    public function applyAttendancePenaltyParent(int $presentCount, int $totalSessionsThisMonth, int $studentTotalPresent): int
     {
         $baseRate = $this->getParentRateForCount($presentCount);
-        $agreed = $this->agreed_sessions_per_month ?? 4;
 
-        if ($totalSessionsThisMonth > 0 && $studentTotalPresent > 0 && $studentTotalPresent < ($agreed / 2)) {
+        if ($this->hasAttendancePenalty($totalSessionsThisMonth, $studentTotalPresent)) {
             return $baseRate + 5000;
         }
 
@@ -127,14 +127,15 @@ class Enrollment extends Model
     }
 
     /**
-     * Get adjusted teacher rate considering minimum attendance penalty.
+     * Get teacher rate with attendance penalty applied.
+     * If student attends less than 50% of agreed sessions, base rate increases by Rp 5.000.
+     * Note: only applies to privat enrollments. For kelas, billing uses fixed rate.
      */
-    public function getAdjustedTeacherRate(int $presentCount, int $totalSessionsThisMonth, int $studentTotalPresent): int
+    public function applyAttendancePenaltyTeacher(int $presentCount, int $totalSessionsThisMonth, int $studentTotalPresent): int
     {
         $baseRate = $this->getTeacherRateForCount($presentCount);
-        $agreed = $this->agreed_sessions_per_month ?? 4;
 
-        if ($totalSessionsThisMonth > 0 && $studentTotalPresent > 0 && $studentTotalPresent < ($agreed / 2)) {
+        if ($this->hasAttendancePenalty($totalSessionsThisMonth, $studentTotalPresent)) {
             return $baseRate + 5000;
         }
 
@@ -162,6 +163,9 @@ class Enrollment extends Model
 
     protected static function booted()
     {
+        // WARNING: This fires on EVERY save/delete/restore — triggers a full snapshot sync
+        // for the current month. Acceptable for now since syncAll() only counts active records
+        // (no filtering by period), but could become a bottleneck at scale.
         static::saved(function () {
             app(\App\Services\MonthlySnapshotSyncService::class)->syncAll();
         });

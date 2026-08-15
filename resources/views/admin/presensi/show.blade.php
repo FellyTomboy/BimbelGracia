@@ -120,7 +120,7 @@
                         <p class="text-sm text-gray-500 mt-1">Orangtua sudah menolak presensi ini. Pilih salah satu tindakan di bawah untuk memutuskan status final.</p>
                     </div>
                     <div class="flex flex-wrap gap-3">
-                        <form method="POST" action="{{ route('admin.notifications.confirm', $attendance) }}">
+                        <form method="POST" action="{{ route('admin.notifications.uphold-rejection', $attendance) }}">
                             @csrf
                             <button type="submit" class="px-4 py-2 rounded-md bg-rose-600 text-white text-sm font-medium hover:bg-rose-700">Konfirmasi Ditolak</button>
                         </form>

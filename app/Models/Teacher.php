@@ -81,6 +81,8 @@ class Teacher extends Model
 
     protected static function booted()
     {
+        // WARNING: Triggers full MonthlySnapshotSyncService::syncAll() on every teacher
+        // save/delete/restore. See Enrollment::booted for details.
         static::saved(function () {
             app(\App\Services\MonthlySnapshotSyncService::class)->syncAll();
         });

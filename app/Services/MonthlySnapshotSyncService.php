@@ -37,13 +37,20 @@ class MonthlySnapshotSyncService
         $privateStudentsCount = Student::query()
             ->where('students.status', 'active')
             ->whereNull('students.deleted_at')
+            ->whereHas('enrollments', fn ($q) => $q->where('enrollments.type', '!=', 'kelas'))
+            ->count();
+
+        $classStudentsCount = Student::query()
+            ->where('students.status', 'active')
+            ->whereNull('students.deleted_at')
+            ->whereHas('enrollments', fn ($q) => $q->where('enrollments.type', 'kelas'))
             ->count();
 
         DB::table('monthly_student_snapshots')->updateOrInsert(
             ['year' => $year, 'month' => $month],
             [
                 'private_students_count' => $privateStudentsCount,
-                'class_students_count' => 0,
+                'class_students_count' => $classStudentsCount,
                 'updated_at' => now(),
                 'created_at' => now(),
             ]

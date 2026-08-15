@@ -32,16 +32,21 @@
             @endif
 
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                {{-- Toolbar --}}
-                <div class="p-4 border-b border-gray-100 flex items-center justify-between gap-4">
+                {{-- Toolbar: Search + Count --}}
+                <div class="p-4 border-b border-gray-100 flex items-center justify-between gap-4 flex-wrap">
                     <div class="text-sm text-gray-400">
                         {{ $parents->total() }} parent
                     </div>
-                    <div class="flex items-center gap-3">
-                        <button id="bulk-delete-btn" onclick="submitBulkDelete()" class="hidden inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">
-                            Hibernasi Massal
-                        </button>
-                    </div>
+                    <form method="GET" action="{{ route('admin.parents.index') }}" class="flex items-center gap-2">
+                        <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama, HP, atau nama murid..." class="border-gray-300 rounded-lg text-sm px-3 py-1.5 focus:ring-indigo-500 focus:border-indigo-500" />
+                        <button type="submit" class="px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-sm hover:bg-indigo-700 transition-colors">Cari</button>
+                        @if (request('search'))
+                            <a href="{{ route('admin.parents.index') }}" class="px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 text-sm hover:bg-gray-200 transition-colors">Reset</a>
+                        @endif
+                    </form>
+                    <button id="bulk-delete-btn" onclick="submitBulkDelete()" class="hidden inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">
+                        Hibernasi Massal
+                    </button>
                 </div>
 
                 {{-- Table --}}
@@ -54,21 +59,47 @@
                                     <th class="py-3 px-4 w-10">
                                         <input type="checkbox" onclick="toggleAll(this)" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
                                     </th>
-                                    <th class="py-3 px-4 font-medium">Nama Parent</th>
-                                    <th class="py-3 px-4 font-medium">No HP</th>
-                                    <th class="py-3 px-4 font-medium">Jumlah Murid</th>
+                                    <th class="py-3 px-4 font-medium">#</th>
+                                    <th class="py-3 px-4 font-medium">
+                                        <a href="{{ route('admin.parents.index', array_merge(request()->query(), ['sort' => 'name', 'dir' => ($sortBy === 'name' && $sortDir === 'asc') ? 'desc' : 'asc'])) }}" class="flex items-center gap-1 hover:text-gray-700">
+                                            Nama Parent
+                                            @if ($sortBy === 'name')
+                                                @if ($sortDir === 'asc') ↑@else ↓@endif
+                                            @endif
+                                        </a>
+                                    </th>
+                                    <th class="py-3 px-4 font-medium">
+                                        <a href="{{ route('admin.parents.index', array_merge(request()->query(), ['sort' => 'phone', 'dir' => ($sortBy === 'phone' && $sortDir === 'asc') ? 'desc' : 'asc'])) }}" class="flex items-center gap-1 hover:text-gray-700">
+                                            No HP
+                                            @if ($sortBy === 'phone')
+                                                @if ($sortDir === 'asc') ↑@else ↓@endif
+                                            @endif
+                                        </a>
+                                    </th>
+                                    <th class="py-3 px-4 font-medium">Alamat</th>
+                                    <th class="py-3 px-4 font-medium">Murid</th>
                                     <th class="py-3 px-4 font-medium">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-50">
-                                @forelse ($parents as $parent)
+                                @forelse ($parents as $index => $parent)
                                     <tr class="hover:bg-gray-50/50 transition-colors">
                                         <td class="py-3 px-4">
                                             <input type="checkbox" name="ids[]" value="{{ $parent->id }}" class="row-checkbox rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" onchange="updateBulkButton()" />
                                         </td>
-                                        <td class="py-3 px-4 font-medium text-gray-900">{{ $parent->name }}</td>
+                                        <td class="py-3 px-4 text-gray-400">{{ $parents->firstItem() + $index }}</td>
+                                        <td class="py-3 px-4 font-medium text-gray-900">{{ $parent->name ?? '-' }}</td>
                                         <td class="py-3 px-4 text-gray-600">{{ $parent->user?->phone ?? '-' }}</td>
-                                        <td class="py-3 px-4 text-gray-600">{{ $parent->students->count() }}</td>
+                                        <td class="py-3 px-4 text-gray-600 text-xs max-w-xs truncate">{{ $parent->address ?? '-' }}</td>
+                                        <td class="py-3 px-4 text-gray-600 text-xs">
+                                            @if ($parent->students->isNotEmpty())
+                                                @foreach ($parent->students as $si => $student)
+                                                    <span class="mr-1">{{ $si + 1 }}.</span>{{ $student->display_name }}<br/>
+                                                @endforeach
+                                            @else
+                                                -
+                                            @endif
+                                        </td>
                                         <td class="py-3 px-4">
                                             <div class="flex items-center gap-2">
                                                 <a href="{{ route('admin.parents.edit', $parent->id) }}" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors">
@@ -83,16 +114,9 @@
                                             </div>
                                         </td>
                                     </tr>
-                                    @if ($parent->students->isNotEmpty())
-                                        <tr class="bg-gray-50/50">
-                                            <td colspan="5" class="py-1 pl-14 text-xs text-gray-500">
-                                                Murid: {{ $parent->students->pluck('name')->implode(', ') }}
-                                            </td>
-                                        </tr>
-                                    @endif
                                 @empty
                                     <tr>
-                                        <td colspan="5">
+                                        <td colspan="7">
                                             <x-empty-state icon="👤" title="Belum ada parent" description="Tambahkan parent baru untuk memulai." action="Tambah Parent" actionUrl="{{ route('admin.parents.create') }}" />
                                         </td>
                                     </tr>
