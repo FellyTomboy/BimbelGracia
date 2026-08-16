@@ -36,15 +36,13 @@
                     </div>
                 </div>
                 <div class="overflow-x-auto">
-                    <form id="bulk-form" method="POST" action="{{ route('admin.programs.bulk-destroy') }}" onsubmit="return validateBulkDelete()">
-                        @csrf
-                        <table class="min-w-full text-sm">
-                            <thead>
-                                <tr class="text-left text-gray-500 bg-gray-50/50">
-                                    <th class="py-3 px-4 w-10">
-                                        <input type="checkbox" onclick="toggleAll(this)" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-                                    </th>
-                                    <x-sortable-header label="Nama" column="programs.name" />
+                    <table class="min-w-full text-sm">
+                        <thead>
+                            <tr class="text-left text-gray-500 bg-gray-50/50">
+                                <th class="py-3 px-4 w-10">
+                                    <input type="checkbox" onclick="toggleAll(this)" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                                </th>
+                                <x-sortable-header label="Nama" column="programs.name" />
                                 <x-sortable-header label="Tarif Ortu" column="default_parent_rate" />
                                 <x-sortable-header label="Tarif Guru" column="default_teacher_rate" />
                                 <x-sortable-header label="Status" column="programs.status" />
@@ -70,10 +68,7 @@
                                     <td class="py-3 px-4">
                                         <div class="flex items-center gap-2">
                                             <a href="{{ route('admin.programs.edit', $program) }}" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors">Edit</a>
-                                            <form method="POST" action="{{ route('admin.programs.destroy', $program) }}" onsubmit="return confirm('Hibernasi program ini?')">
-                                                @csrf @method('DELETE')
-                                                <button type="submit" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">Hibernasi</button>
-                                            </form>
+                                            <button type="button" onclick="submitDelete({{ $program->id }})" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">Hibernasi</button>
                                         </div>
                                     </td>
                                 </tr>
@@ -82,6 +77,8 @@
                             @endforelse
                         </tbody>
                     </table>
+                    <form id="bulk-form" method="POST" action="{{ route('admin.programs.bulk-destroy') }}" onsubmit="return validateBulkDelete()">
+                        @csrf
                     </form>
                 </div>
                 @if ($programs->hasPages())
@@ -107,6 +104,15 @@
             if (checked.length === 0) { alert('Pilih minimal 1 data untuk dihibernasi.'); return false; }
             return confirm('Hibernasi ' + checked.length + ' data yang dipilih?');
         }
-        function submitBulkDelete() { document.getElementById('bulk-form').requestSubmit(); }
+        function submitBulkDelete() { document.getElementById('bulk-form').submit(); }
+        function submitDelete(programId) {
+            if (!confirm('Hibernasi program ini?')) return;
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/admin/programs/' + programId;
+            form.innerHTML = '<input name="_token" value="{{ csrf_token() }}"><input name="_method" value="DELETE">';
+            document.body.appendChild(form);
+            form.submit();
+        }
     </script>
 </x-app-layout>
