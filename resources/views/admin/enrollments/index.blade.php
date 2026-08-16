@@ -35,9 +35,9 @@
                         <span class="text-sm text-gray-400">{{ $enrollments->total() }} enrollment</span>
                     </div>
                 </div>
-                <div class="overflow-x-auto">
-                    <form id="bulk-form" method="POST" action="{{ route('admin.enrollments.bulk-destroy') }}" onsubmit="return validateBulkDelete()">
-                        @csrf
+                <form id="bulk-form" method="POST" action="{{ route('admin.enrollments.bulk-destroy') }}" onsubmit="return validateBulkDelete()">
+                    @csrf
+                    <div class="overflow-x-auto">
                         <table class="min-w-full text-sm">
                             <thead>
                                 <tr class="text-left text-gray-500 bg-gray-50/50">
@@ -45,51 +45,48 @@
                                         <input type="checkbox" onclick="toggleAll(this)" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
                                     </th>
                                     <x-sortable-header label="Murid" column="students.name" />
-                                <x-sortable-header label="Guru" column="teachers.name" />
-                                <x-sortable-header label="Program" column="programs.name" />
-                                <x-sortable-header label="Tarif Ortu" column="enrollments.parent_rate" />
-                                <x-sortable-header label="Tarif Guru" column="enrollments.teacher_rate" />
-                                <th class="py-3 px-4 font-medium">Status</th>
-                                <th class="py-3 px-4 font-medium">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-50">
-                            @forelse ($enrollments as $enrollment)
-                                <tr class="hover:bg-gray-50/50 transition-colors">
-                                    <td class="py-3 px-4">
-                                        <input type="checkbox" name="ids[]" value="{{ $enrollment->id }}" class="row-checkbox rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" onchange="updateBulkButton()" />
-                                    </td>
-                                    <td class="py-3 px-4 font-medium text-gray-900">
-                                        {{ $enrollment->students->map->display_name->implode(', ') ?: '-' }}
-                                    </td>
-                                    <td class="py-3 px-4 text-gray-600">{{ $enrollment->teacher?->name ?? '-' }}</td>
-                                    <td class="py-3 px-4 text-gray-600">{{ $enrollment->program?->name ?? '-' }}</td>
-                                    <td class="py-3 px-4 text-gray-600">Rp {{ number_format($enrollment->parent_rate) }}</td>
-                                    <td class="py-3 px-4 text-gray-600">Rp {{ number_format($enrollment->teacher_rate) }}</td>
-                                    <td class="py-3 px-4">
-                                        @if ($enrollment->status === 'active')
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">Aktif</span>
-                                        @else
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-50 text-gray-600 border border-gray-200">{{ $enrollment->status }}</span>
-                                        @endif
-                                    </td>
-                                    <td class="py-3 px-4">
-                                        <div class="flex items-center gap-2">
-                                            <a href="{{ route('admin.enrollments.edit', $enrollment) }}" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors">Edit</a>
-                                            <form method="POST" action="{{ route('admin.enrollments.destroy', $enrollment) }}" onsubmit="return confirm('Hibernasi enrollment ini?')">
-                                                @csrf @method('DELETE')
-                                                <button type="submit" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">Hibernasi</button>
-                                            </form>
-                                        </div>
-                                    </td>
+                                    <x-sortable-header label="Guru" column="teachers.name" />
+                                    <x-sortable-header label="Program" column="programs.name" />
+                                    <x-sortable-header label="Tarif Ortu" column="enrollments.parent_rate" />
+                                    <x-sortable-header label="Tarif Guru" column="enrollments.teacher_rate" />
+                                    <th class="py-3 px-4 font-medium">Status</th>
+                                    <th class="py-3 px-4 font-medium">Aksi</th>
                                 </tr>
-                            @empty
-                                <tr><td colspan="8"><x-empty-state icon="📝" title="Belum ada enrollment" description="Daftarkan murid ke program." action="Tambah Enrollment" actionUrl="{{ route('admin.enrollments.create') }}" /></td></tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                    </form>
-                </div>
+                            </thead>
+                            <tbody class="divide-y divide-gray-50">
+                                @forelse ($enrollments as $enrollment)
+                                    <tr class="hover:bg-gray-50/50 transition-colors">
+                                        <td class="py-3 px-4">
+                                            <input type="checkbox" name="ids[]" value="{{ $enrollment->id }}" class="row-checkbox rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" onchange="updateBulkButton()" />
+                                        </td>
+                                        <td class="py-3 px-4 font-medium text-gray-900">
+                                            {{ $enrollment->students->map->display_name->implode(', ') ?: '-' }}
+                                        </td>
+                                        <td class="py-3 px-4 text-gray-600">{{ $enrollment->teacher?->name ?? '-' }}</td>
+                                        <td class="py-3 px-4 text-gray-600">{{ $enrollment->program?->name ?? '-' }}</td>
+                                        <td class="py-3 px-4 text-gray-600">Rp {{ number_format($enrollment->parent_rate) }}</td>
+                                        <td class="py-3 px-4 text-gray-600">Rp {{ number_format($enrollment->teacher_rate) }}</td>
+                                        <td class="py-3 px-4">
+                                            @if ($enrollment->status === 'active')
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">Aktif</span>
+                                            @else
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-50 text-gray-600 border border-gray-200">{{ $enrollment->status }}</span>
+                                            @endif
+                                        </td>
+                                        <td class="py-3 px-4">
+                                            <div class="flex items-center gap-2">
+                                                <a href="{{ route('admin.enrollments.edit', $enrollment) }}" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors">Edit</a>
+                                                <button type="button" onclick="submitDelete('/admin/enrollments/{{ $enrollment->id }}', 'Hibernasi enrollment ini?')" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">Hibernasi</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr><td colspan="8"><x-empty-state icon="📝" title="Belum ada enrollment" description="Daftarkan murid ke program." action="Tambah Enrollment" actionUrl="{{ route('admin.enrollments.create') }}" /></td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </form>
                 @if ($enrollments->hasPages())
                     <div class="p-4 border-t border-gray-100">{{ $enrollments->links() }}</div>
                 @endif
@@ -113,6 +110,15 @@
             if (checked.length === 0) { alert('Pilih minimal 1 data untuk dihibernasi.'); return false; }
             return confirm('Hibernasi ' + checked.length + ' data yang dipilih?');
         }
-        function submitBulkDelete() { document.getElementById('bulk-form').requestSubmit(); }
+        function submitBulkDelete() { document.getElementById('bulk-form').submit(); }
+        function submitDelete(action, message) {
+            if (!confirm(message)) return;
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = action;
+            form.innerHTML = '<input name="_token" value="{{ csrf_token() }}"><input name="_method" value="DELETE">';
+            document.body.appendChild(form);
+            form.submit();
+        }
     </script>
 </x-app-layout>

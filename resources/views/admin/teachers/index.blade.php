@@ -35,9 +35,9 @@
                         <span class="text-sm text-gray-400">{{ $teachers->total() }} guru</span>
                     </div>
                 </div>
-                <div class="overflow-x-auto">
-                    <form id="bulk-form" method="POST" action="{{ route('admin.teachers.bulk-destroy') }}" onsubmit="return validateBulkDelete()">
-                        @csrf
+                <form id="bulk-form" method="POST" action="{{ route('admin.teachers.bulk-destroy') }}" onsubmit="return validateBulkDelete()">
+                    @csrf
+                    <div class="overflow-x-auto">
                         <table class="min-w-full text-sm">
                             <thead>
                                 <tr class="text-left text-gray-500 bg-gray-50/50">
@@ -45,79 +45,70 @@
                                         <input type="checkbox" onclick="toggleAll(this)" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
                                     </th>
                                     <th class="py-3 px-4 font-medium">Foto</th>
-                                <x-sortable-header label="Nama" column="teachers.name" />
-                                <th class="py-3 px-4 font-medium">No. Telepon</th>
-                                <th class="py-3 px-4 font-medium">WA</th>
-                                <th class="py-3 px-4 font-medium">Rekening</th>
-                                <th class="py-3 px-4 font-medium">Status Foto</th>
-                                <x-sortable-header label="Status" column="teachers.status" />
-                                <th class="py-3 px-4 font-medium">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-50">
-                            @forelse ($teachers as $teacher)
-                                <tr class="hover:bg-gray-50/50 transition-colors">
-                                    <td class="py-3 px-4">
-                                        <input type="checkbox" name="ids[]" value="{{ $teacher->id }}" class="row-checkbox rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" onchange="updateBulkButton()" />
-                                    </td>
-                                    <td class="py-3 px-4">
-                                        @if ($teacher->profile_photo_url)
-                                            <img src="{{ $teacher->profile_photo_url }}" alt="{{ $teacher->name }}" class="w-10 h-10 rounded-full object-cover border border-gray-200">
-                                        @else
-                                            <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 text-xs">-</div>
-                                        @endif
-                                    </td>
-                                    <td class="py-3 px-4 font-medium text-gray-900">{{ $teacher->name }}</td>
-                                    <td class="py-3 px-4 text-gray-600">{{ $teacher->user?->phone ?? '-' }}</td>
-                                    <td class="py-3 px-4 text-gray-600">{{ $teacher->whatsapp_number ?? $teacher->whatsapp ?? '-' }}</td>
-                                    <td class="py-3 px-4 text-gray-600">
-                                        @if ($teacher->bank_name)
-                                            <span class="text-xs">{{ $teacher->bank_name }} {{ $teacher->bank_account }}</span>
-                                        @else
-                                            <span class="text-gray-400">-</span>
-                                        @endif
-                                    </td>
-                                    <td class="py-3 px-4">
-                                        @if ($teacher->profile_photo_path)
-                                            @if ($teacher->profile_photo_approved)
-                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">Disetujui</span>
-                                            @else
-                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">Menunggu</span>
-                                            @endif
-                                        @else
-                                            <span class="text-gray-400">-</span>
-                                        @endif
-                                    </td>
-                                    <td class="py-3 px-4">
-                                        @if ($teacher->status === 'active')
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">Aktif</span>
-                                        @else
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-50 text-gray-600 border border-gray-200">{{ $teacher->status }}</span>
-                                        @endif
-                                    </td>
-                                    <td class="py-3 px-4">
-                                        <div class="flex items-center gap-2">
-                                            <a href="{{ route('admin.teachers.edit', $teacher) }}" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors">Edit</a>
-                                            @if ($teacher->profile_photo_path && !$teacher->profile_photo_approved)
-                                                <form method="POST" action="{{ route('admin.teachers.approve-photo', $teacher) }}" class="inline">
-                                                    @csrf
-                                                    <button type="submit" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 transition-colors">Setujui Foto</button>
-                                                </form>
-                                            @endif
-                                            <form method="POST" action="{{ route('admin.teachers.destroy', $teacher) }}" onsubmit="return confirm('Hibernasi guru ini?')">
-                                                @csrf @method('DELETE')
-                                                <button type="submit" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">Hibernasi</button>
-                                            </form>
-                                        </div>
-                                    </td>
+                                    <x-sortable-header label="Nama" column="teachers.name" />
+                                    <th class="py-3 px-4 font-medium">No. Telepon</th>
+                                    <th class="py-3 px-4 font-medium">WA</th>
+                                    <th class="py-3 px-4 font-medium">Rekening</th>
+                                    <th class="py-3 px-4 font-medium">Status Foto</th>
+                                    <x-sortable-header label="Status" column="teachers.status" />
+                                    <th class="py-3 px-4 font-medium">Aksi</th>
                                 </tr>
-                            @empty
-                                <tr><td colspan="8"><x-empty-state icon="👨‍🏫" title="Belum ada guru" description="Tambahkan guru baru." action="Tambah Guru" actionUrl="{{ route('admin.teachers.create') }}" /></td></tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                    </form>
-                </div>
+                            </thead>
+                            <tbody class="divide-y divide-gray-50">
+                                @forelse ($teachers as $teacher)
+                                    <tr class="hover:bg-gray-50/50 transition-colors">
+                                        <td class="py-3 px-4">
+                                            <input type="checkbox" name="ids[]" value="{{ $teacher->id }}" class="row-checkbox rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" onchange="updateBulkButton()" />
+                                        </td>
+                                        <td class="py-3 px-4">
+                                            @if ($teacher->profile_photo_url)
+                                                <img src="{{ $teacher->profile_photo_url }}" alt="{{ $teacher->name }}" class="w-10 h-10 rounded-full object-cover border border-gray-200">
+                                            @else
+                                                <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 text-xs">-</div>
+                                            @endif
+                                        </td>
+                                        <td class="py-3 px-4 font-medium text-gray-900">{{ $teacher->name }}</td>
+                                        <td class="py-3 px-4 text-gray-600">{{ $teacher->user?->phone ?? '-' }}</td>
+                                        <td class="py-3 px-4 text-gray-600">{{ $teacher->whatsapp_number ?? $teacher->whatsapp ?? '-' }}</td>
+                                        <td class="py-3 px-4 text-gray-600">
+                                            @if ($teacher->bank_name)
+                                                <span class="text-xs">{{ $teacher->bank_name }} {{ $teacher->bank_account }}</span>
+                                            @else
+                                                <span class="text-gray-400">-</span>
+                                            @endif
+                                        </td>
+                                        <td class="py-3 px-4">
+                                            @if ($teacher->profile_photo_path)
+                                                @if ($teacher->profile_photo_approved)
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">Disetujui</span>
+                                                @else
+                                                    <button type="button" onclick="submitForm('/admin/teachers/{{ $teacher->id }}/approve-photo')" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-colors">Setujui</button>
+                                                @endif
+                                            @else
+                                                <span class="text-gray-400">-</span>
+                                            @endif
+                                        </td>
+                                        <td class="py-3 px-4">
+                                            @if ($teacher->status === 'active')
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">Aktif</span>
+                                            @else
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-50 text-gray-600 border border-gray-200">{{ $teacher->status }}</span>
+                                            @endif
+                                        </td>
+                                        <td class="py-3 px-4">
+                                            <div class="flex items-center gap-2">
+                                                <a href="{{ route('admin.teachers.edit', $teacher) }}" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors">Edit</a>
+                                                <button type="button" onclick="submitDelete('/admin/teachers/{{ $teacher->id }}', 'Hibernasi guru ini?')" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">Hibernasi</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr><td colspan="9"><x-empty-state icon="👨‍🏫" title="Belum ada guru" description="Tambahkan guru baru." action="Tambah Guru" actionUrl="{{ route('admin.teachers.create') }}" /></td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </form>
                 @if ($teachers->hasPages())
                     <div class="p-4 border-t border-gray-100">{{ $teachers->links() }}</div>
                 @endif
@@ -141,6 +132,23 @@
             if (checked.length === 0) { alert('Pilih minimal 1 data untuk dihibernasi.'); return false; }
             return confirm('Hibernasi ' + checked.length + ' data yang dipilih?');
         }
-        function submitBulkDelete() { document.getElementById('bulk-form').requestSubmit(); }
+        function submitBulkDelete() { document.getElementById('bulk-form').submit(); }
+        function submitDelete(action, message) {
+            if (!confirm(message)) return;
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = action;
+            form.innerHTML = '<input name="_token" value="{{ csrf_token() }}"><input name="_method" value="DELETE">';
+            document.body.appendChild(form);
+            form.submit();
+        }
+        function submitForm(action) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = action;
+            form.innerHTML = '<input name="_token" value="{{ csrf_token() }}">';
+            document.body.appendChild(form);
+            form.submit();
+        }
     </script>
 </x-app-layout>

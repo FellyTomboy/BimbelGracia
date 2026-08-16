@@ -35,52 +35,52 @@
                         <span class="text-sm text-gray-400">{{ $programs->total() }} program</span>
                     </div>
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full text-sm">
-                        <thead>
-                            <tr class="text-left text-gray-500 bg-gray-50/50">
-                                <th class="py-3 px-4 w-10">
-                                    <input type="checkbox" onclick="toggleAll(this)" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-                                </th>
-                                <x-sortable-header label="Nama" column="programs.name" />
-                                <x-sortable-header label="Tarif Ortu" column="default_parent_rate" />
-                                <x-sortable-header label="Tarif Guru" column="default_teacher_rate" />
-                                <x-sortable-header label="Status" column="programs.status" />
-                                <th class="py-3 px-4 font-medium">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-50">
-                            @forelse ($programs as $program)
-                                <tr class="hover:bg-gray-50/50 transition-colors">
-                                    <td class="py-3 px-4">
-                                        <input type="checkbox" name="ids[]" value="{{ $program->id }}" class="row-checkbox rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" onchange="updateBulkButton()" />
-                                    </td>
-                                    <td class="py-3 px-4 font-medium text-gray-900">{{ $program->name }}</td>
-                                    <td class="py-3 px-4 text-gray-600">Rp {{ number_format($program->default_parent_rate) }}</td>
-                                    <td class="py-3 px-4 text-gray-600">Rp {{ number_format($program->default_teacher_rate) }}</td>
-                                    <td class="py-3 px-4">
-                                        @if ($program->status === 'active')
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">Aktif</span>
-                                        @else
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-50 text-gray-600 border border-gray-200">{{ $program->status }}</span>
-                                        @endif
-                                    </td>
-                                    <td class="py-3 px-4">
-                                        <div class="flex items-center gap-2">
-                                            <a href="{{ route('admin.programs.edit', $program) }}" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors">Edit</a>
-                                            <button type="button" onclick="submitDelete({{ $program->id }})" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">Hibernasi</button>
-                                        </div>
-                                    </td>
+                <form id="bulk-form" method="POST" action="{{ route('admin.programs.bulk-destroy') }}" onsubmit="return validateBulkDelete()">
+                    @csrf
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full text-sm">
+                            <thead>
+                                <tr class="text-left text-gray-500 bg-gray-50/50">
+                                    <th class="py-3 px-4 w-10">
+                                        <input type="checkbox" onclick="toggleAll(this)" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                                    </th>
+                                    <x-sortable-header label="Nama" column="programs.name" />
+                                    <x-sortable-header label="Tarif Ortu" column="default_parent_rate" />
+                                    <x-sortable-header label="Tarif Guru" column="default_teacher_rate" />
+                                    <x-sortable-header label="Status" column="programs.status" />
+                                    <th class="py-3 px-4 font-medium">Aksi</th>
                                 </tr>
-                            @empty
-                                <tr><td colspan="6"><x-empty-state icon="📚" title="Belum ada program" description="Tambahkan program baru." action="Tambah Program" actionUrl="{{ route('admin.programs.create') }}" /></td></tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                    <form id="bulk-form" method="POST" action="{{ route('admin.programs.bulk-destroy') }}" onsubmit="return validateBulkDelete()">
-                        @csrf
-                    </form>
-                </div>
+                            </thead>
+                            <tbody class="divide-y divide-gray-50">
+                                @forelse ($programs as $program)
+                                    <tr class="hover:bg-gray-50/50 transition-colors">
+                                        <td class="py-3 px-4">
+                                            <input type="checkbox" name="ids[]" value="{{ $program->id }}" class="row-checkbox rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" onchange="updateBulkButton()" />
+                                        </td>
+                                        <td class="py-3 px-4 font-medium text-gray-900">{{ $program->name }}</td>
+                                        <td class="py-3 px-4 text-gray-600">Rp {{ number_format($program->default_parent_rate) }}</td>
+                                        <td class="py-3 px-4 text-gray-600">Rp {{ number_format($program->default_teacher_rate) }}</td>
+                                        <td class="py-3 px-4">
+                                            @if ($program->status === 'active')
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">Aktif</span>
+                                            @else
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-50 text-gray-600 border border-gray-200">{{ $program->status }}</span>
+                                            @endif
+                                        </td>
+                                        <td class="py-3 px-4">
+                                            <div class="flex items-center gap-2">
+                                                <a href="{{ route('admin.programs.edit', $program) }}" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors">Edit</a>
+                                                <button type="button" onclick="submitDelete({{ $program->id }})" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">Hibernasi</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr><td colspan="6"><x-empty-state icon="📚" title="Belum ada program" description="Tambahkan program baru." action="Tambah Program" actionUrl="{{ route('admin.programs.create') }}" /></td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </form>
                 @if ($programs->hasPages())
                     <div class="p-4 border-t border-gray-100">{{ $programs->links() }}</div>
                 @endif

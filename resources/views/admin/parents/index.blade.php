@@ -105,12 +105,9 @@
                                                 <a href="{{ route('admin.parents.edit', $parent->id) }}" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors">
                                                     Edit
                                                 </a>
-                                                <form method="POST" action="{{ route('admin.parents.hibernate', $parent->id) }}" onsubmit="return confirm('Hibernasi parent ini? Semua murid di bawahnya juga akan dihibernasi.')">
-                                                    @csrf
-                                                    <button type="submit" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">
+                                                <button type="button" onclick="submitDelete('/admin/parents/{{ $parent->id }}/hibernate', 'Hibernasi parent ini? Semua murid di bawahnya juga akan dihibernasi.')" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">
                                                         Hibernasi
-                                                    </button>
-                                                </form>
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
@@ -162,7 +159,16 @@
         }
 
         function submitBulkDelete() {
-            document.getElementById('bulk-form').requestSubmit();
+            document.getElementById('bulk-form').submit();
+        }
+        function submitDelete(action, message) {
+            if (!confirm(message)) return;
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = action;
+            form.innerHTML = '<input name="_token" value="{{ csrf_token() }}">';
+            document.body.appendChild(form);
+            form.submit();
         }
     </script>
 </x-app-layout>
