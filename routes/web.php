@@ -239,6 +239,10 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('export.attendances.monthly.excel');
             Route::get('export/attendances/monthly/pdf', [ExportController::class, 'attendancesMonthlyPdf'])
                 ->name('export.attendances.monthly.pdf');
+            Route::get('export/class/excel', [ExportController::class, 'classExcel'])
+                ->name('export.class.excel');
+            Route::get('export/class/pdf', [ExportController::class, 'classPdf'])
+                ->name('export.class.pdf');
             Route::get('export/audit', [ExportController::class, 'auditLogs'])
                 ->name('export.audit');
             Route::get('export/audit/excel', [ExportController::class, 'auditLogsExcel'])

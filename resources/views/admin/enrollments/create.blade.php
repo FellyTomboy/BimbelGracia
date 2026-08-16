@@ -72,7 +72,7 @@
                         {{-- Dropdown mode (kelas) --}}
                         <div id="student-dropdown-section" class="hidden">
                             <label class="block text-sm font-medium text-gray-700">Pilih Murid</label>
-                            <select name="student_ids[]" id="student-dropdown" class="mt-1 w-full border-gray-300 rounded-md">
+                            <select name="student_ids[]" id="student-dropdown" class="mt-1 w-full border-gray-300 rounded-md" max="1">
                                 <option value="">Pilih murid</option>
                                 @foreach ($students as $student)
                                     <option value="{{ $student->id }}"

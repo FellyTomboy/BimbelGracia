@@ -129,6 +129,28 @@ class ExportController extends Controller
         );
     }
 
+    public function classExcel(Request $request): BinaryFileResponse
+    {
+        [$month, $year] = $this->resolvePeriod($request);
+        [$headers, $rows] = $this->classAttendancesData($month, $year);
+        return Excel::download(
+            new ArrayExport($headers, $rows),
+            $this->filename(sprintf('kelas_%04d_%02d', $year, $month), 'xlsx')
+        );
+    }
+
+    public function classPdf(Request $request): Response
+    {
+        [$month, $year] = $this->resolvePeriod($request);
+        [$headers, $rows] = $this->classAttendancesData($month, $year);
+        return $this->pdf(
+            sprintf('Presensi Kelas %02d/%04d', $month, $year),
+            $headers,
+            $rows,
+            sprintf('kelas_%04d_%02d', $year, $month)
+        );
+    }
+
     public function auditLogs(): StreamedResponse
     {
         [$headers, $rows] = $this->auditLogsData();
@@ -349,6 +371,35 @@ class ExportController extends Controller
         $month = max(1, min(12, $month));
         $year = max(2020, min(2100, $year));
         return [$month, $year];
+    }
+
+    private function classAttendancesData(int $month, int $year): array
+    {
+        $rows = MonthlyAttendance::with(['enrollment.program', 'enrollment.teacher', 'students'])
+            ->where('month', $month)
+            ->where('year', $year)
+            ->whereHas('enrollment', fn ($q) => $q->where('type', 'kelas'))
+            ->orderBy('enrollment_id')
+            ->orderBy('lesson_date')
+            ->get()
+            ->map(fn (MonthlyAttendance $attendance) => [
+                $attendance->id,
+                $attendance->lesson_date?->format('d M Y') ?? '-',
+                $attendance->enrollment_id,
+                $attendance->enrollment?->program?->name,
+                $attendance->sessionTeacher?->name ?? $attendance->enrollment?->teacher?->name ?? '-',
+                $attendance->students->map->display_name->implode(', '),
+                $attendance->status_validation,
+                $attendance->parent_payment_status,
+                $attendance->teacher_payment_status,
+                optional($attendance->validated_at)->toDateTimeString(),
+            ])
+            ->all();
+
+        return [
+            ['id', 'tanggal', 'enrollment_id', 'program', 'guru', 'murid', 'status_validasi', 'status_bayar_ortu', 'status_bayar_guru', 'tgl_validasi'],
+            $rows,
+        ];
     }
 
     private function monthlyAttendancesData(int $month, int $year): array

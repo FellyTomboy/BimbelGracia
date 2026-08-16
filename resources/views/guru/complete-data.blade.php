@@ -11,7 +11,7 @@
                     <p class="text-sm text-gray-600 mt-1">Harap lengkapi semua data yang dibutuhkan untuk menampilkan slip gaji dan dokumen resmi.</p>
                 </div>
 
-                <form method="POST" action="{{ route('guru.complete-data.store') }}" class="space-y-6">
+                <form method="POST" action="{{ route('guru.complete-data') }}" class="space-y-6">
                     @csrf
                     <input type="hidden" name="redirect_to" value="{{ $redirect_to }}">
 

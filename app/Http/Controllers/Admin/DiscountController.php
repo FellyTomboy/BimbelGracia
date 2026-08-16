@@ -36,7 +36,7 @@ class DiscountController extends Controller
             'year' => ['required', 'integer', 'min:2020', 'max:2100'],
             'enrollment_ids' => ['required', 'array', 'min:1'],
             'enrollment_ids.*' => ['integer', 'exists:enrollments,id'],
-            'discount_type' => ['required', 'in:percent,amount'],
+            'discount_type' => ['required', 'in:percent,amount,final'],
             'discount_value' => ['required', 'integer', 'min:0'],
         ]);
 

@@ -25,16 +25,17 @@
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Jenis Diskon</label>
-                            <select name="discount_type" class="mt-1 w-full border-gray-300 rounded-md" required>
+                            <select name="discount_type" id="discount-type-select" class="mt-1 w-full border-gray-300 rounded-md" required onchange="updateDiscountValueLabel()">
                                 <option value="percent">Diskon %</option>
                                 <option value="amount">Nominal potongan (Rp)</option>
+                                <option value="final">Harga final (Rp)</option>
                             </select>
                         </div>
                     </div>
                     <div class="grid md:grid-cols-3 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">Nilai Diskon</label>
-                            <input type="number" name="discount_value" min="0" class="mt-1 w-full border-gray-300 rounded-md" placeholder="Contoh: 10 atau 50000" required />
+                            <label class="block text-sm font-medium text-gray-700" id="discount-value-label">Nilai Diskon</label>
+                            <input type="number" name="discount_value" id="discount-value-input" min="0" class="mt-1 w-full border-gray-300 rounded-md" placeholder="Contoh: 10 atau 50000" required />
                         </div>
                         <div class="md:col-span-2 text-sm text-gray-500 flex items-end">
                             <p>Isi nilai 0 untuk menghapus diskon pada enrollment yang dipilih.</p>
@@ -80,5 +81,24 @@
                 </form>
             </div>
         </div>
-    </div>
+    <script>
+        function updateDiscountValueLabel() {
+            const type = document.getElementById('discount-type-select').value;
+            const label = document.getElementById('discount-value-label');
+            const input = document.getElementById('discount-value-input');
+            if (type === 'percent') {
+                label.textContent = 'Nilai Diskon (%)';
+                input.placeholder = 'Contoh: 10';
+                input.max = 100;
+            } else if (type === 'final') {
+                label.textContent = 'Harga Final (Rp)';
+                input.placeholder = 'Contoh: 150000';
+                input.removeAttribute('max');
+            } else {
+                label.textContent = 'Potongan Nominal (Rp)';
+                input.placeholder = 'Contoh: 50000';
+                input.removeAttribute('max');
+            }
+        }
+    </script>
 </x-app-layout>

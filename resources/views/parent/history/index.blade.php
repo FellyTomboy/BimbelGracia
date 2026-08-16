@@ -151,7 +151,7 @@
 
     <script>
         function openRejectModal(attendanceId) {
-            document.getElementById('rejectForm').action = '{{ route("parent.history.reject", "REPLACE_ID") }}'.replace('REPLACE_ID', attendanceId);
+            document.getElementById('rejectForm').action = '{{ route("parent.history.reject", "REPLACE_ID") }}'.replace('REPLACE_ID', String(attendanceId));
             document.getElementById('rejectModal').classList.remove('hidden');
             document.getElementById('rejection_reason').value = '';
         }

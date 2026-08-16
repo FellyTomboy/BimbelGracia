@@ -80,6 +80,14 @@ class MonthlyAttendance extends Model
             ->withTimestamps();
     }
 
+    public function getTotalLessonsAttribute(): int
+    {
+        if (!$this->relationLoaded('students')) {
+            return 0;
+        }
+        return (int) $this->students->sum('pivot.total_present');
+    }
+
     protected static function booted()
     {
         static::creating(function ($attendance) {
