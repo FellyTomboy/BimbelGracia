@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 return [
     'default_password' => 'password',
-    'admin_whatsapp' => env('BIMBEL_ADMIN_WHATSAPP'),
+    'admin_whatsapp' => env('BIMBEL_ADMIN_WHATSAPP', '081703027942'),
     'payment_accounts' => [
         [
             'bank' => 'BCA',

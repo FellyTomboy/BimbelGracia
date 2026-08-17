@@ -1,4 +1,5 @@
 <x-app-layout>
+    <x-slot name="title">Data Parent</x-slot>
     <x-slot name="header">
         <div class="flex items-center justify-between">
             <div>

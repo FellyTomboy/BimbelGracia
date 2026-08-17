@@ -41,11 +41,6 @@ class Document extends Model
             ->withTimestamps();
     }
 
-    public function getFileUrlAttribute(): string
-    {
-        return asset('storage/' . $this->file_path);
-    }
-
     public function getFormattedSizeAttribute(): string
     {
         if (!$this->file_size) return '-';

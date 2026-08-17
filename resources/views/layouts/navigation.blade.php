@@ -311,7 +311,7 @@
     </div>
 
     <!-- Responsive Navigation Menu -->
-    <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden">
+    <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden" x-cloak>
         <div class="pt-2 pb-3 space-y-1">
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                 {{ __('Dashboard') }}
@@ -320,82 +320,186 @@
                 <x-responsive-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">
                     {{ __('Admin') }}
                 </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('admin.students.index')" :active="request()->routeIs('admin.students.*')">
-                    {{ __('Murid') }}
-                </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('admin.teachers.index')" :active="request()->routeIs('admin.teachers.*')">
-                    {{ __('Guru') }}
-                </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('admin.programs.index')" :active="request()->routeIs('admin.programs.*')">
-                    {{ __('Program') }}
-                </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('admin.enrollments.index')" :active="request()->routeIs('admin.enrollments.*')">
-                    {{ __('Enrollment') }}
-                </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('admin.lesson-offers.index')" :active="request()->routeIs('admin.lesson-offers.*')">
-                    {{ __('Tawaran Les') }}
-                </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('admin.documents.index')" :active="request()->routeIs('admin.documents.*')">
-                    {{ __('Dokumen') }}
-                </x-responsive-nav-link>
+
+                {{-- Menu Lengkap (mirrors desktop dropdown: header + collapsible submenus) --}}
+                <div x-data="{ menuLengkap: {{ $menuLengkapActive ? 'true' : 'false' }} }">
+                    <button type="button" @click="menuLengkap = ! menuLengkap"
+                            class="w-full flex items-center justify-between ps-3 pe-4 py-2 border-l-4 text-start text-base font-medium focus:outline-none transition duration-150 ease-in-out {{ $menuLengkapActive ? 'border-indigo-400 text-indigo-700 bg-indigo-50' : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50 hover:border-gray-300' }}">
+                        <span>{{ __('Menu Lengkap') }}</span>
+                        <svg class="h-4 w-4 shrink-0 transition-transform" :class="{ 'rotate-180': menuLengkap }" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.27a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+
+                    <div x-show="menuLengkap" x-collapse class="bg-gray-50">
+                        {{-- Data Master --}}
+                        <div x-data="{ sub: {{ request()->routeIs('admin.students.*', 'admin.teachers.*', 'admin.parents.*', 'admin.programs.*', 'admin.enrollments.*', 'admin.lesson-offers.*', 'admin.documents.*', 'admin.new-students.*', 'admin.teacher-registrants.*', 'admin.presensi.*') ? 'true' : 'false' }} }">
+                            <button type="button" @click="sub = ! sub" class="w-full flex items-center justify-between ps-6 pe-4 py-2 text-sm font-semibold text-gray-500 uppercase tracking-wide">
+                                <span>{{ __('Data Master') }}</span>
+                                <svg class="h-3.5 w-3.5 shrink-0 transition-transform" :class="{ 'rotate-180': sub }" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                            </button>
+                            <div x-show="sub" x-collapse>
+                                <x-responsive-nav-link :href="route('admin.parents.index')" :active="request()->routeIs('admin.parents.*')" class="ps-8">
+                                    {{ __('Parent') }}
+                                </x-responsive-nav-link>
+                                <x-responsive-nav-link :href="route('admin.students.index')" :active="request()->routeIs('admin.students.*')" class="ps-8">
+                                    {{ __('Murid') }}
+                                </x-responsive-nav-link>
+                                <x-responsive-nav-link :href="route('admin.teachers.index')" :active="request()->routeIs('admin.teachers.*')" class="ps-8">
+                                    {{ __('Guru') }}
+                                </x-responsive-nav-link>
+                                <x-responsive-nav-link :href="route('admin.programs.index')" :active="request()->routeIs('admin.programs.*')" class="ps-8">
+                                    {{ __('Program') }}
+                                </x-responsive-nav-link>
+                                <x-responsive-nav-link :href="route('admin.enrollments.index')" :active="request()->routeIs('admin.enrollments.*')" class="ps-8">
+                                    {{ __('Enrollment') }}
+                                </x-responsive-nav-link>
+                                <x-responsive-nav-link :href="route('admin.lesson-offers.index')" :active="request()->routeIs('admin.lesson-offers.*')" class="ps-8">
+                                    {{ __('Tawaran Les') }}
+                                </x-responsive-nav-link>
+                                <x-responsive-nav-link :href="route('admin.documents.index')" :active="request()->routeIs('admin.documents.*')" class="ps-8">
+                                    {{ __('Dokumen') }}
+                                </x-responsive-nav-link>
+                                <x-responsive-nav-link :href="route('admin.new-students.index')" :active="request()->routeIs('admin.new-students.*')" class="ps-8">
+                                    {{ __('Pendaftar Murid Baru') }}
+                                </x-responsive-nav-link>
+                                <x-responsive-nav-link :href="route('admin.teacher-registrants.index')" :active="request()->routeIs('admin.teacher-registrants.*')" class="ps-8">
+                                    {{ __('Pendaftar Guru Baru') }}
+                                </x-responsive-nav-link>
+                                <div class="border-t border-gray-200 mx-4 my-1"></div>
+                                <x-responsive-nav-link :href="route('admin.presensi.index')" :active="request()->routeIs('admin.presensi.*')" class="ps-8">
+                                    {{ __('Validasi Presensi') }}
+                                </x-responsive-nav-link>
+                            </div>
+                        </div>
+
+                        {{-- Kelas --}}
+                        <div x-data="{ sub: {{ request()->routeIs('admin.class-attendance.*', 'admin.class-student-sessions.*') ? 'true' : 'false' }} }">
+                            <button type="button" @click="sub = ! sub" class="w-full flex items-center justify-between ps-6 pe-4 py-2 text-sm font-semibold text-gray-500 uppercase tracking-wide">
+                                <span>{{ __('Kelas') }}</span>
+                                <svg class="h-3.5 w-3.5 shrink-0 transition-transform" :class="{ 'rotate-180': sub }" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                            </button>
+                            <div x-show="sub" x-collapse>
+                                <x-responsive-nav-link :href="route('admin.class-attendance.index')" :active="request()->routeIs('admin.class-attendance.*')" class="ps-8">
+                                    {{ __('Presensi Kelas') }}
+                                </x-responsive-nav-link>
+                                <x-responsive-nav-link :href="route('admin.class-student-sessions.index')" :active="request()->routeIs('admin.class-student-sessions.*')" class="ps-8">
+                                    {{ __('Kalender Kelas') }}
+                                </x-responsive-nav-link>
+                            </div>
+                        </div>
+
+                        {{-- WA --}}
+                        <div x-data="{ sub: {{ request()->routeIs('admin.analysis.ortu', 'admin.analysis.guru', 'admin.discounts.*') ? 'true' : 'false' }} }">
+                            <button type="button" @click="sub = ! sub" class="w-full flex items-center justify-between ps-6 pe-4 py-2 text-sm font-semibold text-gray-500 uppercase tracking-wide">
+                                <span>{{ __('WA') }}</span>
+                                <svg class="h-3.5 w-3.5 shrink-0 transition-transform" :class="{ 'rotate-180': sub }" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                            </button>
+                            <div x-show="sub" x-collapse>
+                                <x-responsive-nav-link :href="route('admin.analysis.ortu')" :active="request()->routeIs('admin.analysis.ortu')" class="ps-8">
+                                    {{ __('WA Ortu') }}
+                                </x-responsive-nav-link>
+                                <x-responsive-nav-link :href="route('admin.analysis.guru')" :active="request()->routeIs('admin.analysis.guru')" class="ps-8">
+                                    {{ __('WA Guru') }}
+                                </x-responsive-nav-link>
+                                <x-responsive-nav-link :href="route('admin.discounts.index')" :active="request()->routeIs('admin.discounts.*')" class="ps-8">
+                                    {{ __('Diskon/Promo') }}
+                                </x-responsive-nav-link>
+                            </div>
+                        </div>
+
+                        {{-- Pembayaran --}}
+                        <div x-data="{ sub: {{ request()->routeIs('admin.payments.*') ? 'true' : 'false' }} }">
+                            <button type="button" @click="sub = ! sub" class="w-full flex items-center justify-between ps-6 pe-4 py-2 text-sm font-semibold text-gray-500 uppercase tracking-wide">
+                                <span>{{ __('Pembayaran') }}</span>
+                                <svg class="h-3.5 w-3.5 shrink-0 transition-transform" :class="{ 'rotate-180': sub }" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                            </button>
+                            <div x-show="sub" x-collapse>
+                                <x-responsive-nav-link :href="route('admin.payments.ortu')" :active="request()->routeIs('admin.payments.ortu')" class="ps-8">
+                                    {{ __('Pembayaran Ortu') }}
+                                </x-responsive-nav-link>
+                                <x-responsive-nav-link :href="route('admin.payments.guru')" :active="request()->routeIs('admin.payments.guru')" class="ps-8">
+                                    {{ __('Pembayaran Guru') }}
+                                </x-responsive-nav-link>
+                            </div>
+                        </div>
+
+                        {{-- Laporan --}}
+                        <div x-data="{ sub: {{ request()->routeIs('admin.class-reports.*', 'admin.history.*', 'admin.finance.*', 'admin.export.*') ? 'true' : 'false' }} }">
+                            <button type="button" @click="sub = ! sub" class="w-full flex items-center justify-between ps-6 pe-4 py-2 text-sm font-semibold text-gray-500 uppercase tracking-wide">
+                                <span>{{ __('Laporan') }}</span>
+                                <svg class="h-3.5 w-3.5 shrink-0 transition-transform" :class="{ 'rotate-180': sub }" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                            </button>
+                            <div x-show="sub" x-collapse>
+                                <x-responsive-nav-link :href="route('admin.class-reports.index')" :active="request()->routeIs('admin.class-reports.*')" class="ps-8">
+                                    {{ __('Laporan Kelas') }}
+                                </x-responsive-nav-link>
+                                <x-responsive-nav-link :href="route('admin.history.students')" :active="request()->routeIs('admin.history.*')" class="ps-8">
+                                    {{ __('Riwayat') }}
+                                </x-responsive-nav-link>
+                                <x-responsive-nav-link :href="route('admin.finance.index')" :active="request()->routeIs('admin.finance.*')" class="ps-8">
+                                    {{ __('Keuangan') }}
+                                </x-responsive-nav-link>
+                                <x-responsive-nav-link :href="route('admin.export.index')" :active="request()->routeIs('admin.export.*')" class="ps-8">
+                                    {{ __('Export & Backup') }}
+                                </x-responsive-nav-link>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <x-responsive-nav-link :href="route('admin.bank-accounts.index')" :active="request()->routeIs('admin.bank-accounts.*')">
                     {{ __('Rekening Bimbel') }}
                 </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('admin.class-student-sessions.index')" :active="request()->routeIs('admin.class-student-sessions.*')">
-                    {{ __('Kalender Kelas') }}
-                </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('admin.analysis.ortu')" :active="request()->routeIs('admin.analysis.ortu')">
-                    {{ __('WA Ortu') }}
-                </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('admin.analysis.guru')" :active="request()->routeIs('admin.analysis.guru')">
-                    {{ __('WA Guru') }}
-                </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('admin.discounts.index')" :active="request()->routeIs('admin.discounts.*')">
-                    {{ __('Diskon/Promo') }}
-                </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('admin.payments.ortu')" :active="request()->routeIs('admin.payments.ortu')">
-                    {{ __('Pembayaran Ortu') }}
-                </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('admin.payments.guru')" :active="request()->routeIs('admin.payments.guru')">
-                    {{ __('Pembayaran Guru') }}
-                </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('admin.class-reports.index')" :active="request()->routeIs('admin.class-reports.*')">
-                    {{ __('Laporan Kelas') }}
-                </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('admin.history.students')" :active="request()->routeIs('admin.history.*')">
-                    {{ __('Riwayat') }}
-                </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('admin.finance.index')" :active="request()->routeIs('admin.finance.*')">
-                    {{ __('Keuangan') }}
-                </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('admin.export.index')" :active="request()->routeIs('admin.export.*')">
-                    {{ __('Export & Backup') }}
-                </x-responsive-nav-link>
             @endif
             @if (auth()->user()?->role?->value === 'guru')
-                <x-responsive-nav-link :href="route('guru.presensi.index')" :active="request()->routeIs('guru.presensi.*')">
-                    {{ __('Presensi') }}
-                </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('guru.history.index')" :active="request()->routeIs('guru.history.*')">
-                    {{ __('Riwayat Les') }}
-                </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('guru.salary-projection.index')" :active="request()->routeIs('guru.salary-projection.*')">
-                    {{ __('Proyeksi Gaji') }}
-                </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('guru.tawaran.index')" :active="request()->routeIs('guru.tawaran.*')">
-                    {{ __('Tawaran Les') }}
-                </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('guru.documents.index')" :active="request()->routeIs('guru.documents.*')">
-                    {{ __('Dokumen') }}
-                </x-responsive-nav-link>
+                {{-- Menu Guru (mirrors desktop dropdown) --}}
+                <div x-data="{ menuGuru: {{ ($guruAktif || $guruFinance || $guruOffer) ? 'true' : 'false' }} }">
+                    <button type="button" @click="menuGuru = ! menuGuru"
+                            class="w-full flex items-center justify-between ps-3 pe-4 py-2 border-l-4 text-start text-base font-medium focus:outline-none transition duration-150 ease-in-out {{ ($guruAktif || $guruFinance || $guruOffer) ? 'border-indigo-400 text-indigo-700 bg-indigo-50' : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50 hover:border-gray-300' }}">
+                        <span>{{ __('Menu Guru') }}</span>
+                        <svg class="h-4 w-4 shrink-0 transition-transform" :class="{ 'rotate-180': menuGuru }" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.27a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                    <div x-show="menuGuru" x-collapse class="bg-gray-50">
+                        <x-responsive-nav-link :href="route('guru.presensi.index')" :active="request()->routeIs('guru.presensi.*')" class="ps-8">
+                            {{ __('Presensi') }}
+                        </x-responsive-nav-link>
+                        <x-responsive-nav-link :href="route('guru.history.index')" :active="request()->routeIs('guru.history.*')" class="ps-8">
+                            {{ __('Riwayat Les') }}
+                        </x-responsive-nav-link>
+                        <x-responsive-nav-link :href="route('guru.salary-projection.index')" :active="request()->routeIs('guru.salary-projection.*')" class="ps-8">
+                            {{ __('Proyeksi Gaji') }}
+                        </x-responsive-nav-link>
+                        <x-responsive-nav-link :href="route('guru.tawaran.index')" :active="request()->routeIs('guru.tawaran.*')" class="ps-8">
+                            {{ __('Tawaran Les') }}
+                        </x-responsive-nav-link>
+                        <x-responsive-nav-link :href="route('guru.documents.index')" :active="request()->routeIs('guru.documents.*')" class="ps-8">
+                            {{ __('Dokumen') }}
+                        </x-responsive-nav-link>
+                    </div>
+                </div>
             @endif
             @if (auth()->user()?->role?->value === 'parent')
-                <x-responsive-nav-link :href="route('parent.history.index')" :active="request()->routeIs('parent.history.*')">
-                    {{ __('Presensi Les') }}
-                </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('parent.billing.index')" :active="request()->routeIs('parent.billing.*')">
-                    {{ __('Tagihan') }}
-                </x-responsive-nav-link>
+                {{-- Menu Murid (mirrors desktop dropdown) --}}
+                <div x-data="{ menuMurid: {{ $muridActive ? 'true' : 'false' }} }">
+                    <button type="button" @click="menuMurid = ! menuMurid"
+                            class="w-full flex items-center justify-between ps-3 pe-4 py-2 border-l-4 text-start text-base font-medium focus:outline-none transition duration-150 ease-in-out {{ $muridActive ? 'border-indigo-400 text-indigo-700 bg-indigo-50' : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50 hover:border-gray-300' }}">
+                        <span>{{ __('Menu Murid') }}</span>
+                        <svg class="h-4 w-4 shrink-0 transition-transform" :class="{ 'rotate-180': menuMurid }" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.27a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                    <div x-show="menuMurid" x-collapse class="bg-gray-50">
+                        <x-responsive-nav-link :href="route('parent.history.index')" :active="request()->routeIs('parent.history.*')" class="ps-8">
+                            {{ __('Presensi Les') }}
+                        </x-responsive-nav-link>
+                        <x-responsive-nav-link :href="route('parent.billing.index')" :active="request()->routeIs('parent.billing.*')" class="ps-8">
+                            {{ __('Tagihan') }}
+                        </x-responsive-nav-link>
+                    </div>
+                </div>
             @endif
         </div>
 

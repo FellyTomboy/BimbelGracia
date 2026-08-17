@@ -6,12 +6,15 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Document;
+use App\Models\DocumentAccessLog;
 use App\Models\Teacher;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\HeaderUtils;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DocumentController extends Controller
 {
@@ -45,21 +48,20 @@ class DocumentController extends Controller
         // Handle file upload
         $file = $validated['file'];
         $originalName = $file->getClientOriginalName();
-        $path = $file->store('documents', 'public');
+        $path = $file->store('', 'documents');
 
         $document = Document::create([
             'title' => $validated['title'],
             'description' => $validated['description'] ?? null,
             'file_path' => $path,
             'file_name' => $originalName,
-            'file_type' => $file->getClientMimeType(),
+            'file_type' => $file->getMimeType() ?: $file->getClientMimeType(),
             'file_size' => $file->getSize(),
             'access_type' => $validated['access_type'],
             'access_password' => $validated['access_password'] ? Hash::make($validated['access_password']) : null,
             'access_password_plain' => $validated['access_password'] ?? null,
             'uploaded_by' => $request->user()->id,
         ]);
-
         // Sync teachers if access_type = teacher
         if ($validated['access_type'] === 'teacher' && !empty($validated['teacher_ids'])) {
             $document->teachers()->sync($validated['teacher_ids']);
@@ -106,11 +108,11 @@ class DocumentController extends Controller
 
         // Handle file replacement
         if ($request->hasFile('file')) {
-            Storage::disk('public')->delete($document->file_path);
+            Storage::disk('documents')->delete($document->file_path);
             $file = $validated['file'];
-            $updateData['file_path'] = $file->store('documents', 'public');
+            $updateData['file_path'] = $file->store('', 'documents');
             $updateData['file_name'] = $file->getClientOriginalName();
-            $updateData['file_type'] = $file->getClientMimeType();
+            $updateData['file_type'] = $file->getMimeType() ?: $file->getClientMimeType();
             $updateData['file_size'] = $file->getSize();
         }
 
@@ -130,11 +132,77 @@ class DocumentController extends Controller
 
     public function destroy(Document $document): RedirectResponse
     {
-        Storage::disk('public')->delete($document->file_path);
+        Storage::disk('documents')->delete($document->file_path);
         $document->delete();
 
         return redirect()
             ->route('admin.documents.index')
             ->with('status', 'Dokumen berhasil dihapus.');
+    }
+
+    /**
+     * Stream document file for download (admin).
+     */
+    public function stream(Document $document): StreamedResponse
+    {
+        abort_if(
+            !Storage::disk('documents')->exists($document->file_path),
+            404,
+            'File tidak ditemukan.'
+        );
+
+        $fullPath = Storage::disk('documents')->path($document->file_path);
+
+        $disposition = HeaderUtils::makeDisposition(
+            'attachment',
+            $document->file_name,
+            'document'
+        );
+
+        return response()->streamDownload(
+            fn () => readfile($fullPath),
+            null,
+            [
+                'Content-Type' => $document->file_type ?: 'application/octet-stream',
+                'Content-Disposition' => $disposition,
+                'Cache-Control' => 'no-store, no-cache, must-revalidate',
+                'Pragma' => 'no-cache',
+                'Expires' => '0',
+                'X-Content-Type-Options' => 'nosniff',
+            ]
+        );
+    }
+
+    /**
+     * Stream document file for inline preview (admin).
+     */
+    public function preview(Document $document): StreamedResponse
+    {
+        abort_if(
+            !Storage::disk('documents')->exists($document->file_path),
+            404,
+            'File tidak ditemukan.'
+        );
+
+        $fullPath = Storage::disk('documents')->path($document->file_path);
+
+        $disposition = HeaderUtils::makeDisposition(
+            'inline',
+            $document->file_name,
+            'document'
+        );
+
+        return response()->streamDownload(
+            fn () => readfile($fullPath),
+            null,
+            [
+                'Content-Type' => $document->file_type ?: 'application/octet-stream',
+                'Content-Disposition' => $disposition,
+                'Cache-Control' => 'no-store, no-cache, must-revalidate',
+                'Pragma' => 'no-cache',
+                'Expires' => '0',
+                'X-Content-Type-Options' => 'nosniff',
+            ]
+        );
     }
 }

@@ -1,4 +1,5 @@
 <x-app-layout>
+    <x-slot name="title">WA Guru</x-slot>
     <x-slot name="header">
         <div>
             <x-breadcrumb :items="[['label' => 'WA Guru']]" />

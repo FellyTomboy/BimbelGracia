@@ -1,4 +1,5 @@
 <x-app-layout>
+    <x-slot name="title">Proyeksi Gaji Bulanan</x-slot>
     <x-slot name="header">
         <div>
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">Proyeksi Gaji Bulanan</h2>

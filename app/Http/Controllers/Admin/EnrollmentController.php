@@ -28,20 +28,28 @@ class EnrollmentController extends Controller
     public function index(Request $request): View
     {
         $params = $this->getSearchSortParams($request);
+        $activeTab = $request->query('type', 'kelas');
 
-        $enrollments = Enrollment::query()->with(['program', 'teacher', 'students']);
+        $buildQuery = function (string $type) use ($params) {
+            $q = Enrollment::query()
+                ->where('type', $type)
+                ->with(['program', 'teacher', 'students']);
 
-        $enrollments = $this->applySearch($enrollments, $params['search'], [
-            'program.name',
-            'teacher.name',
-            'enrollments.status',
-        ]);
+            $q = $this->applySearch($q, $params['search'], [
+                'program.name',
+                'teacher.name',
+                'enrollments.status',
+                'students.full_name',
+                'students.nickname',
+            ]);
 
-        $enrollments = $this->applyEnrollmentSort($enrollments, $params['sort'], $params['direction']);
+            return $this->applyEnrollmentSort($q, $params['sort'], $params['direction']);
+        };
 
-        $enrollments = $enrollments->paginate(20)->withQueryString();
+        $kelasEnrollments = (clone $buildQuery('kelas'))->paginate(20)->withQueryString();
+        $privatEnrollments = (clone $buildQuery('privat'))->paginate(20)->withQueryString();
 
-        return view('admin.enrollments.index', compact('enrollments'));
+        return view('admin.enrollments.index', compact('kelasEnrollments', 'privatEnrollments', 'activeTab'));
     }
 
     public function inactive(): View
@@ -55,13 +63,14 @@ class EnrollmentController extends Controller
         return view('admin.enrollments.inactive', compact('enrollments'));
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
         $programs = Program::orderBy('name')->get();
         $teachers = Teacher::orderBy('name')->get();
         $students = Student::orderBy('name')->get();
+        $defaultType = $request->query('type', 'privat');
 
-        return view('admin.enrollments.create', compact('programs', 'teachers', 'students'));
+        return view('admin.enrollments.create', compact('programs', 'teachers', 'students', 'defaultType'));
     }
 
     public function isKelasMode(Request $request): bool
@@ -87,16 +96,20 @@ class EnrollmentController extends Controller
                 $isKelas ? 'nullable' : 'required',
                 'exists:teachers,id',
             ],
-            'parent_rate' => ['nullable', 'integer', 'min:0'],
+            'parent_rate' => [
+                (count($studentIds) > 1) ? 'nullable' : 'required',
+                'integer',
+                'min:0',
+            ],
             'teacher_rate' => [
                 ($isKelas || count($studentIds) > 1) ? 'nullable' : 'required',
                 'integer',
                 'min:0',
             ],
             'pricing_tiers_parent' => ['nullable', 'array'],
-            'pricing_tiers_parent.*' => ['integer', 'min:0'],
+            'pricing_tiers_parent.*' => ['nullable', 'numeric', 'min:0'],
             'pricing_tiers_teacher' => ['nullable', 'array'],
-            'pricing_tiers_teacher.*' => ['integer', 'min:0'],
+            'pricing_tiers_teacher.*' => ['nullable', 'numeric', 'min:0'],
             'agreed_sessions_per_month' => ['required', 'integer', 'min:1', 'max:31'],
             'status' => ['required', 'in:active,hibernasi'],
             'student_ids' => ['required', 'array', 'min:1'],
@@ -108,7 +121,7 @@ class EnrollmentController extends Controller
             $rules['student_ids'] = ['required', 'array', 'min:1', 'max:1'];
         }
 
-        $validated = $request->validate($rules);
+        $validated = $request->validate($rules, [], $this->validationAttributes());
 
         // Ensure default values when fields are hidden
         if ($isKelas) {
@@ -183,18 +196,21 @@ class EnrollmentController extends Controller
                 $isKelas ? 'nullable' : 'required',
                 'exists:teachers,id',
             ],
-            'parent_rate' => ['nullable', 'integer', 'min:0'],
+            'parent_rate' => [
+                (count($studentIds) > 1) ? 'nullable' : 'required',
+                'integer',
+                'min:0',
+            ],
             'teacher_rate' => [
                 ($isKelas || count($studentIds) > 1) ? 'nullable' : 'required',
                 'integer',
                 'min:0',
             ],
             'pricing_tiers_parent' => ['nullable', 'array'],
-            'pricing_tiers_parent.*' => ['integer', 'min:0'],
+            'pricing_tiers_parent.*' => ['nullable', 'numeric', 'min:0'],
             'pricing_tiers_teacher' => ['nullable', 'array'],
-            'pricing_tiers_teacher.*' => ['integer', 'min:0'],
+            'pricing_tiers_teacher.*' => ['nullable', 'numeric', 'min:0'],
             'agreed_sessions_per_month' => ['required', 'integer', 'min:1', 'max:31'],
-            'validation_status' => ['required', 'integer', 'in:0,1,2'],
             'status' => ['required', 'in:active,hibernasi'],
             'student_ids' => ['required', 'array', 'min:1'],
             'student_ids.*' => ['integer', 'exists:students,id'],
@@ -205,7 +221,7 @@ class EnrollmentController extends Controller
             $rules['student_ids'] = ['required', 'array', 'min:1', 'max:1'];
         }
 
-        $validated = $request->validate($rules);
+        $validated = $request->validate($rules, [], $this->validationAttributes());
 
         // Ensure default values when fields are hidden
         if ($isKelas) {
@@ -244,7 +260,6 @@ class EnrollmentController extends Controller
             'teacher_rate' => $validated['teacher_rate'],
             'pricing_tiers' => $pricingTiers,
             'agreed_sessions_per_month' => $validated['agreed_sessions_per_month'],
-            'validation_status' => $validated['validation_status'],
             'status' => $validated['status'],
         ]);
 
@@ -317,6 +332,25 @@ class EnrollmentController extends Controller
         return redirect()
             ->route('admin.enrollments.index')
             ->with('status', 'Enrollment berhasil dipulihkan.');
+    }
+
+    /**
+     * Friendlier Indonesian labels for validation error messages.
+     */
+    private function validationAttributes(): array
+    {
+        return [
+            'program_id' => 'program',
+            'type' => 'tipe enrollment',
+            'teacher_id' => 'guru',
+            'parent_rate' => 'harga orang tua',
+            'teacher_rate' => 'gaji guru',
+            'pricing_tiers_parent' => 'harga orang tua bertingkat',
+            'pricing_tiers_teacher' => 'gaji guru bertingkat',
+            'agreed_sessions_per_month' => 'janji sesi per bulan',
+            'status' => 'status',
+            'student_ids' => 'murid',
+        ];
     }
 
     private function applyEnrollmentSort(Builder $query, ?string $sort, ?string $direction): Builder

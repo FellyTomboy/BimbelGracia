@@ -1,4 +1,5 @@
 <x-app-layout>
+    <x-slot name="title">Edit Enrollment</x-slot>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">Edit Enrollment</h2>
     </x-slot>
@@ -9,6 +10,19 @@
                 <form method="POST" action="{{ route('admin.enrollments.update', $enrollment) }}" class="p-6 space-y-4">
                     @csrf
                     @method('PUT')
+
+                    @if ($errors->any())
+                        <div id="form-error-alert" class="mb-4 rounded-md border border-rose-300 bg-rose-50 p-4" role="alert">
+                            <h4 class="text-sm font-semibold text-rose-800">
+                                Enrollment tidak dapat disimpan. Silakan perbaiki hal berikut:
+                            </h4>
+                            <ul class="mt-2 list-disc space-y-1 pl-5 text-sm text-rose-700">
+                                @foreach ($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
 
                     <div class="grid md:grid-cols-2 gap-4">
                         <div>
@@ -171,24 +185,14 @@
                         @error('agreed_sessions_per_month')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
                     </div>
 
-                    <div class="grid md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Validasi Status</label>
-                            <select name="validation_status" class="mt-1 w-full border-gray-300 rounded-md" required>
-                                <option value="0" @selected(old('validation_status', $enrollment->validation_status) == 0)>0 - Belum ada presensi</option>
-                                <option value="1" @selected(old('validation_status', $enrollment->validation_status) == 1)>1 - Sudah ada</option>
-                                <option value="2" @selected(old('validation_status', $enrollment->validation_status) == 2)>2 - Duplikat</option>
-                            </select>
-                            @error('validation_status')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Status</label>
-                            <select name="status" class="mt-1 w-full border-gray-300 rounded-md" required>
-                                <option value="active" @selected(old('status', $enrollment->status) === 'active')>active</option>
-                                <option value="hibernasi" @selected(old('status', $enrollment->status) === 'hibernasi')>hibernasi</option>
-                            </select>
-                            @error('status')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
-                        </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Status</label>
+                        <select name="status" class="mt-1 w-full border-gray-300 rounded-md" required>
+                            <option value="active" @selected(old('status', $enrollment->status) === 'active')>active</option>
+                            <option value="hibernasi" @selected(old('status', $enrollment->status) === 'hibernasi')>hibernasi</option>
+                        </select>
+                        @error('status')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
                     </div>
 
                     <div class="flex justify-end gap-3">
@@ -265,6 +269,7 @@
             if (kelasMode) {
                 // Kelas mode: hide pricing tiers & teacher rate, show parent rate as "Harga Paket Sebulan"
                 pricingTiersSection.classList.add('hidden');
+                document.querySelectorAll('#pricing-tiers-section input[name^="pricing_tiers"]').forEach(el => el.disabled = true);
                 teacherRateField.classList.add('hidden');
                 teacherRateInput.required = false;
                 rateFields.classList.remove('hidden');
@@ -287,6 +292,7 @@
             } else {
                 // >1 student: show pricing tiers, hide default rates
                 pricingTiersSection.classList.remove('hidden');
+                document.querySelectorAll('#pricing-tiers-section input[name^="pricing_tiers"]').forEach(el => el.disabled = false);
                 rateFields.classList.add('hidden');
                 teacherRateField.classList.add('hidden');
                 teacherRateInput.required = false;
@@ -331,6 +337,7 @@
                     cb.disabled = true;
                 });
                 document.getElementById('student-dropdown').disabled = false;
+                document.querySelectorAll('#pricing-tiers-section input[name^="pricing_tiers"]').forEach(el => el.disabled = true);
             } else {
                 studentCheckboxSection.classList.remove('hidden');
                 studentDropdownSection.classList.add('hidden');
@@ -338,6 +345,7 @@
                     cb.disabled = false;
                 });
                 document.getElementById('student-dropdown').disabled = true;
+                document.querySelectorAll('#pricing-tiers-section input[name^="pricing_tiers"]').forEach(el => el.disabled = false);
             }
 
             updatePricingAndRateVisibility();

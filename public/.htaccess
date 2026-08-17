@@ -3,6 +3,14 @@
         Options -MultiViews -Indexes
     </IfModule>
 
+    # Increase PHP upload limits to match Laravel's 50MB max validation
+    <IfModule php_module>
+        php_value upload_max_filesize 64M
+        php_value post_max_size 128M
+        php_value max_execution_time 300
+        php_value max_input_time 300
+    </IfModule>
+
     RewriteEngine On
 
     # Handle Authorization Header

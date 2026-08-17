@@ -1,4 +1,5 @@
 <x-app-layout>
+    <x-slot name="title">Isi Presensi</x-slot>
     <x-slot name="header">
         <div>
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">Isi Presensi</h2>

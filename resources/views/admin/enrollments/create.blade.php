@@ -1,4 +1,5 @@
 <x-app-layout>
+    <x-slot name="title">Tambah Enrollment</x-slot>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">Tambah Enrollment</h2>
     </x-slot>
@@ -9,12 +10,25 @@
                 <form method="POST" action="{{ route('admin.enrollments.store') }}" class="p-6 space-y-4">
                     @csrf
 
+                    @if ($errors->any())
+                        <div id="form-error-alert" class="mb-4 rounded-md border border-rose-300 bg-rose-50 p-4" role="alert">
+                            <h4 class="text-sm font-semibold text-rose-800">
+                                Enrollment tidak dapat disimpan. Silakan perbaiki hal berikut:
+                            </h4>
+                            <ul class="mt-2 list-disc space-y-1 pl-5 text-sm text-rose-700">
+                                @foreach ($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+
                     <div class="grid md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Tipe Enrollment</label>
                             <select name="type" id="type-select" class="mt-1 w-full border-gray-300 rounded-md" required>
-                                <option value="privat" @selected(old('type', 'privat') === 'privat')>Privat (Per Sesi)</option>
-                                <option value="kelas" @selected(old('type') === 'kelas')>Kelas (Paket Bulanan)</option>
+                                <option value="privat" @selected(old('type', $defaultType ?? 'privat') === 'privat')>Privat (Per Sesi)</option>
+                                <option value="kelas" @selected(old('type', $defaultType ?? 'privat') === 'kelas')>Kelas (Paket Bulanan)</option>
                             </select>
                             <p class="text-xs text-gray-500 mt-1">Privat: tagihan per sesi. Kelas: paket bulanan dengan guru bisa berganti per sesi.</p>
                             @error('type')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
@@ -243,6 +257,7 @@
             if (kelasMode) {
                 // Kelas mode: hide pricing tiers & teacher rate, show parent rate as "Harga Paket Sebulan"
                 pricingTiersSection.classList.add('hidden');
+                document.querySelectorAll('#pricing-tiers-section input[name^="pricing_tiers"]').forEach(el => el.disabled = true);
                 teacherRateField.classList.add('hidden');
                 teacherRateInput.required = false;
                 rateFields.classList.remove('hidden');
@@ -265,6 +280,7 @@
             } else {
                 // >1 student: show pricing tiers, hide default rates
                 pricingTiersSection.classList.remove('hidden');
+                document.querySelectorAll('#pricing-tiers-section input[name^="pricing_tiers"]').forEach(el => el.disabled = false);
                 rateFields.classList.add('hidden');
                 teacherRateField.classList.add('hidden');
                 teacherRateInput.required = false;
@@ -309,6 +325,7 @@
                     cb.disabled = true;
                 });
                 document.getElementById('student-dropdown').disabled = false;
+                document.querySelectorAll('#pricing-tiers-section input[name^="pricing_tiers"]').forEach(el => el.disabled = true);
             } else {
                 studentCheckboxSection.classList.remove('hidden');
                 studentDropdownSection.classList.add('hidden');
@@ -316,6 +333,7 @@
                     cb.disabled = false;
                 });
                 document.getElementById('student-dropdown').disabled = true;
+                document.querySelectorAll('#pricing-tiers-section input[name^="pricing_tiers"]').forEach(el => el.disabled = false);
             }
 
             updatePricingAndRateVisibility();

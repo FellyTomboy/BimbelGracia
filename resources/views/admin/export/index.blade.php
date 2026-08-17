@@ -1,4 +1,5 @@
 <x-app-layout>
+    <x-slot name="title">Export & Backup</x-slot>
     <x-slot name="header">
         <div>
             <x-breadcrumb :items="[['label' => 'Export & Backup']]" />

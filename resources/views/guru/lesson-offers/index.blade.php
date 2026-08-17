@@ -1,4 +1,5 @@
 <x-app-layout>
+    <x-slot name="title">Tawaran Les</x-slot>
     <x-slot name="header">
         <div>
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">Tawaran Les</h2>

@@ -1,4 +1,5 @@
 <x-app-layout>
+    <x-slot name="title">Lengkapi Data Sebelum Melihat Invoice</x-slot>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">Lengkapi Data Sebelum Melihat Invoice</h2>
     </x-slot>

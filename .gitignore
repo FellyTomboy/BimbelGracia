@@ -22,3 +22,9 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Local AI credentials
+.claude/settings.json
+.claude/settings.local.json
+opencode.json
+error_log

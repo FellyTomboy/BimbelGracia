@@ -1,4 +1,5 @@
 <x-app-layout>
+    <x-slot name="title">Notifikasi Presensi</x-slot>
     <x-slot name="header">
         <div>
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">Notifikasi Presensi</h2>

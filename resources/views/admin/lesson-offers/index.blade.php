@@ -1,4 +1,5 @@
 <x-app-layout>
+    <x-slot name="title">Tawaran Les</x-slot>
     <x-slot name="header">
         <div class="flex items-center justify-between">
             <div>

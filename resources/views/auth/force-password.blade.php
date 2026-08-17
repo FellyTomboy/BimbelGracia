@@ -1,4 +1,5 @@
 <x-guest-layout>
+    <x-slot name="title">Ganti Password</x-slot>
     <form method="POST" action="{{ route('password.force.update') }}">
         @csrf
         @method('put')
