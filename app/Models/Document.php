@@ -42,8 +42,6 @@ class Document extends Model
             ->withTimestamps();
     }
 
-<<<<<<< HEAD
-=======
     public function accessLogs(): HasMany
     {
         return $this->hasMany(DocumentAccessLog::class);
@@ -111,7 +109,6 @@ class Document extends Model
             && $this->teachers()->where('teacher_id', $teacher->id)->exists();
     }
 
->>>>>>> 1a30744 (feat: secure document storage and add download with access logging)
     public function getFormattedSizeAttribute(): string
     {
         if (! $this->file_size) return '-';

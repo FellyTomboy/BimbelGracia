@@ -30,15 +30,3 @@ return new class extends Migration
         Schema::dropIfExists('document_access_logs');
     }
 };
-</｜DSML｜>
-<task_progress>
-- [x] Audit existing document security implementation
-- [x] Read and understand all document-related files
-- [x] Identify bugs, authorization bypasses, and missing features
-- [ ] Implement server-side authorization fixes
-- [ ] Add download/print/copy prevention, watermark, no-store headers
-- [ ] Ensure admin full access preserved
-- [ ] Run migrations, route check, tests/lint
-- [ ] Regression check on document features
-</task_progress>
-</write_to_file>

@@ -4,6 +4,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>{{ $document->title }} - Bimbel Gracia</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -88,9 +91,10 @@
             text-align: center;
             flex-shrink: 0;
         }
+        /* Print protection: hide ALL content when printing */
         @media print {
-            .topbar, .notice, .watermark { display: none !important; }
-            .viewer-frame { height: 100vh; }
+            body { display: none !important; }
+            html, body { background: #fff; }
         }
     </style>
 </head>
@@ -162,6 +166,25 @@
             e.preventDefault();
             alert('Pencetakan dokumen tidak diizinkan.');
         });
+
+        // Block Ctrl+P at capture phase (more reliable)
+        document.addEventListener('keydown', function (e) {
+            if ((e.ctrlKey || e.metaKey) && (e.key === 'p' || e.key === 'P')) {
+                e.preventDefault();
+                e.stopPropagation();
+                alert('Pencetakan dokumen tidak diizinkan.');
+                return false;
+            }
+        }, true);
+
+        // Block Ctrl+S (save page)
+        document.addEventListener('keydown', function (e) {
+            if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+        }, true);
     </script>
 </body>
 </html>

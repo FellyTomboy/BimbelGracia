@@ -28,3 +28,7 @@ Thumbs.db
 .claude/settings.local.json
 opencode.json
 error_log
+
+# Private document storage (never commit uploaded files)
+/storage/app/documents
+/storage/app/private

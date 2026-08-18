@@ -13,10 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
-<<<<<<< HEAD
 use Symfony\Component\HttpFoundation\HeaderUtils;
-=======
->>>>>>> 1a30744 (feat: secure document storage and add download with access logging)
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DocumentController extends Controller
@@ -50,16 +47,9 @@ class DocumentController extends Controller
         // so we only require visibility here. Actual file access is enforced in view/download.
         abort_unless($document->isVisibleTo($user), 403, 'Anda tidak memiliki akses ke dokumen ini.');
 
-        // Log the view access (only when the document is actually unlocked/accessible).
-        if ($document->canBeAccessedBy($user)) {
-            $this->logAccess($document, $user, 'view');
-        }
-
-        // Log the view
-        $this->logAccess($request, $document, 'view');
-
         // Get teacher's name for watermark
-        $teacherName = $teacher?->display_name ?? 'Guru';
+        $teacher = Teacher::where('user_id', $user->id)->first();
+        $teacherName = $teacher?->display_name ?? $user->name;
 
         return view('guru.documents.show', compact('document', 'teacherName'));
     }
@@ -101,41 +91,23 @@ class DocumentController extends Controller
     }
 
     /**
-<<<<<<< HEAD
-     * Stream document file with authorization check.
-     * Files are served from the private 'documents' disk — not publicly accessible.
-     */
-    public function stream(Request $request, Document $document): StreamedResponse
-=======
      * Stream the document file to the browser for viewing.
      * Performs server-side authorization before serving the file.
      */
     public function view(Request $request, Document $document): StreamedResponse
->>>>>>> 1a30744 (feat: secure document storage and add download with access logging)
     {
         $user = $request->user();
 
-<<<<<<< HEAD
-        // Authorization check
-        if ($document->access_type === 'teacher') {
-            $hasAccess = $teacher && $document->teachers()->where('teacher_id', $teacher->id)->exists();
-            abort_unless($hasAccess, 403, 'Anda tidak memiliki akses ke dokumen ini.');
-        } elseif ($document->access_type === 'password') {
-            $unlocked = session()->get('document_unlocked_' . $document->id, false);
-            abort_unless($unlocked, 403, 'Masukkan password terlebih dahulu.');
-        }
+        // Server-side authorization before serving the file.
+        abort_unless($document->canBeAccessedBy($user), 403, 'Anda tidak memiliki akses ke dokumen ini.');
 
-        // Verify file exists on private disk
-        abort_if(
-            !Storage::disk('documents')->exists($document->file_path),
-            404,
-            'File tidak ditemukan.'
-        );
+        $disk = Storage::disk('documents');
+        abort_unless($disk->exists($document->file_path), 404, 'File tidak ditemukan.');
 
-        // Log the access (do this BEFORE streaming so failures abort cleanly)
-        $this->logAccess($request, $document, 'stream');
+        // Log the view access.
+        $this->logAccess($request, $document, 'view');
 
-        $fullPath = Storage::disk('documents')->path($document->file_path);
+        $fullPath = $disk->path($document->file_path);
 
         // Use HeaderUtils to safely build Content-Disposition (prevents header injection via filename)
         $disposition = HeaderUtils::makeDisposition(
@@ -150,33 +122,14 @@ class DocumentController extends Controller
             [
                 'Content-Type' => $document->file_type ?: 'application/octet-stream',
                 'Content-Disposition' => $disposition,
-                'Cache-Control' => 'no-store, no-cache, must-revalidate',
+                'Cache-Control' => 'no-store, no-cache, must-revalidate, private, max-age=0',
                 'Pragma' => 'no-cache',
                 'Expires' => '0',
                 'X-Content-Type-Options' => 'nosniff',
+                'X-Frame-Options' => 'SAMEORIGIN',
+                'Content-Security-Policy' => "default-src 'none'; sandbox",
             ]
         );
-=======
-        // Server-side authorization before serving the file.
-        abort_unless($document->canBeAccessedBy($user), 403, 'Anda tidak memiliki akses ke dokumen ini.');
-
-        $disk = Storage::disk('local');
-        abort_unless($disk->exists($document->file_path), 404, 'File tidak ditemukan.');
-
-        // Log the view access.
-        $this->logAccess($document, $user, 'view');
-
-        $contentType = $document->file_type ?: 'application/octet-stream';
-
-        return $disk->response($document->file_path, $document->file_name, [
-            'Content-Type' => $contentType,
-            'Cache-Control' => 'no-store, no-cache, must-revalidate, private, max-age=0',
-            'Pragma' => 'no-cache',
-            'Expires' => '0',
-            'X-Content-Type-Options' => 'nosniff',
-            'Content-Disposition' => 'inline; filename="' . $document->file_name . '"',
-            'X-Frame-Options' => 'SAMEORIGIN',
-        ]);
     }
 
     /**
@@ -190,27 +143,43 @@ class DocumentController extends Controller
         // Server-side authorization before serving the file.
         abort_unless($document->canBeAccessedBy($user), 403, 'Anda tidak memiliki akses ke dokumen ini.');
 
-        $disk = Storage::disk('local');
+        $disk = Storage::disk('documents');
         abort_unless($disk->exists($document->file_path), 404, 'File tidak ditemukan.');
 
         // Log the download access.
-        $this->logAccess($document, $user, 'download');
+        $this->logAccess($request, $document, 'download');
 
-        return $disk->download($document->file_path, $document->file_name, [
-            'Content-Type' => $document->file_type ?: 'application/octet-stream',
-            'Cache-Control' => 'no-store, no-cache, must-revalidate, private, max-age=0',
-            'Pragma' => 'no-cache',
-            'Expires' => '0',
-            'X-Content-Type-Options' => 'nosniff',
-            'Content-Disposition' => 'attachment; filename="' . $document->file_name . '"',
-        ]);
+        $fullPath = $disk->path($document->file_path);
+
+        // Use HeaderUtils to safely build Content-Disposition (prevents header injection via filename)
+        $disposition = HeaderUtils::makeDisposition(
+            'attachment',
+            $document->file_name,
+            'document'
+        );
+
+        return response()->streamDownload(
+            fn () => readfile($fullPath),
+            null,
+            [
+                'Content-Type' => $document->file_type ?: 'application/octet-stream',
+                'Content-Disposition' => $disposition,
+                'Cache-Control' => 'no-store, no-cache, must-revalidate, private, max-age=0',
+                'Pragma' => 'no-cache',
+                'Expires' => '0',
+                'X-Content-Type-Options' => 'nosniff',
+                'X-Frame-Options' => 'SAMEORIGIN',
+                'Content-Security-Policy' => "default-src 'none'; sandbox",
+            ]
+        );
     }
 
     /**
      * Record a document access event.
      */
-    private function logAccess(Document $document, $user, string $action): void
+    private function logAccess(Request $request, Document $document, string $action): void
     {
+        $user = $request->user();
         $teacher = Teacher::where('user_id', $user->id)->first();
 
         DocumentAccessLog::create([
@@ -218,24 +187,8 @@ class DocumentController extends Controller
             'user_id' => $user->id,
             'teacher_id' => $teacher?->id,
             'action' => $action,
-            'ip_address' => request()->ip(),
-            'user_agent' => substr((string) request()->userAgent(), 0, 500),
-        ]);
->>>>>>> 1a30744 (feat: secure document storage and add download with access logging)
-    }
-
-    /**
-     * Log document access to the database.
-     */
-    private function logAccess(Request $request, Document $document, string $action): void
-    {
-        DocumentAccessLog::create([
-            'user_id' => $request->user()->id,
-            'document_id' => $document->id,
-            'action' => $action,
             'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-            'accessed_at' => now(),
+            'user_agent' => substr((string) $request->userAgent(), 0, 500),
         ]);
     }
 }
