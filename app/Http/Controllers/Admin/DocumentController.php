@@ -48,6 +48,7 @@ class DocumentController extends Controller
             'file' => ['required', 'file', 'max:51200'], // max 50MB
             'access_type' => ['required', 'in:teacher,password'],
             'access_password' => ['nullable', 'string', 'min:4', 'max:255'],
+            'protection_level' => ['required', 'in:standard,strict'],
             'teacher_ids' => ['nullable', 'array'],
             'teacher_ids.*' => ['integer', 'exists:teachers,id'],
         ]);
@@ -70,6 +71,7 @@ class DocumentController extends Controller
             'file_type' => $file->getMimeType() ?: $file->getClientMimeType(),
             'file_size' => $file->getSize(),
             'access_type' => $validated['access_type'],
+            'protection_level' => $validated['protection_level'],
             'access_password' => $validated['access_password'] ? Hash::make($validated['access_password']) : null,
             'access_password_plain' => $validated['access_password'] ?? null,
             'uploaded_by' => $request->user()->id,
@@ -99,6 +101,7 @@ class DocumentController extends Controller
             'file' => ['nullable', 'file', 'max:51200'],
             'access_type' => ['required', 'in:teacher,password'],
             'access_password' => ['nullable', 'string', 'min:4', 'max:255'],
+            'protection_level' => ['required', 'in:standard,strict'],
             'teacher_ids' => ['nullable', 'array'],
             'teacher_ids.*' => ['integer', 'exists:teachers,id'],
         ]);
@@ -107,6 +110,7 @@ class DocumentController extends Controller
             'title' => $validated['title'],
             'description' => $validated['description'] ?? null,
             'access_type' => $validated['access_type'],
+            'protection_level' => $validated['protection_level'],
         ];
 
         // Handle password
@@ -157,7 +161,8 @@ class DocumentController extends Controller
 
     /**
      * Download the document file (admin).
-     * Admin has full access to all documents (enforced by role middleware).
+     * Admin has full access to all documents (enforced by role middleware),
+     * regardless of protection_level — the strict tier only restricts guru access.
      */
     public function download(Document $document): StreamedResponse
     {

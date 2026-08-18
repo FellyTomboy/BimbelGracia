@@ -31,6 +31,20 @@
                         @error('file')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
                     </div>
 
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Tingkat Proteksi</label>
+                        <select name="protection_level" class="mt-1 w-full border-gray-300 rounded-md">
+                            <option value="standard" @selected(old('protection_level', $document->protection_level ?? 'standard') === 'standard')>
+                                Longgar — guru bisa download
+                            </option>
+                            <option value="strict" @selected(old('protection_level', $document->protection_level ?? '') === 'strict')>
+                                Ketat — hanya bisa dilihat, tidak bisa diunduh
+                            </option>
+                        </select>
+                        <p class="text-xs text-gray-500 mt-1">Dokumen dengan tingkat "Ketat" hanya bisa dibuka lewat viewer dan tombol unduh disembunyikan untuk guru.</p>
+                        @error('protection_level')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                    </div>
+
                     <div x-data="{ accessType: '{{ old('access_type', $document->access_type) }}' }">
                         <label class="block text-sm font-medium text-gray-700 mb-2">Metode Akses</label>
                         <div class="flex gap-4">

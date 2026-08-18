@@ -109,7 +109,7 @@
     <div class="viewer-wrap">
         <iframe
             class="viewer-frame"
-            src="{{ route('guru.documents.view', $document) }}"
+            src="{{ $viewUrl }}"
             title="{{ $document->title }}"
             sandbox="allow-same-origin allow-scripts allow-forms"
         ></iframe>

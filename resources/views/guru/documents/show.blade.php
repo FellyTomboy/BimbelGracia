@@ -69,6 +69,16 @@
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                     Buka Dokumen
                                 </a>
+
+                                @if ($document->protection_level === 'standard')
+                                    <a href="{{ route('guru.documents.download', $document) }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/></svg>
+                                        Unduh
+                                    </a>
+                                @else
+                                    <span class="text-xs text-gray-400 italic">Dokumen ini hanya dapat dilihat, tidak dapat diunduh.</span>
+                                @endif
+
                                 @if (!$isPdf && !$isImage)
                                     <span class="text-xs text-gray-400 italic">Format file tidak dapat ditampilkan langsung di browser.</span>
                                 @endif

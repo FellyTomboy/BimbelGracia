@@ -12,6 +12,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -69,7 +70,14 @@ class DocumentController extends Controller
         $teacherName = $teacher?->display_name ?? $user->name;
         $watermarkText = $teacherName . ' • ' . $user->email;
 
-        return view('guru.documents.viewer', compact('document', 'watermarkText'));
+        // Strict-tier documents load through a short-lived signed URL so the
+        // underlying file endpoint can't be bookmarked, shared, or reused
+        // outside this viewing session.
+        $viewUrl = $document->isStrict()
+            ? URL::temporarySignedRoute('guru.documents.view', now()->addMinutes(5), ['document' => $document->id])
+            : route('guru.documents.view', $document);
+
+        return view('guru.documents.viewer', compact('document', 'watermarkText', 'viewUrl'));
     }
 
     public function verifyPassword(Request $request, Document $document): RedirectResponse
@@ -93,6 +101,8 @@ class DocumentController extends Controller
     /**
      * Stream the document file to the browser for viewing.
      * Performs server-side authorization before serving the file.
+     * Strict-tier documents additionally require a valid signed request
+     * (i.e. must come from the temporary URL issued by viewer()).
      */
     public function view(Request $request, Document $document): StreamedResponse
     {
@@ -100,6 +110,10 @@ class DocumentController extends Controller
 
         // Server-side authorization before serving the file.
         abort_unless($document->canBeAccessedBy($user), 403, 'Anda tidak memiliki akses ke dokumen ini.');
+
+        if ($document->isStrict() && ! $request->hasValidSignature()) {
+            abort(403, 'Tautan akses tidak valid atau sudah kedaluwarsa.');
+        }
 
         $disk = Storage::disk('documents');
         abort_unless($disk->exists($document->file_path), 404, 'File tidak ditemukan.');
@@ -135,6 +149,7 @@ class DocumentController extends Controller
     /**
      * Download the document file.
      * Performs server-side authorization before serving the file.
+     * Strict-tier documents cannot be downloaded at all — view-only.
      */
     public function download(Request $request, Document $document): StreamedResponse
     {
@@ -142,6 +157,8 @@ class DocumentController extends Controller
 
         // Server-side authorization before serving the file.
         abort_unless($document->canBeAccessedBy($user), 403, 'Anda tidak memiliki akses ke dokumen ini.');
+
+        abort_if($document->isStrict(), 403, 'Dokumen ini tidak dapat diunduh.');
 
         $disk = Storage::disk('documents');
         abort_unless($disk->exists($document->file_path), 404, 'File tidak ditemukan.');
