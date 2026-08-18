@@ -71,6 +71,7 @@
                                     <td class="py-3 px-4 text-gray-600 text-xs">{{ $doc->uploader?->name ?? '-' }}</td>
                                     <td class="py-3 px-4">
                                         <div class="flex items-center gap-2">
+                                            <a href="{{ route('admin.documents.download', $doc) }}" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 transition-colors">Download</a>
                                             <a href="{{ route('admin.documents.edit', $doc) }}" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors">Edit</a>
                                             <form method="POST" action="{{ route('admin.documents.destroy', $doc) }}" onsubmit="return confirm('Hapus dokumen ini?')">
                                                 @csrf @method('DELETE')

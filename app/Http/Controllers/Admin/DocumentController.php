@@ -13,11 +13,21 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
+<<<<<<< HEAD
 use Symfony\Component\HttpFoundation\HeaderUtils;
+=======
+>>>>>>> 1a30744 (feat: secure document storage and add download with access logging)
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DocumentController extends Controller
 {
+    /**
+     * Allowed file extensions for document uploads.
+     */
+    private const ALLOWED_EXTENSIONS = [
+        'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'jpg', 'jpeg', 'png',
+    ];
+
     public function index(): View
     {
         $documents = Document::with(['uploader', 'teachers'])
@@ -45,10 +55,18 @@ class DocumentController extends Controller
             'teacher_ids.*' => ['integer', 'exists:teachers,id'],
         ]);
 
-        // Handle file upload
+        // Validate file extension
         $file = $validated['file'];
+        $extension = strtolower($file->getClientOriginalExtension());
+        abort_unless(in_array($extension, self::ALLOWED_EXTENSIONS, true), 422, 'Tipe file tidak diizinkan.');
+
         $originalName = $file->getClientOriginalName();
+<<<<<<< HEAD
         $path = $file->store('', 'documents');
+=======
+        // Store on private disk so the file is NOT directly accessible via public URL.
+        $path = $file->store('documents', 'local');
+>>>>>>> 1a30744 (feat: secure document storage and add download with access logging)
 
         $document = Document::create([
             'title' => $validated['title'],
@@ -108,9 +126,18 @@ class DocumentController extends Controller
 
         // Handle file replacement
         if ($request->hasFile('file')) {
+<<<<<<< HEAD
             Storage::disk('documents')->delete($document->file_path);
             $file = $validated['file'];
             $updateData['file_path'] = $file->store('', 'documents');
+=======
+            $file = $validated['file'];
+            $extension = strtolower($file->getClientOriginalExtension());
+            abort_unless(in_array($extension, self::ALLOWED_EXTENSIONS, true), 422, 'Tipe file tidak diizinkan.');
+
+            Storage::disk('local')->delete($document->file_path);
+            $updateData['file_path'] = $file->store('documents', 'local');
+>>>>>>> 1a30744 (feat: secure document storage and add download with access logging)
             $updateData['file_name'] = $file->getClientOriginalName();
             $updateData['file_type'] = $file->getMimeType() ?: $file->getClientMimeType();
             $updateData['file_size'] = $file->getSize();
@@ -132,7 +159,11 @@ class DocumentController extends Controller
 
     public function destroy(Document $document): RedirectResponse
     {
+<<<<<<< HEAD
         Storage::disk('documents')->delete($document->file_path);
+=======
+        Storage::disk('local')->delete($document->file_path);
+>>>>>>> 1a30744 (feat: secure document storage and add download with access logging)
         $document->delete();
 
         return redirect()
@@ -141,6 +172,7 @@ class DocumentController extends Controller
     }
 
     /**
+<<<<<<< HEAD
      * Stream document file for download (admin).
      */
     public function stream(Document $document): StreamedResponse
@@ -204,5 +236,24 @@ class DocumentController extends Controller
                 'X-Content-Type-Options' => 'nosniff',
             ]
         );
+=======
+     * Stream the document file to the admin (authorized by role middleware).
+     * Admin has full access to all documents.
+     */
+    public function download(Document $document): StreamedResponse
+    {
+        $disk = Storage::disk('local');
+
+        abort_unless($disk->exists($document->file_path), 404, 'File tidak ditemukan.');
+
+        return $disk->download($document->file_path, $document->file_name, [
+            'Content-Type' => $document->file_type ?: 'application/octet-stream',
+            'Cache-Control' => 'no-store, no-cache, must-revalidate, private',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
+            'X-Content-Type-Options' => 'nosniff',
+            'Content-Disposition' => 'attachment; filename="' . $document->file_name . '"',
+        ]);
+>>>>>>> 1a30744 (feat: secure document storage and add download with access logging)
     }
 }

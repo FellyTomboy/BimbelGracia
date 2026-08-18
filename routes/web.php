@@ -177,8 +177,13 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('teacher-registrants.destroy-all');
 
             Route::resource('documents', AdminDocumentController::class)->except(['show']);
+<<<<<<< HEAD
             Route::get('documents/{document}/stream', [AdminDocumentController::class, 'stream'])->name('documents.stream');
             Route::get('documents/{document}/preview', [AdminDocumentController::class, 'preview'])->name('documents.preview');
+=======
+            Route::get('documents/{document}/download', [AdminDocumentController::class, 'download'])
+                ->name('documents.download');
+>>>>>>> 1a30744 (feat: secure document storage and add download with access logging)
             Route::get('discounts', [DiscountController::class, 'index'])
                 ->name('discounts.index');
             Route::post('discounts', [DiscountController::class, 'store'])
@@ -273,7 +278,13 @@ Route::middleware(['auth', 'password.force'])->group(function () {
         Route::get('documents', [GuruDocumentController::class, 'index'])->name('documents.index');
         Route::get('documents/{document}', [GuruDocumentController::class, 'show'])->name('documents.show');
         Route::post('documents/{document}/verify-password', [GuruDocumentController::class, 'verifyPassword'])->name('documents.verify-password');
+<<<<<<< HEAD
         Route::get('documents/{document}/stream', [GuruDocumentController::class, 'stream'])->name('documents.stream');
+=======
+        Route::get('documents/{document}/viewer', [GuruDocumentController::class, 'viewer'])->name('documents.viewer');
+        Route::get('documents/{document}/view', [GuruDocumentController::class, 'view'])->name('documents.view');
+        Route::get('documents/{document}/download', [GuruDocumentController::class, 'download'])->name('documents.download');
+>>>>>>> 1a30744 (feat: secure document storage and add download with access logging)
     });
 
     Route::get('/parent', function () {
