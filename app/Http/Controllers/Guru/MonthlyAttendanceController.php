@@ -87,8 +87,8 @@ class MonthlyAttendanceController extends Controller
             $file->storeAs(dirname($imagePath), basename($imagePath), 'public');
         }
 
-        // Auto-determine status: terima if within 7 days, terlambat if over 7 days
-        $status = $daysSinceLesson <= 7 ? 'terima' : 'terlambat';
+        // Auto-determine status: terima if within 3 days, terlambat if over 3 days
+        $status = $daysSinceLesson <= 3 ? 'terima' : 'terlambat';
 
         if ($isClassProgram) {
             // CLASS: Guru only marks session happened, no student selection
@@ -148,7 +148,7 @@ class MonthlyAttendanceController extends Controller
 
             $message = $status === 'terima'
                 ? 'Presensi diterima (' . $presentCount . ' murid hadir, rate ortu Rp' . number_format($parentRate) . ', rate guru Rp' . number_format($teacherRate) . ').'
-                : 'Presensi terlambat (lebih dari 7 hari). Guru akan mendapat potongan 10%.';
+                : 'Presensi terlambat (lebih dari 3 hari). Guru akan mendapat potongan 10%.';
         }
 
         return redirect()
@@ -203,7 +203,7 @@ class MonthlyAttendanceController extends Controller
             'month' => $lessonDate->month,
             'year' => $lessonDate->year,
             'notes' => $validated['notes'] ?? null,
-            'status_validation' => $daysSinceLesson <= 7 ? 'terima' : 'terlambat',
+            'status_validation' => $daysSinceLesson <= 3 ? 'terima' : 'terlambat',
         ];
 
         // Handle image upload (replace old if exists)

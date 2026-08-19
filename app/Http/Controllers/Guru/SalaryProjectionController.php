@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Guru;
 use App\Http\Controllers\Controller;
 use App\Models\MonthlyAttendance;
 use App\Models\Teacher;
+use App\Services\AttendanceFineService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -14,6 +15,8 @@ use Illuminate\View\View;
 
 class SalaryProjectionController extends Controller
 {
+    public function __construct(private AttendanceFineService $fineService) {}
+
     public function index(Request $request): View
     {
         [$month, $year] = $this->resolvePeriod($request);
@@ -61,7 +64,9 @@ class SalaryProjectionController extends Controller
             // Use snapshot rate from attendance record (captured at time of validation), not current enrollment rate
             $rate = (int) ($attendance->teacher_rate ?? $attendance->enrollment?->teacher_rate ?? 0);
             $isLate = $attendance->status_validation === 'terlambat';
-            $penalty = $isLate ? (int) ($rate * 0.1) : 0;
+            $penalty = $this->fineService->isLatePenaltyEnabled() && $isLate
+                ? (int) ($rate * 0.1)
+                : 0;
             $total = $rate - $penalty;
 
             return [

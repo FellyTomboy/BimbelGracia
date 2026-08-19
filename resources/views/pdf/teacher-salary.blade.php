@@ -84,7 +84,7 @@
             <p style="margin: 0; font-size: 11px; color: #991b1b;">
                 <strong>⚠️ Peringatan Keterlambatan Presensi</strong><br>
                 Terdapat {{ $totalLateCount ?? 0 }} pertemuan yang diisi terlambat. Denda keterlambatan sebesar <strong>10% dari tarif</strong> per pertemuan.<br>
-                <em>Semua presensi wajib diisi maksimal 1 minggu setelah hari pelaksanaan les. Keterlambatan pengisian presensi akan dikenakan denda.</em>
+                <em>Semua presensi wajib diisi maksimal 3 hari setelah hari pelaksanaan les. Keterlambatan pengisian presensi akan dikenakan denda.</em>
             </p>
         </div>
     @endif

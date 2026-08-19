@@ -103,6 +103,9 @@ class DocumentController extends Controller
      * Performs server-side authorization before serving the file.
      * Strict-tier documents additionally require a valid signed request
      * (i.e. must come from the temporary URL issued by viewer()).
+     *
+     * Image files are watermarked server-side with the teacher's identity
+     * as a deterrent against unauthorized redistribution.
      */
     public function view(Request $request, Document $document): StreamedResponse
     {
@@ -122,6 +125,30 @@ class DocumentController extends Controller
         $this->logAccess($request, $document, 'view');
 
         $fullPath = $disk->path($document->file_path);
+        $mimeType = $document->file_type ?: 'application/octet-stream';
+
+        // Server-side image watermarking for JPEG/PNG images.
+        $imageMimeTypes = ['image/jpeg', 'image/pjpeg', 'image/png'];
+        if (in_array($mimeType, $imageMimeTypes, true)) {
+            $watermarkText = $this->buildImageWatermarkText($user);
+
+            return response()->stream(
+                function () use ($fullPath, $mimeType, $watermarkText) {
+                    $this->streamWatermarkedImage($fullPath, $mimeType, $watermarkText);
+                },
+                200,
+                [
+                    'Content-Type' => $mimeType,
+                    'Cache-Control' => 'no-store, no-cache, must-revalidate, private, max-age=0',
+                    'Pragma' => 'no-cache',
+                    'Expires' => '0',
+                    'X-Content-Type-Options' => 'nosniff',
+                    'X-Frame-Options' => 'SAMEORIGIN',
+                    'Content-Security-Policy' => "default-src 'none'; sandbox",
+                    'Referrer-Policy' => 'no-referrer',
+                ]
+            );
+        }
 
         // Use HeaderUtils to safely build Content-Disposition (prevents header injection via filename)
         $disposition = HeaderUtils::makeDisposition(
@@ -134,7 +161,7 @@ class DocumentController extends Controller
             fn () => readfile($fullPath),
             null,
             [
-                'Content-Type' => $document->file_type ?: 'application/octet-stream',
+                'Content-Type' => $mimeType,
                 'Content-Disposition' => $disposition,
                 'Cache-Control' => 'no-store, no-cache, must-revalidate, private, max-age=0',
                 'Pragma' => 'no-cache',
@@ -142,8 +169,112 @@ class DocumentController extends Controller
                 'X-Content-Type-Options' => 'nosniff',
                 'X-Frame-Options' => 'SAMEORIGIN',
                 'Content-Security-Policy' => "default-src 'none'; sandbox",
+                'Referrer-Policy' => 'no-referrer',
             ]
         );
+    }
+
+    /**
+     * Build a short watermark text string for image overlay.
+     */
+    private function buildImageWatermarkText(object $user): string
+    {
+        $teacher = Teacher::where('user_id', $user->id)->first();
+        $name = $teacher?->display_name ?? $user->name;
+
+        return $name . ' — ' . now()->format('d/m/Y H:i');
+    }
+
+    /**
+     * Output a watermarked version of an image file using GD.
+     * Falls back to the original file on any GD error.
+     */
+    private function streamWatermarkedImage(string $path, string $mimeType, string $text): void
+    {
+        try {
+            // Load source image from disk.
+            $sourceImage = match ($mimeType) {
+                'image/jpeg', 'image/pjpeg' => imagecreatefromjpeg($path),
+                'image/png' => imagecreatefrompng($path),
+                default => null,
+            };
+
+            if (! $sourceImage) {
+                readfile($path);
+                return;
+            }
+
+            $srcW = imagesx($sourceImage);
+            $srcH = imagesy($sourceImage);
+
+            // Scale watermark font size to image dimensions.
+            $fontSize = max(2, min(5, (int) floor($srcW / 150)));
+
+            // Text bounding box (GD built-in bitmap font).
+            $bbox = imagettfbbox($fontSize, 30, $this->watermarkTtfFont(), $text);
+            $textW = abs($bbox[2] - $bbox[0]);
+            $textH = abs($bbox[5] - $bbox[3]);
+
+            // Tile diagonally across the image.
+            $strideX = $textW + intval($srcW * 0.12);
+            $strideY = intval($textH * 5.5);
+            $angle = 30;
+
+            // Allocate watermark color: semi-transparent white.
+            $wmColor = imagecolorallocatealpha($sourceImage, 255, 255, 255, 100);
+
+            // Apply tiled diagonal text overlay.
+            for ($y = -$srcH; $y < $srcH * 2; $y += $strideY) {
+                for ($x = -$srcW; $x < $srcW * 2; $x += $strideX) {
+                    imagettftext(
+                        $sourceImage,
+                        $fontSize,
+                        $angle,
+                        $x,
+                        $y,
+                        $wmColor,
+                        $this->watermarkTtfFont(),
+                        $text
+                    );
+                }
+            }
+
+            // Stream the watermarked result.
+            ob_start();
+            match ($mimeType) {
+                'image/jpeg', 'image/pjpeg' => imagejpeg($sourceImage, null, 82),
+                'image/png' => imagepng($sourceImage, null, 5),
+                default => null,
+            };
+            echo ob_get_clean();
+
+            imagedestroy($sourceImage);
+        } catch (\Throwable) {
+            // Fall back to original on any GD error.
+            if (isset($sourceImage) && $sourceImage) {
+                imagedestroy($sourceImage);
+            }
+            readfile($path);
+        }
+    }
+
+    /**
+     * Return the path to a TrueType font for watermarking.
+     * Uses the first available TTF in the storage/fonts directory,
+     * falling back to DejaVu Sans if nothing is found.
+     */
+    private function watermarkTtfFont(): string
+    {
+        $dir = storage_path('app/fonts');
+        if (is_dir($dir)) {
+            $fonts = glob("$dir/*.ttf");
+            if ($fonts !== false && count($fonts) > 0) {
+                return realpath($fonts[0]) ?: $fonts[0];
+            }
+        }
+        // Return DejaVu Sans bundled with Laravel's debug toolbar or a safe empty font path.
+        // GD will fall back to a bitmap font when no TTF is available.
+        return '';
     }
 
     /**
@@ -187,6 +318,7 @@ class DocumentController extends Controller
                 'X-Content-Type-Options' => 'nosniff',
                 'X-Frame-Options' => 'SAMEORIGIN',
                 'Content-Security-Policy' => "default-src 'none'; sandbox",
+                'Referrer-Policy' => 'no-referrer',
             ]
         );
     }

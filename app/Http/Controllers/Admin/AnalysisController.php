@@ -11,6 +11,7 @@ use App\Models\Enrollment;
 use App\Models\MonthlyAttendance;
 use App\Models\Student;
 use App\Models\Teacher;
+use App\Services\AttendanceFineService;
 use App\Services\Pdf\InvoiceService;
 use Illuminate\Support\Collection;
 use Illuminate\Http\RedirectResponse;
@@ -19,6 +20,8 @@ use Illuminate\View\View;
 
 class AnalysisController extends Controller
 {
+    public function __construct(private AttendanceFineService $fineService) {}
+
     public function ortu(Request $request): View
     {
         [$month, $year] = $this->resolvePeriod($request);
@@ -145,7 +148,9 @@ class AnalysisController extends Controller
                         $totalCount = $enrollmentItems->count();
                         $lateCount = $enrollmentItems->where('status_validation', 'terlambat')->count();
                         $grossTotal = $totalCount * $rate;
-                        $penalty = $lateCount * $rate * 0.1;
+                        $penalty = $this->fineService->isLatePenaltyEnabled()
+                            ? (int) ($lateCount * $rate * 0.1)
+                            : 0;
                         $type = $enrollment?->isKelas() ? 'kelas' : 'privat';
 
                         return [
@@ -306,7 +311,9 @@ class AnalysisController extends Controller
                         $totalCount = $enrollmentItems->count();
                         $lateCount = $enrollmentItems->where('status_validation', 'terlambat')->count();
                         $grossTotal = $totalCount * $rate;
-                        $penalty = $lateCount * $rate * 0.1;
+                        $penalty = $this->fineService->isLatePenaltyEnabled()
+                            ? (int) ($lateCount * $rate * 0.1)
+                            : 0;
 
                         return [
                             'label' => sprintf('%s (%s)', $studentName ?: '-', $programName),

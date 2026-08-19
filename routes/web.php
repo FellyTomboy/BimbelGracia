@@ -202,6 +202,21 @@ Route::middleware(['auth', 'password.force'])->group(function () {
             Route::put('class-attendance/{attendance}', [ClassAttendanceController::class, 'update'])
                 ->name('class-attendance.update');
 
+            Route::get('class-student-sessions', [ClassStudentSessionController::class, 'index'])
+                ->name('class-student-sessions.index');
+            Route::get('class-student-sessions/table', [ClassStudentSessionController::class, 'table'])
+                ->name('class-student-sessions.table');
+            Route::get('class-student-sessions/create', [ClassStudentSessionController::class, 'create'])
+                ->name('class-student-sessions.create');
+            Route::post('class-student-sessions', [ClassStudentSessionController::class, 'store'])
+                ->name('class-student-sessions.store');
+            Route::get('class-student-sessions/{session}/edit', [ClassStudentSessionController::class, 'edit'])
+                ->name('class-student-sessions.edit');
+            Route::put('class-student-sessions/{session}', [ClassStudentSessionController::class, 'update'])
+                ->name('class-student-sessions.update');
+            Route::delete('class-student-sessions/{session}', [ClassStudentSessionController::class, 'destroy'])
+                ->name('class-student-sessions.destroy');
+
             Route::get('class-reports', [ClassReportController::class, 'index'])
                 ->name('class-reports.index');
 
@@ -306,6 +321,7 @@ Route::middleware(['auth', 'password.force'])->group(function () {
     Route::patch('/profile/bank', [ProfileController::class, 'updateBank'])->name('profile.bank.update');
     Route::post('/profile/founder/{teacher}', [ProfileController::class, 'updateFounder'])->name('profile.founder.update');
     Route::post('/profile/founder/{teacher}/photo', [ProfileController::class, 'uploadFounderPhoto'])->name('profile.founder.photo');
+    Route::patch('/profile/fine-settings', [\App\Http\Controllers\Admin\FineSettingsController::class, 'update'])->name('profile.fine-settings.update');
     Route::post('/profile/photo/upload', [ProfileController::class, 'uploadPhoto'])->name('profile.photo.upload');
     Route::delete('/profile/photo/delete', [ProfileController::class, 'deletePhoto'])->name('profile.photo.delete');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');

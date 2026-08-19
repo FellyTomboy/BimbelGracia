@@ -38,7 +38,11 @@
                 </div>
                 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
                     <p class="text-xs text-gray-500">Denda</p>
-                    <p class="text-2xl font-bold text-rose-600">-Rp {{ number_format($totals['late_penalty'] ?? 0) }}</p>
+                    @if (app(\App\Services\AttendanceFineService::class)->isLatePenaltyEnabled())
+                        <p class="text-2xl font-bold text-rose-600">-Rp {{ number_format($totals['late_penalty'] ?? 0) }}</p>
+                    @else
+                        <p class="text-2xl font-bold text-gray-400" title="Denda dinonaktifkan">Nonaktif</p>
+                    @endif
                 </div>
                 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 bg-gradient-to-br from-indigo-50 to-violet-50">
                     <p class="text-xs text-gray-500">Total Proyeksi</p>
@@ -72,7 +76,9 @@
                                 @php
                                     $rate = $attendance->teacher_rate ?? $attendance->enrollment?->teacher_rate ?? 0;
                                     $isLate = $attendance->status_validation === 'terlambat';
-                                    $penalty = $isLate ? (int) ($rate * 0.1) : 0;
+                                    $penalty = app(\App\Services\AttendanceFineService::class)->isLatePenaltyEnabled() && $isLate
+                                        ? (int) ($rate * 0.1)
+                                        : 0;
                                     $total = $rate - $penalty;
                                 @endphp
                                 <tr class="hover:bg-gray-50/50 transition-colors">

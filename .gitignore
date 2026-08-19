@@ -32,3 +32,6 @@ error_log
 # Private document storage (never commit uploaded files)
 /storage/app/documents
 /storage/app/private
+database/*.sqlite
+database/*.sqlie
+database/database.sqlite

@@ -52,6 +52,7 @@
                         <tbody class="divide-y">
                             @php
                                 $calcService = app(\App\Services\CalculationService::class);
+                                $fineService = app(\App\Services\AttendanceFineService::class);
                                 $grandTotal = 0;
                                 $grandPenalty = 0;
                             @endphp
@@ -90,7 +91,9 @@
                                             $rate = $attendance->teacher_rate ?? 0;
                                             $present = $attendance->students->sum(fn ($s) => (int) ($s->pivot?->total_present ?? 0));
                                             $total = $present * $rate;
-                                            $penalty = $attendance->status_validation === 'terlambat' ? (int) ($rate * 0.1) : 0;
+                                            $penalty = $fineService->isLatePenaltyEnabled() && $attendance->status_validation === 'terlambat'
+                                                ? (int) ($rate * 0.1)
+                                                : 0;
                                             $grandTotal += $total;
                                             $grandPenalty += $penalty;
                                             @endphp

@@ -25,6 +25,7 @@ class Document extends Model
         'access_password',
         'access_password_plain',
         'uploaded_by',
+        'protection_level',
     ];
 
     protected $casts = [
@@ -107,6 +108,16 @@ class Document extends Model
 
         return $teacher !== null
             && $this->teachers()->where('teacher_id', $teacher->id)->exists();
+    }
+
+    public function isStrict(): bool
+    {
+        return ($this->protection_level ?? 'standard') === 'strict';
+    }
+
+    public function isStandard(): bool
+    {
+        return ($this->protection_level ?? 'standard') === 'standard';
     }
 
     public function getFormattedSizeAttribute(): string

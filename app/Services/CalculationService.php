@@ -12,6 +12,8 @@ use Illuminate\Support\Collection;
 
 class CalculationService
 {
+    public function __construct(private AttendanceFineService $fineService) {}
+
     /**
      * Calculate parent billing for a student in a given month.
      * Returns grouped rows with rate, count, subtotal, discount, penalty.
@@ -108,6 +110,9 @@ class CalculationService
 
     private function resolveAttendancePenalty(?Enrollment $enrollment, int $totalSessions, int $studentTotalPresent): int
     {
+        if (! $this->fineService->isAttendancePenaltyEnabled()) {
+            return 0;
+        }
         if (! $enrollment || ! $enrollment->hasAttendancePenalty($totalSessions, $studentTotalPresent)) {
             return 0;
         }
@@ -174,7 +179,9 @@ class CalculationService
             $totalCount = $group->sum(fn ($a) => $a->students->sum(fn ($s) => (int) ($s->pivot->total_present ?? 0)));
             $lateCount = $group->filter(fn ($a) => $a->status_validation === 'terlambat')->count();
             $grossTotal = $totalCount * $rate;
-            $penalty = (int) ($lateCount * $rate * 0.1);
+            $penalty = $this->fineService->isLatePenaltyEnabled()
+                ? (int) ($lateCount * $rate * 0.1)
+                : 0;
 
             $countLabel = $presentCount . ' siswa';
             if ($presentCount > 1) $countLabel = 'grup ' . $presentCount . ' siswa';

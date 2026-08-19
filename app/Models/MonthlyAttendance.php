@@ -19,6 +19,7 @@ class MonthlyAttendance extends Model
 
     protected $fillable = [
         'enrollment_id',
+        'class_session_id',
         'session_teacher_id',
         'lesson_date',
         'month',
@@ -56,6 +57,11 @@ class MonthlyAttendance extends Model
     public function enrollment(): BelongsTo
     {
         return $this->belongsTo(Enrollment::class)->withTrashed();
+    }
+
+    public function classSession(): BelongsTo
+    {
+        return $this->belongsTo(ClassSession::class, 'class_session_id');
     }
 
     public function creator(): BelongsTo

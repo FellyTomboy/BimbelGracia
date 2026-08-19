@@ -30,7 +30,9 @@
                         <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Les</label>
                         <input type="date" name="lesson_date" value="{{ old('lesson_date', date('Y-m-d')) }}" class="mt-1 w-full rounded-xl border-gray-200 text-sm" required max="{{ date('Y-m-d') }}" />
                         @error('lesson_date')<p class="mt-1 text-sm text-rose-600">{{ $message }}</p>@enderror
-                        <p class="mt-1 text-xs text-gray-500">Presensi maksimal 7 hari setelah les. Jika lebih, status akan menunggu validasi admin.</p>
+                        @if (app(\App\Services\AttendanceFineService::class)->isLatePenaltyEnabled())
+                            <p class="mt-1 text-xs text-gray-500">Presensi maksimal 3 hari setelah les. Jika lebih, status akan menunggu validasi admin.</p>
+                        @endif
                     </div>
 
                     {{-- Per-student presence --}}

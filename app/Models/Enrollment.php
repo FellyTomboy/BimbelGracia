@@ -16,6 +16,13 @@ class Enrollment extends Model
 {
     use HasFactory, SoftDeletes, Auditable;
 
+    private ?\App\Services\AttendanceFineService $fineService = null;
+
+    private function fines(): \App\Services\AttendanceFineService
+    {
+        return $this->fineService ??= app(\App\Services\AttendanceFineService::class);
+    }
+
     protected $fillable = [
         'program_id',
         'type',
@@ -117,6 +124,9 @@ class Enrollment extends Model
      */
     public function applyAttendancePenaltyParent(int $presentCount, int $totalSessionsThisMonth, int $studentTotalPresent): int
     {
+        if (! $this->fines()->isAttendancePenaltyEnabled()) {
+            return $this->getParentRateForCount($presentCount);
+        }
         $baseRate = $this->getParentRateForCount($presentCount);
 
         if ($this->hasAttendancePenalty($totalSessionsThisMonth, $studentTotalPresent)) {
@@ -133,6 +143,9 @@ class Enrollment extends Model
      */
     public function applyAttendancePenaltyTeacher(int $presentCount, int $totalSessionsThisMonth, int $studentTotalPresent): int
     {
+        if (! $this->fines()->isAttendancePenaltyEnabled()) {
+            return $this->getTeacherRateForCount($presentCount);
+        }
         $baseRate = $this->getTeacherRateForCount($presentCount);
 
         if ($this->hasAttendancePenalty($totalSessionsThisMonth, $studentTotalPresent)) {

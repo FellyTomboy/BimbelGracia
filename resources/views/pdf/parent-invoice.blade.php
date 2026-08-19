@@ -100,7 +100,7 @@
         Total: Rp {{ number_format($grandTotal) }}
     </div>
 
-    @if (count($penalties) > 0)
+    @if (count($penalties) > 0 && ($grandPenalty ?? 0) > 0 && app(\App\Services\AttendanceFineService::class)->isAttendancePenaltyEnabled())
         <div class="penalty-info" style="margin-top: 15px; padding: 10px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 4px;">
             <p style="margin: 0; font-size: 11px; color: #991b1b;">
                 <strong>⚠️ Peringatan Absensi Rendah</strong><br>

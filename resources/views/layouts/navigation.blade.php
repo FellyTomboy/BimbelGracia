@@ -17,7 +17,7 @@
                     </x-nav-link>
                     @if (auth()->user()?->role?->value === 'admin')
                         @php
-                            $menuLengkapActive = request()->routeIs('admin.students.*', 'admin.teachers.*', 'admin.parents.*', 'admin.programs.*', 'admin.enrollments.*', 'admin.lesson-offers.*', 'admin.presensi.*', 'admin.notifications.*', 'admin.class-student-sessions.*', 'admin.class-attendance.*', 'admin.analysis.ortu', 'admin.analysis.guru', 'admin.payments.*', 'admin.discounts.*', 'admin.class-reports.*', 'admin.history.*', 'admin.finance.*', 'admin.export.*');
+                            $menuLengkapActive = request()->routeIs('admin.students.*', 'admin.teachers.*', 'admin.parents.*', 'admin.programs.*', 'admin.enrollments.*', 'admin.lesson-offers.*', 'admin.presensi.*', 'admin.notifications.*', 'admin.class-student-sessions.*', 'admin.class-sessions.*', 'admin.analysis.ortu', 'admin.analysis.guru', 'admin.payments.*', 'admin.discounts.*', 'admin.class-reports.*', 'admin.history.*', 'admin.finance.*', 'admin.export.*');
                             $dropdownBase = 'inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 focus:outline-none transition duration-150 ease-in-out';
                         @endphp
                         <x-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">
@@ -56,8 +56,8 @@
                                         <svg class="h-4 w-4 sub-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                                     </span>
                                     <div class="pl-4 hidden" data-submenu-content="kelas">
-                                        <a href="{{ route('admin.class-attendance.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Presensi Kelas</a>
-                                        <a href="{{ route('admin.class-student-sessions.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Kalender Kelas</a>
+                                        <a href="{{ route('admin.class-student-sessions.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Kalender & Presensi</a>
+                                        <a href="{{ route('admin.class-student-sessions.create') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Tambah Sesi</a>
                                     </div>
                                 </div>
                                 <div class="relative" data-submenu="wa">
@@ -239,7 +239,7 @@
                 }
             @endphp
 
-            <div class="flex items-center gap-2 sm:gap-3">
+            <div class="hidden sm:flex sm:items-center gap-2 sm:gap-3">
                 @if (auth()->user()?->role?->value === 'admin')
                     <a href="{{ route('admin.notifications.index') }}" class="relative inline-flex items-center justify-center w-10 h-10 rounded-full border border-gray-200 bg-white text-gray-600 hover:text-gray-900 hover:border-gray-300 hover:bg-gray-50 transition-colors" title="Notifikasi Presensi">
                         <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -285,6 +285,7 @@
                     </x-slot>
                     </x-dropdown>
                 </div>
+            </div>
 
             <!-- Hamburger -->
             <div class="-me-2 flex items-center sm:hidden">
@@ -374,17 +375,17 @@
                         </div>
 
                         {{-- Kelas --}}
-                        <div x-data="{ sub: {{ request()->routeIs('admin.class-attendance.*', 'admin.class-student-sessions.*') ? 'true' : 'false' }} }">
+                        <div x-data="{ sub: {{ request()->routeIs('admin.class-student-sessions.*') ? 'true' : 'false' }} }">
                             <button type="button" @click="sub = ! sub" class="w-full flex items-center justify-between ps-6 pe-4 py-2 text-sm font-semibold text-gray-500 uppercase tracking-wide">
                                 <span>{{ __('Kelas') }}</span>
                                 <svg class="h-3.5 w-3.5 shrink-0 transition-transform" :class="{ 'rotate-180': sub }" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                             </button>
                             <div x-show="sub" x-collapse>
-                                <x-responsive-nav-link :href="route('admin.class-attendance.index')" :active="request()->routeIs('admin.class-attendance.*')" class="ps-8">
-                                    {{ __('Presensi Kelas') }}
-                                </x-responsive-nav-link>
                                 <x-responsive-nav-link :href="route('admin.class-student-sessions.index')" :active="request()->routeIs('admin.class-student-sessions.*')" class="ps-8">
-                                    {{ __('Kalender Kelas') }}
+                                    {{ __('Kalender & Presensi Kelas') }}
+                                </x-responsive-nav-link>
+                                <x-responsive-nav-link :href="route('admin.class-student-sessions.create')" :active="request()->routeIs('admin.class-student-sessions.create')" class="ps-8">
+                                    {{ __('Tambah Sesi') }}
                                 </x-responsive-nav-link>
                             </div>
                         </div>

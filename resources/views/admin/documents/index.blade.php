@@ -28,6 +28,7 @@
                                 <th class="py-3 px-4 font-medium">File</th>
                                 <th class="py-3 px-4 font-medium">Ukuran</th>
                                 <th class="py-3 px-4 font-medium">Akses</th>
+                                <th class="py-3 px-4 font-medium">Proteksi</th>
                                 <th class="py-3 px-4 font-medium">Password</th>
                                 <th class="py-3 px-4 font-medium">Guru</th>
                                 <th class="py-3 px-4 font-medium">Upload oleh</th>
@@ -50,6 +51,13 @@
                                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">Guru Tertentu</span>
                                         @else
                                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">Password</span>
+                                        @endif
+                                    </td>
+                                    <td class="py-3 px-4">
+                                        @if (($doc->protection_level ?? 'standard') === 'strict')
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-50 text-rose-700 border border-rose-200">Ketat</span>
+                                        @else
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-50 text-gray-500 border border-gray-200">Longgar</span>
                                         @endif
                                     </td>
                                     <td class="py-3 px-4 text-gray-600">
@@ -81,7 +89,7 @@
                                     </td>
                                 </tr>
                             @empty
-                                <tr><td colspan="8" class="py-8 text-center text-gray-400">Belum ada dokumen.</td></tr>
+                                <tr><td colspan="9" class="py-8 text-center text-gray-400">Belum ada dokumen.</td></tr>
                             @endforelse
                         </tbody>
                     </table>

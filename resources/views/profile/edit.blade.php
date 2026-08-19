@@ -26,6 +26,12 @@
                         @include('profile.partials.update-founder-information-form')
                     </div>
                 </div>
+
+                <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
+                    <div class="max-w-xl">
+                        @include('profile.partials.update-fine-settings-form')
+                    </div>
+                </div>
             @endif
 
             @if (auth()->user()?->role?->value === 'guru' && auth()->user()?->teacher)
@@ -41,12 +47,6 @@
                     </div>
                 </div>
             @endif
-
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div class="max-w-xl">
-                    @include('profile.partials.delete-user-form')
-                </div>
-            </div>
         </div>
     </div>
 </x-app-layout>
