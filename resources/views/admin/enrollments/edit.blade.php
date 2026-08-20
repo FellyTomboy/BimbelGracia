@@ -171,15 +171,25 @@
                     <div id="agreed-sessions-field">
                         <label class="block text-sm font-medium text-gray-700">Janji Les per Bulan</label>
                         <div id="sessions-privat">
-                            <input type="number" name="agreed_sessions_per_month" id="agreed-sessions-input" value="{{ old('agreed_sessions_per_month', $enrollment->agreed_sessions_per_month ?? 4) }}" min="1" max="31" class="mt-1 w-full sm:w-32 border-gray-300 rounded-md" required />
+                            <select name="agreed_sessions_per_month" id="agreed-sessions-select" class="mt-1 w-full sm:w-48 border-gray-300 rounded-md" required>
+                                <option value="4" @selected(old('agreed_sessions_per_month', $enrollment->agreed_sessions_per_month ?? 4) == 4)>1x seminggu (4x sebulan)</option>
+                                <option value="8" @selected(old('agreed_sessions_per_month', $enrollment->agreed_sessions_per_month ?? 4) == 8)>2x seminggu (8x sebulan)</option>
+                                <option value="12" @selected(old('agreed_sessions_per_month', $enrollment->agreed_sessions_per_month ?? 4) == 12)>3x seminggu (12x sebulan)</option>
+                                <option value="16" @selected(old('agreed_sessions_per_month', $enrollment->agreed_sessions_per_month ?? 4) == 16)>4x seminggu (16x sebulan)</option>
+                                <option value="20" @selected(old('agreed_sessions_per_month', $enrollment->agreed_sessions_per_month ?? 4) == 20)>5x seminggu (20x sebulan)</option>
+                                <option value="24" @selected(old('agreed_sessions_per_month', $enrollment->agreed_sessions_per_month ?? 4) == 24)>6x seminggu (24x sebulan)</option>
+                            </select>
                             <p class="text-xs text-gray-500 mt-1">Jika murid hadir kurang dari setengah jumlah ini, rate akan ditambah Rp 5.000/pertemuan.</p>
                         </div>
                         <div id="sessions-kelas" class="hidden">
-                            <select name="agreed_sessions_per_month" id="agreed-sessions-select" class="mt-1 w-full sm:w-48 border-gray-300 rounded-md">
+                            <select name="agreed_sessions_per_month" id="agreed-sessions-select-kelas" class="mt-1 w-full sm:w-48 border-gray-300 rounded-md">
                                 <option value="">Pilih frekuensi</option>
+                                <option value="4" @selected(old('agreed_sessions_per_month', $enrollment->agreed_sessions_per_month ?? 16) == 4)>1x seminggu (4x sebulan)</option>
                                 <option value="8" @selected(old('agreed_sessions_per_month', $enrollment->agreed_sessions_per_month ?? 16) == 8)>2x seminggu (8x sebulan)</option>
                                 <option value="12" @selected(old('agreed_sessions_per_month', $enrollment->agreed_sessions_per_month ?? 16) == 12)>3x seminggu (12x sebulan)</option>
                                 <option value="16" @selected(old('agreed_sessions_per_month', $enrollment->agreed_sessions_per_month ?? 16) == 16)>4x seminggu (16x sebulan)</option>
+                                <option value="20" @selected(old('agreed_sessions_per_month', $enrollment->agreed_sessions_per_month ?? 16) == 20)>5x seminggu (20x sebulan)</option>
+                                <option value="24" @selected(old('agreed_sessions_per_month', $enrollment->agreed_sessions_per_month ?? 16) == 24)>6x seminggu (24x sebulan)</option>
                             </select>
                             <p class="text-xs text-gray-500 mt-1">Jumlah sesi paket dalam sebulan. Digunakan untuk perhitungan biaya paket les setengah/penuh.</p>
                         </div>
@@ -315,19 +325,21 @@
                 updateTeacherRequired();
             }
 
-            // Agreed sessions: dropdown in kelas mode, number input in privat mode
+            // Agreed sessions: dropdown in both modes (kelas uses separate select)
             if (kelasMode) {
                 sessionsPrivat.classList.add('hidden');
                 sessionsKelas.classList.remove('hidden');
-                document.getElementById('agreed-sessions-input').disabled = true;
-                document.getElementById('agreed-sessions-select').disabled = false;
-                document.getElementById('agreed-sessions-select').required = true;
+                document.getElementById('agreed-sessions-select').disabled = true;
+                document.getElementById('agreed-sessions-select').required = false;
+                document.getElementById('agreed-sessions-select-kelas').disabled = false;
+                document.getElementById('agreed-sessions-select-kelas').required = true;
             } else {
                 sessionsPrivat.classList.remove('hidden');
                 sessionsKelas.classList.add('hidden');
-                document.getElementById('agreed-sessions-input').disabled = false;
-                document.getElementById('agreed-sessions-select').disabled = true;
-                document.getElementById('agreed-sessions-select').required = false;
+                document.getElementById('agreed-sessions-select').disabled = false;
+                document.getElementById('agreed-sessions-select').required = true;
+                document.getElementById('agreed-sessions-select-kelas').disabled = true;
+                document.getElementById('agreed-sessions-select-kelas').required = false;
             }
 
             // Student selection: dropdown in kelas mode, checkboxes in privat mode
