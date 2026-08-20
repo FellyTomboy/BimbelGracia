@@ -71,9 +71,10 @@
                         {{-- Checkbox mode (privat) --}}
                         <div id="student-checkbox-section">
                             <label class="block text-sm font-medium text-gray-700">Daftar Murid</label>
-                            <div class="mt-2 grid md:grid-cols-2 gap-2 max-h-64 overflow-y-auto border rounded-md p-3">
+                            <input type="text" id="student-search" placeholder="Cari nama murid..." class="mt-2 mb-2 w-full border-gray-300 rounded-md text-sm" />
+                            <div class="mt-1 grid md:grid-cols-2 gap-2 max-h-64 overflow-y-auto border rounded-md p-3">
                                 @foreach ($students as $student)
-                                    <label class="flex items-center gap-2 text-sm">
+                                    <label class="flex items-center gap-2 text-sm student-label">
                                         <input type="checkbox" name="student_ids[]" value="{{ $student->id }}" class="student-checkbox"
                                             @checked(is_array(old('student_ids')) && in_array($student->id, old('student_ids', []))) />
                                         <span>{{ $student->display_name }}</span>
@@ -344,6 +345,18 @@
             toggleKelasMode();
             applyDefaults();
         });
+
+        // Student search filter
+        const studentSearchInput = document.getElementById('student-search');
+        if (studentSearchInput) {
+            studentSearchInput.addEventListener('input', (e) => {
+                const query = e.target.value.toLowerCase();
+                document.querySelectorAll('#student-checkbox-section .student-label').forEach(label => {
+                    const name = label.querySelector('span').textContent.toLowerCase();
+                    label.style.display = name.includes(query) ? '' : 'none';
+                });
+            });
+        }
 
         // Listen for checkbox changes to update pricing/rate visibility
         document.addEventListener('change', (e) => {
