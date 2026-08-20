@@ -170,7 +170,7 @@ class EnrollmentController extends Controller
         $this->snapshotSyncService->syncAll();
 
         return redirect()
-            ->route('admin.enrollments.index')
+            ->route('admin.enrollments.index', ['type' => $validated['type']])
             ->with('status', 'Enrollment berhasil dibuat.');
     }
 
