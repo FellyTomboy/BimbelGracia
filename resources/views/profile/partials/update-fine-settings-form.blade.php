@@ -21,11 +21,11 @@
                     Mempengaruhi tagihan orang tua.
                 </p>
             </div>
-            <div class="mt-1" x-data="{ value: {{ $fineSettings['attendance_penalty_enabled'] ? 'true' : 'false' }} }">
+            <div class="mt-1" x-data="{ value: '{{ $fineSettings['attendance_penalty_enabled'] ? 'true' : 'false' }}' }">
                 <button
                     type="button"
                     role="switch"
-                    :aria-checked="value"
+                    :aria-checked="value === 'true'"
                     @click="value = value === 'true' ? 'false' : 'true'"
                     :class="value === 'true' ? 'bg-indigo-600' : 'bg-gray-200'"
                     class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600"
@@ -48,11 +48,11 @@
                     Mempengaruhi gaji guru.
                 </p>
             </div>
-            <div class="mt-1" x-data="{ value: {{ $fineSettings['late_penalty_enabled'] ? 'true' : 'false' }} }">
+            <div class="mt-1" x-data="{ value: '{{ $fineSettings['late_penalty_enabled'] ? 'true' : 'false' }}' }">
                 <button
                     type="button"
                     role="switch"
-                    :aria-checked="value"
+                    :aria-checked="value === 'true'"
                     @click="value = value === 'true' ? 'false' : 'true'"
                     :class="value === 'true' ? 'bg-indigo-600' : 'bg-gray-200'"
                     class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600"
