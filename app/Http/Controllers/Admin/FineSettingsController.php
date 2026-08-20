@@ -32,4 +32,22 @@ class FineSettingsController extends Controller
 
         return Redirect::route('profile.edit')->with('status', 'fine-settings-updated');
     }
+
+    public function reset(\Illuminate\Http\Request $request): \Illuminate\Http\RedirectResponse
+    {
+        abort_unless($request->user()?->role?->value === 'admin', 403);
+
+        \DB::table('settings')->updateOrInsert(
+            ['key' => AttendanceFineService::KEY_ATTENDANCE_PENALTY],
+            ['value' => 'false', 'updated_at' => now()]
+        );
+        \DB::table('settings')->updateOrInsert(
+            ['key' => AttendanceFineService::KEY_LATE_PENALTY],
+            ['value' => 'false', 'updated_at' => now()]
+        );
+
+        $this->fineService->invalidateCache();
+
+        return Redirect::route('profile.edit')->with('status', 'fine-settings-updated');
+    }
 }

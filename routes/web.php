@@ -322,6 +322,7 @@ Route::middleware(['auth', 'password.force'])->group(function () {
     Route::post('/profile/founder/{teacher}', [ProfileController::class, 'updateFounder'])->name('profile.founder.update');
     Route::post('/profile/founder/{teacher}/photo', [ProfileController::class, 'uploadFounderPhoto'])->name('profile.founder.photo');
     Route::patch('/profile/fine-settings', [\App\Http\Controllers\Admin\FineSettingsController::class, 'update'])->name('profile.fine-settings.update');
+    Route::post('/profile/fine-settings/reset', [\App\Http\Controllers\Admin\FineSettingsController::class, 'reset'])->name('profile.fine-settings.reset');
     Route::post('/profile/photo/upload', [ProfileController::class, 'uploadPhoto'])->name('profile.photo.upload');
     Route::delete('/profile/photo/delete', [ProfileController::class, 'deletePhoto'])->name('profile.photo.delete');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');

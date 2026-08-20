@@ -68,7 +68,18 @@
 
         <div class="flex items-center gap-4">
             <x-primary-button>{{ __('Simpan') }}</x-primary-button>
+            <button
+                type="submit"
+                form="reset-fine-settings-form"
+                class="px-4 py-2 rounded-md border border-gray-300 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+            >
+                Reset — Matikan Semua
+            </button>
         </div>
+    </form>
+
+    <form id="reset-fine-settings-form" method="POST" action="{{ route('profile.fine-settings.reset') }}" class="hidden">
+        @csrf
     </form>
 
     @if (session('status') === 'fine-settings-updated')
