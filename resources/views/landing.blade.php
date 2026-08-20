@@ -636,12 +636,25 @@
                                         </div>
                                         <span class="text-sm" style="color: rgba(255,255,255,0.8);">Email: admin@bimbelgracia.com</span>
                                     </div>
-                                    <div class="flex items-center gap-3">
+                                    <div class="flex items-start gap-3">
                                         <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style="background: rgba(219,158,139,0.15);">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" style="color: var(--color-warm-soft);" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                                         </div>
-                                        <span class="text-sm" style="color: rgba(255,255,255,0.8);">Alamat: (isi alamat bimbel)</span>
+                                        <div>
+                                            <span class="text-sm" style="color: rgba(255,255,255,0.8);">Jl. Karanglo Indah Blk. M No.4, Balearjosari, Kec. Blimbing, Kota Malang, Jawa Timur 65126</span>
+                                        </div>
                                     </div>
+                                </div>
+                                <div class="mt-4 rounded-xl overflow-hidden" style="border: 1px solid rgba(255,255,255,0.14);">
+                                    <iframe
+                                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3951.7861111073735!2d112.64284727538515!3d-7.917397278815161!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2dd62a21c463bd93%3A0x3b76e1c36612f6c6!2sTempat%20Les%2C%20Tempat%20Kursus%2C%20Bimbel%20Gracia%20Karanglo%20Indah!5e0!3m2!1sid!2sid!4v1787153657474!5m2!1sid!2sid"
+                                        width="100%"
+                                        height="250"
+                                        style="border:0; display: block;"
+                                        allowfullscreen=""
+                                        loading="lazy"
+                                        referrerpolicy="strict-origin-when-cross-origin">
+                                    </iframe>
                                 </div>
                             </div>
                             <div class="space-y-5">

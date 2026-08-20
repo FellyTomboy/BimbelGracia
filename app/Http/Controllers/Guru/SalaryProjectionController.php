@@ -110,7 +110,10 @@ class SalaryProjectionController extends Controller
             ->join('enrollments', 'enrollment_attendances.enrollment_id', '=', 'enrollments.id')
             ->selectRaw('enrollment_attendances.year, enrollment_attendances.month, SUM(CASE WHEN enrollment_attendances.status_validation = ? THEN enrollment_attendances.teacher_rate WHEN enrollment_attendances.status_validation = ? THEN enrollment_attendances.teacher_rate * 0.9 ELSE 0 END) as total', ['terima', 'terlambat'])
             ->whereIn('enrollment_attendances.status_validation', ['terima', 'terlambat'])
-            ->where('enrollments.teacher_id', $teacherId)
+            ->where(function ($builder) use ($teacherId) {
+                $builder->where('enrollments.teacher_id', $teacherId)
+                    ->orWhere('enrollment_attendances.session_teacher_id', $teacherId);
+            })
             ->where(function ($builder) use ($conditions) {
                 foreach ($conditions as $condition) {
                     $builder->orWhere(function ($sub) use ($condition) {

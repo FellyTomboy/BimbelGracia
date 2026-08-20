@@ -38,19 +38,24 @@ class CalculationService
             $first = $group->first();
             $enrollment = $first->enrollment;
             $presentCount = $first->students->filter(fn ($s) => ($s->pivot->total_present ?? 0) > 0)->count();
-            $rate = (int) ($first->parent_rate ?? 0);
+            $baseRate = (int) ($first->parent_rate ?? 0);
             $totalCount = $group->sum(function (MonthlyAttendance $attendance) use ($student) {
                 $s = $attendance->students->firstWhere('id', $student->id);
                 return (int) ($s?->pivot?->total_present ?? 0);
             });
-            $subtotal = $totalCount * $rate;
             $totalSessions = $group->count();
-            $studentTotalPresent = $group->sum(function (MonthlyAttendance $attendance) use ($student) {
-                $s = $attendance->students->firstWhere('id', $student->id);
-                return (int) ($s?->pivot?->total_present ?? 0);
-            });
-            $penalty = $this->resolveAttendancePenalty($enrollment, $totalCount, $studentTotalPresent);
-            $discount = $this->resolveDiscountForBilling($enrollment, $student->id, $month, $year, $subtotal);
+            $studentTotalPresent = $totalCount; // same value since totalCount is sum of this student's total_present
+            $penalty = $this->resolveAttendancePenalty($enrollment, $totalSessions, $studentTotalPresent);
+
+            // Penalty adds Rp 5,000 per session the student actually attended
+            // Rate per session after penalty: baseRate + 5,000
+            // Inflated subtotal = adjusted rate × student attendance count
+            $hasPenalty = $penalty > 0;
+            $adjustedRate = $hasPenalty ? $baseRate + 5000 : $baseRate;
+            $inflatedSubtotal = $adjustedRate * $totalCount;
+
+            // Discount applies to the inflated subtotal (rate after penalty × count)
+            $discount = $this->resolveDiscountForBilling($enrollment, $student->id, $month, $year, $inflatedSubtotal);
 
             $detailLabel = $presentCount > 1 ? ' (grup ' . $presentCount . ' siswa)' : '';
 
@@ -59,11 +64,12 @@ class CalculationService
                 'program' => $enrollment?->program?->name ?? '-',
                 'teacher' => $enrollment?->teacher?->name ?? '-',
                 'count' => $totalCount,
-                'rate' => $rate,
-                'subtotal' => $subtotal,
+                'rate' => $baseRate,
+                'subtotal' => $inflatedSubtotal,
                 'discount' => $discount,
                 'penalty' => $penalty,
-                'total' => $subtotal - $discount + $penalty,
+                'has_penalty' => $hasPenalty,
+                'total' => $inflatedSubtotal - $discount + $penalty,
                 'detail' => $detailLabel,
                 'present_count' => $presentCount,
                 'type' => 'privat',
@@ -91,6 +97,7 @@ class CalculationService
                 'subtotal' => $finalRate,
                 'discount' => $discount,
                 'penalty' => 0,
+                'has_penalty' => false,
                 'total' => $finalRate - $discount,
                 'detail' => sprintf('Paket %d sesi - Hadir %d/%d (%d%%)', $agreedSessions, $studentTotalPresent, $agreedSessions, (int) $attendancePercent),
                 'present_count' => 1,
@@ -116,7 +123,8 @@ class CalculationService
         if (! $enrollment || ! $enrollment->hasAttendancePenalty($totalSessions, $studentTotalPresent)) {
             return 0;
         }
-        return $totalSessions * 5000;
+        // Penalty: Rp 5,000 per session the student actually attended
+        return $studentTotalPresent * 5000;
     }
 
     private function resolveDiscountForBilling(?Enrollment $enrollment, int $studentId, int $month, int $year, int $baseTotal): int

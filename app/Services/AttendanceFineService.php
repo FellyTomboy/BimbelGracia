@@ -6,8 +6,6 @@ use Illuminate\Support\Facades\Cache;
 
 class AttendanceFineService
 {
-    private const CACHE_TTL = 3600; // 1 hour
-
     public const KEY_ATTENDANCE_PENALTY = 'fine.attendance_penalty_enabled';
     public const KEY_LATE_PENALTY = 'fine.late_penalty_enabled';
 

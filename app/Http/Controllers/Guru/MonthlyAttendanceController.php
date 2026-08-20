@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Enrollment;
 use App\Models\MonthlyAttendance;
 use App\Models\Teacher;
+use App\Services\AttendanceFineService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,6 +17,7 @@ use Illuminate\View\View;
 
 class MonthlyAttendanceController extends Controller
 {
+    public function __construct(private AttendanceFineService $fineService) {}
     public function index(Request $request): View
     {
         $teacher = $this->resolveTeacher($request);
@@ -87,8 +89,11 @@ class MonthlyAttendanceController extends Controller
             $file->storeAs(dirname($imagePath), basename($imagePath), 'public');
         }
 
-        // Auto-determine status: terima if within 3 days, terlambat if over 3 days
-        $status = $daysSinceLesson <= 3 ? 'terima' : 'terlambat';
+        // Auto-determine status: terima if within 3 days, OR if late penalty is disabled
+        // Only mark as terlambat when the penalty setting is active AND submission is late
+        $status = ($daysSinceLesson <= 3 || ! $this->fineService->isLatePenaltyEnabled())
+            ? 'terima'
+            : 'terlambat';
 
         if ($isClassProgram) {
             // CLASS: Guru only marks session happened, no student selection
@@ -148,7 +153,7 @@ class MonthlyAttendanceController extends Controller
 
             $message = $status === 'terima'
                 ? 'Presensi diterima (' . $presentCount . ' murid hadir, rate ortu Rp' . number_format($parentRate) . ', rate guru Rp' . number_format($teacherRate) . ').'
-                : 'Presensi terlambat (lebih dari 3 hari). Guru akan mendapat potongan 10%.';
+                : 'Presensi terlambat (lebih dari 3 hari, denda keterlambatan aktif). Guru akan mendapat potongan 10%.';
         }
 
         return redirect()
@@ -203,7 +208,9 @@ class MonthlyAttendanceController extends Controller
             'month' => $lessonDate->month,
             'year' => $lessonDate->year,
             'notes' => $validated['notes'] ?? null,
-            'status_validation' => $daysSinceLesson <= 3 ? 'terima' : 'terlambat',
+            'status_validation' => ($daysSinceLesson <= 3 || ! $this->fineService->isLatePenaltyEnabled())
+                ? 'terima'
+                : 'terlambat',
         ];
 
         // Handle image upload (replace old if exists)

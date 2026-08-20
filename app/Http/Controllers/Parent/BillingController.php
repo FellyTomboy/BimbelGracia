@@ -65,7 +65,7 @@ class BillingController extends Controller
                     } elseif ($attendance->payment_proof) {
                         $hasProof = true;
                         $proofStatus = $attendance->payment_proof_status;
-                    } elseif ($status !== 'paid' && $status !== 'pending') {
+                    } elseif ($status === 'unpaid') {
                         $status = $attendance->parent_payment_status ?? 'unpaid';
                     }
                 }
@@ -253,6 +253,9 @@ class BillingController extends Controller
             $isPaid = $items->every(fn ($a) => $a->parent_payment_status === 'paid');
             if ($isPaid) {
                 $paid += $periodTotal;
+            } elseif ($items->contains(fn ($a) => $a->payment_proof_status === 'pending')) {
+                // Proof uploaded but not yet approved — not unpaid, not paid
+                // Skip this period from both paid and unpaid totals
             } else {
                 $unpaid += $periodTotal;
             }

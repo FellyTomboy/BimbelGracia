@@ -71,12 +71,39 @@ class AnalysisController extends Controller
                                     // For privat: per-session pricing
                                     // Each session may have DIFFERENT rate (multi-student tiers),
                                     // so we must sum individual session costs, not use a single rate
-                                    $rate = $row['parent_rate']; // display rate (from first row)
+                                    $rate = $row['parent_rate']; // display rate (base snapshot)
                                     $count = $enrollmentItems->sum('total_present');
-                                    $total = $enrollmentItems->sum(function (array $row) use ($student) {
+                                    $baseTotal = $enrollmentItems->sum(function (array $row) {
                                         return (int) ($row['parent_rate'] ?? 0) * (int) ($row['total_present'] ?? 0);
                                     });
+
+                                    // Penalty: Rp 5,000 per session student actually attended, applied before discount
+                                    $totalSessionsThisEnrollment = $enrollmentItems->count();
+                                    $studentTotalPresentForPenalty = $count; // same as count for this student
+                                    $hasPenalty = $enrollment && $this->fineService->isAttendancePenaltyEnabled()
+                                        && $enrollment->hasAttendancePenalty($totalSessionsThisEnrollment, $studentTotalPresentForPenalty);
+                                    $penalty = $hasPenalty ? $studentTotalPresentForPenalty * 5000 : 0;
+                                    $adjustedRate = $hasPenalty ? $rate + 5000 : $rate;
+                                    $inflatedSubtotal = $adjustedRate * $count;
+                                    $total = $inflatedSubtotal; // gross including penalty
+
                                     $label = sprintf('%s (%s)', $teacherName, $programName);
+
+                                    $discountModel = $discounts[$this->discountKey($enrollmentId, $studentId)] ?? null;
+                                    $discount = $this->resolveDiscount($total, $discountModel?->discount_type, $discountModel?->discount_value);
+
+                                    return [
+                                        'label' => $label,
+                                        'count' => $count,
+                                        'rate' => $rate,
+                                        'total' => $total,
+                                        'penalty' => $penalty,
+                                        'total_after' => $discount['total'],
+                                        'discount' => $discount,
+                                        'enrollment_id' => $enrollmentId,
+                                        'student_id' => $studentId,
+                                        'type' => $type,
+                                    ];
                                 }
 
                                 $discountModel = $discounts[$this->discountKey($enrollmentId, $studentId)] ?? null;
@@ -145,7 +172,7 @@ class AnalysisController extends Controller
                         $studentName = $enrollmentItems->pluck('student')->filter()->unique('id')->map->display_name->implode(', ');
                         $programName = $row['program']?->name ?? '-';
                         $rate = $row['teacher_rate'];
-                        $totalCount = $enrollmentItems->count();
+                        $totalCount = $enrollmentItems->sum('total_present');
                         $lateCount = $enrollmentItems->where('status_validation', 'terlambat')->count();
                         $grossTotal = $totalCount * $rate;
                         $penalty = $this->fineService->isLatePenaltyEnabled()
@@ -237,9 +264,18 @@ class AnalysisController extends Controller
                                 } else {
                                     $rate = $row['parent_rate'];
                                     $count = $enrollmentItems->sum('total_present');
-                                    $total = $enrollmentItems->sum(function (array $r) {
+                                    $baseTotal = $enrollmentItems->sum(function (array $r) {
                                         return (int) ($r['parent_rate'] ?? 0) * (int) ($r['total_present'] ?? 0);
                                     });
+
+                                    // Penalty: Rp 5,000 per session student attended, applied before discount
+                                    $totalSessionsThisEnrollment = $enrollmentItems->count();
+                                    $hasPenalty = $enrollment && $this->fineService->isAttendancePenaltyEnabled()
+                                        && $enrollment->hasAttendancePenalty($totalSessionsThisEnrollment, $count);
+                                    $penalty = $hasPenalty ? $count * 5000 : 0;
+                                    $adjustedRate = $hasPenalty ? $rate + 5000 : $rate;
+                                    $total = $adjustedRate * $count; // inflated subtotal including penalty
+
                                     $label = sprintf('%s (%s)', $teacherName, $programName);
                                 }
 
@@ -308,7 +344,7 @@ class AnalysisController extends Controller
                         $studentName = $enrollmentItems->pluck('student')->filter()->unique('id')->map->display_name->implode(', ');
                         $programName = $row['program']?->name ?? '-';
                         $rate = $row['teacher_rate'];
-                        $totalCount = $enrollmentItems->count();
+                        $totalCount = $enrollmentItems->sum('total_present');
                         $lateCount = $enrollmentItems->where('status_validation', 'terlambat')->count();
                         $grossTotal = $totalCount * $rate;
                         $penalty = $this->fineService->isLatePenaltyEnabled()
@@ -534,20 +570,9 @@ class AnalysisController extends Controller
                 $studentKey = $attendance->enrollment_id . '-' . $student->id;
                 $studentTotalPresent = $monthlyStudentTotals[$studentKey] ?? 0;
 
-                // Use snapshot rate from attendance if available
-                if ($enrollment?->isKelas()) {
-                    // For kelas: use raw rates, no penalty adjustment
-                    $parentRate = (int) ($attendance->parent_rate ?? $enrollment->parent_rate ?? 0);
-                    $teacherRate = (int) ($attendance->teacher_rate ?? $enrollment->teacher_rate ?? 0);
-                } else {
-                    // For privat: apply attendance penalty if student attended < 50% of agreed sessions
-                    $parentRate = (int) ($attendance->parent_rate ?? $enrollment?->applyAttendancePenaltyParent(
-                        $presentCount, $totalSessionsThisMonth, $studentTotalPresent
-                    ) ?? 0);
-                    $teacherRate = (int) ($attendance->teacher_rate ?? $enrollment?->applyAttendancePenaltyTeacher(
-                        $presentCount, $totalSessionsThisMonth, $studentTotalPresent
-                    ) ?? 0);
-                }
+                // Use base snapshot rate from attendance record (penalty is shown as separate row field)
+                $parentRate = (int) ($attendance->parent_rate ?? $enrollment?->parent_rate ?? 0);
+                $teacherRate = (int) ($attendance->teacher_rate ?? $enrollment?->teacher_rate ?? 0);
 
                 return [
                     'attendance' => $attendance,

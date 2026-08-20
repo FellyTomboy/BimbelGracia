@@ -64,7 +64,7 @@ class BillingController extends Controller
                     } elseif ($attendance->payment_proof) {
                         $hasProof = true;
                         $proofStatus = $attendance->payment_proof_status;
-                    } elseif ($status !== 'paid' && $status !== 'pending') {
+                    } elseif ($status === 'unpaid') {
                         $status = $attendance->parent_payment_status ?? 'unpaid';
                     }
                 }
@@ -162,8 +162,16 @@ class BillingController extends Controller
                 return ['status' => $attendance->parent_payment_status ?? 'unknown', 'total' => 0];
             }
             $result = $this->calculationService->calculateStudentBilling($student, $attendance->month, $attendance->year, collect([$attendance]));
+            // Determine effective status: paid > pending proof > unpaid
+            if ($attendance->parent_payment_status === 'paid') {
+                $effectiveStatus = 'paid';
+            } elseif ($attendance->payment_proof_status === 'pending') {
+                $effectiveStatus = 'pending';
+            } else {
+                $effectiveStatus = $attendance->parent_payment_status ?? 'unpaid';
+            }
             return [
-                'status' => $attendance->parent_payment_status ?? 'unknown',
+                'status' => $effectiveStatus,
                 'total' => $result['grand_total'],
             ];
         });
@@ -171,6 +179,7 @@ class BillingController extends Controller
         return [
             'paid' => (int) $rows->where('status', 'paid')->sum('total'),
             'unpaid' => (int) $rows->where('status', 'unpaid')->sum('total'),
+            'pending' => (int) $rows->where('status', 'pending')->sum('total'),
             'grand' => (int) $rows->sum('total'),
         ];
     }
