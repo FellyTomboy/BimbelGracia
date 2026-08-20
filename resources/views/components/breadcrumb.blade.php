@@ -1,7 +1,7 @@
 @props(['items' => []])
 
 <nav class="flex items-center gap-1 text-sm text-gray-500 mb-2">
-    <a href="{{ route('admin.dashboard') }}" class="hover:text-gray-700 transition-colors">Dashboard</a>
+    <a href="{{ route('dashboard') }}" class="hover:text-gray-700 transition-colors">Beranda</a>
     @foreach ($items as $item)
         <span class="text-gray-300">/</span>
         @if (isset($item['url']))

@@ -42,13 +42,13 @@ Route::middleware(['auth', 'password.force'])->group(function () {
         return view('dashboard');
     })->name('dashboard');
 
+            Route::redirect('/', '/dashboard', 301);
+
     Route::prefix('admin')
         ->middleware('role:admin')
         ->name('admin.')
         ->group(function () {
-            Route::get('/', function () {
-                return view('admin.dashboard');
-            })->name('dashboard');
+            Route::redirect('/', '/dashboard', 301);
 
             Route::get('students', [StudentController::class, 'index'])
                 ->name('students.index');

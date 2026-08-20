@@ -17,12 +17,9 @@
                     </x-nav-link>
                     @if (auth()->user()?->role?->value === 'admin')
                         @php
-                            $menuLengkapActive = request()->routeIs('admin.students.*', 'admin.teachers.*', 'admin.parents.*', 'admin.programs.*', 'admin.enrollments.*', 'admin.lesson-offers.*', 'admin.presensi.*', 'admin.notifications.*', 'admin.class-student-sessions.*', 'admin.class-sessions.*', 'admin.analysis.ortu', 'admin.analysis.guru', 'admin.payments.*', 'admin.discounts.*', 'admin.class-reports.*', 'admin.history.*', 'admin.finance.*', 'admin.export.*');
+                            $menuLengkapActive = request()->routeIs('admin.students.*', 'admin.teachers.*', 'admin.parents.*', 'admin.programs.*', 'admin.enrollments.*', 'admin.lesson-offers.*', 'admin.presensi.*', 'admin.notifications.*', 'admin.class-student-sessions.*', 'admin.class-sessions.*', 'admin.analysis.ortu', 'admin.analysis.guru', 'admin.payments.*', 'admin.discounts.*', 'admin.class-reports.*', 'admin.history.*', 'admin.finance.*', 'admin.export.*', 'admin.bank-accounts.*');
                             $dropdownBase = 'inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 focus:outline-none transition duration-150 ease-in-out';
                         @endphp
-                        <x-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">
-                            {{ __('Admin') }}
-                        </x-nav-link>
                         <div id="menu-lengkap-wrapper" class="relative flex items-center">
                             <button onclick="toggleMenuLengkap()" class="relative {{ $dropdownBase }} gap-1 {{ $menuLengkapActive ? 'border-indigo-400 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
                                 {{ __('Menu Lengkap') }}
@@ -46,8 +43,6 @@
                                         <a href="{{ route('admin.documents.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Dokumen</a>
                                         <a href="{{ route('admin.new-students.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Pendaftar Murid Baru</a>
                                         <a href="{{ route('admin.teacher-registrants.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Pendaftar Guru Baru</a>
-                                        <div class="border-t border-gray-100 my-1"></div>
-                                        <a href="{{ route('admin.presensi.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Validasi Presensi</a>
                                     </div>
                                 </div>
                                 <div class="relative" data-submenu="kelas">
@@ -56,18 +51,27 @@
                                         <svg class="h-4 w-4 sub-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                                     </span>
                                     <div class="pl-4 hidden" data-submenu-content="kelas">
-                                        <a href="{{ route('admin.class-student-sessions.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Kalender & Presensi</a>
+                                        <a href="{{ route('admin.class-student-sessions.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Presensi & Jadwal Kelas</a>
                                         <a href="{{ route('admin.class-student-sessions.create') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Tambah Sesi</a>
+                                    </div>
+                                </div>
+                                <div class="relative" data-submenu="presensi">
+                                    <span onclick="toggleSubmenu('presensi')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center justify-between">
+                                        Presensi
+                                        <svg class="h-4 w-4 sub-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                                    </span>
+                                    <div class="pl-4 hidden" data-submenu-content="presensi">
+                                        <a href="{{ route('admin.presensi.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Validasi Presensi Privat</a>
                                     </div>
                                 </div>
                                 <div class="relative" data-submenu="wa">
                                     <span onclick="toggleSubmenu('wa')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center justify-between">
-                                        WA
+                                        WA & Promo
                                         <svg class="h-4 w-4 sub-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                                     </span>
                                     <div class="pl-4 hidden" data-submenu-content="wa">
-                                        <a href="{{ route('admin.analysis.ortu') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">WA Ortu</a>
-                                        <a href="{{ route('admin.analysis.guru') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">WA Guru</a>
+                                        <a href="{{ route('admin.analysis.ortu') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Template WA Ortu</a>
+                                        <a href="{{ route('admin.analysis.guru') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Template WA Guru</a>
                                         <a href="{{ route('admin.discounts.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Diskon/Promo</a>
                                     </div>
                                 </div>
@@ -93,6 +97,7 @@
                                         <a href="{{ route('admin.export.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Export & Backup</a>
                                     </div>
                                 </div>
+                                <a href="{{ route('admin.bank-accounts.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">🏦 Rekening Bimbel</a>
                             </div>
                         </div>
                     @endif
@@ -318,10 +323,6 @@
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>
             @if (auth()->user()?->role?->value === 'admin')
-                <x-responsive-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">
-                    {{ __('Admin') }}
-                </x-responsive-nav-link>
-
                 {{-- Menu Lengkap (mirrors desktop dropdown: header + collapsible submenus) --}}
                 <div x-data="{ menuLengkap: {{ $menuLengkapActive ? 'true' : 'false' }} }">
                     <button type="button" @click="menuLengkap = ! menuLengkap"
@@ -367,9 +368,18 @@
                                 <x-responsive-nav-link :href="route('admin.teacher-registrants.index')" :active="request()->routeIs('admin.teacher-registrants.*')" class="ps-8">
                                     {{ __('Pendaftar Guru Baru') }}
                                 </x-responsive-nav-link>
-                                <div class="border-t border-gray-200 mx-4 my-1"></div>
+                            </div>
+                        </div>
+
+                        {{-- Presensi --}}
+                        <div x-data="{ sub: {{ request()->routeIs('admin.presensi.*') ? 'true' : 'false' }} }">
+                            <button type="button" @click="sub = ! sub" class="w-full flex items-center justify-between ps-6 pe-4 py-2 text-sm font-semibold text-gray-500 uppercase tracking-wide">
+                                <span>{{ __('Presensi') }}</span>
+                                <svg class="h-3.5 w-3.5 shrink-0 transition-transform" :class="{ 'rotate-180': sub }" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                            </button>
+                            <div x-show="sub" x-collapse>
                                 <x-responsive-nav-link :href="route('admin.presensi.index')" :active="request()->routeIs('admin.presensi.*')" class="ps-8">
-                                    {{ __('Validasi Presensi') }}
+                                    {{ __('Validasi Presensi Privat') }}
                                 </x-responsive-nav-link>
                             </div>
                         </div>
@@ -382,7 +392,7 @@
                             </button>
                             <div x-show="sub" x-collapse>
                                 <x-responsive-nav-link :href="route('admin.class-student-sessions.index')" :active="request()->routeIs('admin.class-student-sessions.*')" class="ps-8">
-                                    {{ __('Kalender & Presensi Kelas') }}
+                                    {{ __('Presensi & Jadwal Kelas') }}
                                 </x-responsive-nav-link>
                                 <x-responsive-nav-link :href="route('admin.class-student-sessions.create')" :active="request()->routeIs('admin.class-student-sessions.create')" class="ps-8">
                                     {{ __('Tambah Sesi') }}
@@ -393,15 +403,15 @@
                         {{-- WA --}}
                         <div x-data="{ sub: {{ request()->routeIs('admin.analysis.ortu', 'admin.analysis.guru', 'admin.discounts.*') ? 'true' : 'false' }} }">
                             <button type="button" @click="sub = ! sub" class="w-full flex items-center justify-between ps-6 pe-4 py-2 text-sm font-semibold text-gray-500 uppercase tracking-wide">
-                                <span>{{ __('WA') }}</span>
+                                <span>{{ __('WA & Promo') }}</span>
                                 <svg class="h-3.5 w-3.5 shrink-0 transition-transform" :class="{ 'rotate-180': sub }" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                             </button>
                             <div x-show="sub" x-collapse>
                                 <x-responsive-nav-link :href="route('admin.analysis.ortu')" :active="request()->routeIs('admin.analysis.ortu')" class="ps-8">
-                                    {{ __('WA Ortu') }}
+                                    {{ __('Template WA Ortu') }}
                                 </x-responsive-nav-link>
                                 <x-responsive-nav-link :href="route('admin.analysis.guru')" :active="request()->routeIs('admin.analysis.guru')" class="ps-8">
-                                    {{ __('WA Guru') }}
+                                    {{ __('Template WA Guru') }}
                                 </x-responsive-nav-link>
                                 <x-responsive-nav-link :href="route('admin.discounts.index')" :active="request()->routeIs('admin.discounts.*')" class="ps-8">
                                     {{ __('Diskon/Promo') }}
