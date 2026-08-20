@@ -22,27 +22,21 @@
                         <div class="text-5xl md:text-6xl mb-3">📂</div>
                         <div class="text-sm font-semibold text-gray-700 text-center">Data Master</div>
                     </div>
-                    <div class="bg-white rounded-2xl shadow-sm hover:shadow-md hover:scale-[1.03] transition-all duration-200 p-6 flex flex-col items-center justify-center cursor-pointer aspect-square border border-gray-100" onclick="openModal('modal-kelas')">
-                        <div class="text-5xl md:text-6xl mb-3">🏫</div>
-                        <div class="text-sm font-semibold text-gray-700 text-center">Kelas</div>
-                    </div>
                     <div class="bg-white rounded-2xl shadow-sm hover:shadow-md hover:scale-[1.03] transition-all duration-200 p-6 flex flex-col items-center justify-center cursor-pointer aspect-square border border-gray-100" onclick="openModal('modal-presensi')">
                         <div class="text-5xl md:text-6xl mb-3">✅</div>
                         <div class="text-sm font-semibold text-gray-700 text-center">Presensi</div>
                     </div>
-                    <div class="bg-white rounded-2xl shadow-sm hover:shadow-md hover:scale-[1.03] transition-all duration-200 p-6 flex flex-col items-center justify-center cursor-pointer aspect-square border border-gray-100" onclick="openModal('modal-wa')">
-                        <div class="text-5xl md:text-6xl mb-3">💬</div>
-                        <div class="text-sm font-semibold text-gray-700 text-center">WA & Promo</div>
-                    </div>
-                    <div class="bg-white rounded-2xl shadow-sm hover:shadow-md hover:scale-[1.03] transition-all duration-200 p-6 flex flex-col items-center justify-center cursor-pointer aspect-square border border-gray-100" onclick="openModal('modal-pembayaran')">
-                        <div class="text-5xl md:text-6xl mb-3">💰</div>
-                        <div class="text-sm font-semibold text-gray-700 text-center">Pembayaran</div>
-                    </div>
-                </div>
-                <div class="mt-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-                    <div class="bg-white rounded-2xl shadow-sm hover:shadow-md hover:scale-[1.03] transition-all duration-200 p-6 flex flex-col items-center justify-center cursor-pointer aspect-square border border-gray-100" onclick="openModal('modal-laporan')">
+                    <div class="bg-white rounded-2xl shadow-sm hover:shadow-md hover:scale-[1.03] transition-all duration-200 p-6 flex flex-col items-center justify-center cursor-pointer aspect-square border border-gray-100" onclick="openModal('modal-tagihan')">
                         <div class="text-5xl md:text-6xl mb-3">📋</div>
+                        <div class="text-sm font-semibold text-gray-700 text-center">Tagihan</div>
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-sm hover:shadow-md hover:scale-[1.03] transition-all duration-200 p-6 flex flex-col items-center justify-center cursor-pointer aspect-square border border-gray-100" onclick="openModal('modal-laporan')">
+                        <div class="text-5xl md:text-6xl mb-3">📊</div>
                         <div class="text-sm font-semibold text-gray-700 text-center">Laporan</div>
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-sm hover:shadow-md hover:scale-[1.03] transition-all duration-200 p-6 flex flex-col items-center justify-center cursor-pointer aspect-square border border-gray-100" onclick="window.location.href='{{ route('admin.bank-accounts.index') }}'">
+                        <div class="text-5xl md:text-6xl mb-3">🏦</div>
+                        <div class="text-sm font-semibold text-gray-700 text-center">Rekening Bimbel</div>
                     </div>
                 </div>
             </div>
@@ -61,20 +55,9 @@
                     <a href="{{ route('admin.enrollments.index') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50 text-gray-700 font-medium transition-colors">📝 Enrollment</a>
                     <a href="{{ route('admin.lesson-offers.index') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50 text-gray-700 font-medium transition-colors">🎯 Tawaran Les</a>
                     <a href="{{ route('admin.documents.index') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50 text-gray-700 font-medium transition-colors">📄 Dokumen</a>
+                    <a href="{{ route('admin.discounts.index') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50 text-gray-700 font-medium transition-colors">🏷️ Diskon/Promo</a>
                     <a href="{{ route('admin.new-students.index') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50 text-gray-700 font-medium transition-colors">🆕 Pendaftar Murid Baru</a>
                     <a href="{{ route('admin.teacher-registrants.index') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50 text-gray-700 font-medium transition-colors">🧑‍🏫 Pendaftar Guru Baru</a>
-                </div>
-            </div>
-
-            {{-- MODAL KELAS --}}
-            <div id="modal-kelas" class="fixed inset-0 z-50 hidden bg-black/40 flex items-center justify-center p-4" onclick="closeModalOutside(event, 'modal-kelas')">
-                <div class="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 space-y-1 animate-fade-in">
-                    <div class="flex items-center justify-between mb-3">
-                        <h3 class="text-lg font-semibold">Kelas</h3>
-                        <button onclick="closeModal('modal-kelas')" class="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors">&times;</button>
-                    </div>
-                    <a href="{{ route('admin.class-student-sessions.index') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50 text-gray-700 font-medium transition-colors">🏫 Presensi & Jadwal Kelas</a>
-                    <a href="{{ route('admin.class-student-sessions.create') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50 text-gray-700 font-medium transition-colors">➕ Tambah Sesi</a>
                 </div>
             </div>
 
@@ -86,29 +69,19 @@
                         <button onclick="closeModal('modal-presensi')" class="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors">&times;</button>
                     </div>
                     <a href="{{ route('admin.presensi.index') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50 text-gray-700 font-medium transition-colors">✅ Validasi Presensi Privat</a>
+                    <a href="{{ route('admin.class-student-sessions.index') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50 text-gray-700 font-medium transition-colors">🏫 Presensi & Jadwal Kelas</a>
                 </div>
             </div>
 
-            {{-- MODAL WA & PROMO --}}
-            <div id="modal-wa" class="fixed inset-0 z-50 hidden bg-black/40 flex items-center justify-center p-4" onclick="closeModalOutside(event, 'modal-wa')">
+            {{-- MODAL TAGIHAN --}}
+            <div id="modal-tagihan" class="fixed inset-0 z-50 hidden bg-black/40 flex items-center justify-center p-4" onclick="closeModalOutside(event, 'modal-tagihan')">
                 <div class="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 space-y-1 animate-fade-in">
                     <div class="flex items-center justify-between mb-3">
-                        <h3 class="text-lg font-semibold">WA & Promo</h3>
-                        <button onclick="closeModal('modal-wa')" class="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors">&times;</button>
+                        <h3 class="text-lg font-semibold">Tagihan</h3>
+                        <button onclick="closeModal('modal-tagihan')" class="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors">&times;</button>
                     </div>
                     <a href="{{ route('admin.analysis.ortu') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50 text-gray-700 font-medium transition-colors">💬 Template WA Ortu</a>
                     <a href="{{ route('admin.analysis.guru') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50 text-gray-700 font-medium transition-colors">💬 Template WA Guru</a>
-                    <a href="{{ route('admin.discounts.index') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50 text-gray-700 font-medium transition-colors">🏷️ Diskon/Promo</a>
-                </div>
-            </div>
-
-            {{-- MODAL PEMBAYARAN --}}
-            <div id="modal-pembayaran" class="fixed inset-0 z-50 hidden bg-black/40 flex items-center justify-center p-4" onclick="closeModalOutside(event, 'modal-pembayaran')">
-                <div class="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 space-y-1 animate-fade-in">
-                    <div class="flex items-center justify-between mb-3">
-                        <h3 class="text-lg font-semibold">Pembayaran</h3>
-                        <button onclick="closeModal('modal-pembayaran')" class="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors">&times;</button>
-                    </div>
                     <a href="{{ route('admin.payments.ortu') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50 text-gray-700 font-medium transition-colors">💰 Pembayaran Ortu</a>
                     <a href="{{ route('admin.payments.guru') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50 text-gray-700 font-medium transition-colors">💳 Pembayaran Guru</a>
                 </div>
