@@ -151,7 +151,7 @@
                         </div>
                         <div id="teacher-rate-field">
                             <label class="block text-sm font-medium text-gray-700">Gaji Guru Default (1 murid)</label>
-                            <input type="number" name="teacher_rate" id="teacher-rate" value="{{ old('teacher_rate') }}" step="5000" class="mt-1 w-full border-gray-300 rounded-md" required />
+                            <input type="number" name="teacher_rate" id="teacher-rate" value="{{ old('teacher_rate') }}" step="1000" class="mt-1 w-full border-gray-300 rounded-md" required />
                             @error('teacher_rate')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
                         </div>
                     </div>
