@@ -340,10 +340,27 @@
             updatePricingAndRateVisibility();
         };
 
+        const filterPrograms = () => {
+            const selectedType = typeSelect.value;
+            let hasSelected = false;
+            Array.from(programSelect.options).forEach(option => {
+                if (!option.value) {
+                    option.style.display = '';
+                    return;
+                }
+                const programType = option.dataset.type;
+                const show = programType === selectedType;
+                option.style.display = show ? '' : 'none';
+                if (show && option.selected) hasSelected = true;
+            });
+            if (!hasSelected) programSelect.value = '';
+        };
+
         typeSelect.addEventListener('change', () => {
             updateTeacherRequired();
             toggleKelasMode();
             applyDefaults();
+            filterPrograms();
         });
 
         // Student search filter
@@ -376,6 +393,7 @@
         updateTeacherRequired();
         applyDefaults();
         toggleKelasMode();
+        filterPrograms();
     </script>
 
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
