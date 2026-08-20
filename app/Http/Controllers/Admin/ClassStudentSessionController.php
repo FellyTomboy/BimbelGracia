@@ -44,12 +44,13 @@ class ClassStudentSessionController extends Controller
 
     public function table(): View
     {
-        $sessions = ClassSession::with(['program', 'teachers', 'attendances.enrollment', 'attendances.students'])
-            ->latest('session_date')
+        $attendances = MonthlyAttendance::with(['enrollment.program', 'students', 'classSession'])
+            ->whereNotNull('class_session_id')
+            ->latest('lesson_date')
             ->get();
 
         return view('admin.class-student-sessions.table', [
-            'sessions' => $sessions,
+            'attendances' => $attendances,
         ]);
     }
 
@@ -274,6 +275,7 @@ class ClassStudentSessionController extends Controller
 
             $session->teachers()->sync($teacherIds);
 
+            $orphanedEnrollmentIds = $session->attendances()->pluck('enrollment_id')->unique()->diff(collect($studentEnrollmentMap));
             $session->attendances()->delete();
 
             foreach ($studentEnrollmentMap as $enrollmentId) {
@@ -304,6 +306,12 @@ class ClassStudentSessionController extends Controller
                 $attendance->students()->sync([$student->id => ['total_present' => 1]]);
                 $enrollment->update(['validation_status' => 1]);
             }
+
+            foreach ($orphanedEnrollmentIds as $enrollmentId) {
+                if (!Enrollment::find($enrollmentId)?->attendances()->exists()) {
+                    Enrollment::where('id', $enrollmentId)->update(['validation_status' => 0]);
+                }
+            }
         });
 
         return redirect()
@@ -316,8 +324,15 @@ class ClassStudentSessionController extends Controller
         $month = $session->session_date->month;
         $year = $session->session_date->year;
 
+        $enrollmentIds = $session->attendances()->pluck('enrollment_id')->unique();
         $session->attendances()->delete();
         $session->delete();
+
+        foreach ($enrollmentIds as $enrollmentId) {
+            if (!Enrollment::find($enrollmentId)?->attendances()->exists()) {
+                Enrollment::where('id', $enrollmentId)->update(['validation_status' => 0]);
+            }
+        }
 
         return redirect()
             ->route('admin.class-student-sessions.index', ['month' => $month, 'year' => $year])
