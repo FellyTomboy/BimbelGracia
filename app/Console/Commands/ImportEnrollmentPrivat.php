@@ -15,14 +15,16 @@ class ImportEnrollmentPrivat extends Command
 {
     protected $signature = 'import:enrollment-privat
         {--spreadsheet-id=1zhNdJkE8gc0V3DxbKF2P7BvZcNY7GO0s7ukTVRCpiD0 : Google Spreadsheet ID}
-        {--sheet-name=Enrollment Privat : Sheet name to import}';
+        {--sheet-name=Enrollment Privat : Sheet name to import}
+        {--debug : Show verbose debug output for each row}';
 
     protected $description = 'Import enrollment data from Google Spreadsheet "Enrollment Privat" sheet into the database';
 
     public function handle(): int
     {
         $spreadsheetId = $this->option('spreadsheet-id');
-        $sheetName    = $this->option('sheet-name');
+        $sheetName     = $this->option('sheet-name');
+        $debug         = (bool) $this->option('debug');
 
         $this->info("Starting import from Google Spreadsheet...");
         $this->info("Spreadsheet ID : {$spreadsheetId}");
@@ -115,6 +117,15 @@ class ImportEnrollmentPrivat extends Command
 
             // ── Validate: Student ──
             if (!isset($existingStudents[$studentKey])) {
+                // In debug mode, show what student names are in the DB that are close
+                if ($debug) {
+                    $candidates = collect($existingStudents)
+                        ->filter(fn($s) => levenshtein($studentKey, strtolower(trim($s->nickname ?: $s->full_name ?: ''))) <= 5)
+                        ->map(fn($s) => "{$s->id}: nickname='{$s->nickname}', full_name='{$s->full_name}', name_attr='{$s->name}'")
+                        ->values()
+                        ->all();
+                    $this->line("\n  [DEBUG] Student '{$studentName}' (key='{$studentKey}') NOT FOUND. Candidates: " . ($candidates ? implode(', ', $candidates) : 'none close'));
+                }
                 $results['skipped'][] = [
                     'student'  => $studentName,
                     'program'  => $programRaw,
@@ -124,6 +135,10 @@ class ImportEnrollmentPrivat extends Command
                 continue;
             }
             $student = $existingStudents[$studentKey];
+
+            if ($debug) {
+                $this->line("\n  [DEBUG] Student '{$studentName}' (key='{$studentKey}') → DB id={$student->id}, nickname='{$student->nickname}', full_name='{$student->full_name}', name='{$student->name}'");
+            }
 
             // ── Enrollment (no duplicates) ──
             // First: find any enrollment with this key (active OR soft-deleted).
@@ -135,6 +150,16 @@ class ImportEnrollmentPrivat extends Command
                 ->where('program_id', $program->id)
                 ->where('teacher_id', $teacher->id)
                 ->first();
+
+            if ($debug) {
+                $existingCount = Enrollment::withTrashed()
+                    ->where('student_id', $student->id)
+                    ->where('program_id', $program->id)
+                    ->where('teacher_id', $teacher->id)
+                    ->count();
+                $found = $enrollment ? "YES (id={$enrollment->id}, deleted_at={$enrollment->deleted_at})" : 'NO';
+                $this->line("  [DEBUG] Enrollment lookup: found={$found}, total_with_key={$existingCount}");
+            }
 
             $enrollmentData = [
                 'student_id'               => $student->id,
