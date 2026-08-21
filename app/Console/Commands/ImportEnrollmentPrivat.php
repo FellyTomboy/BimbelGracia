@@ -126,14 +126,10 @@ class ImportEnrollmentPrivat extends Command
             $student = $existingStudents[$studentKey];
 
             // ── Enrollment (no duplicates) ──
-            // Guard: soft-delete any existing ACTIVE enrollment with the same key
-            // to prevent duplicates from prior runs of this command.
-            Enrollment::where('student_id', $student->id)
-                ->where('program_id', $program->id)
-                ->where('teacher_id', $teacher->id)
-                ->delete();
-
-            // Now look for a soft-deleted one to restore/update, or create fresh.
+            // First: find any enrollment with this key (active OR soft-deleted).
+            // - If active: update it in place — no new record, no duplicates.
+            // - If soft-deleted: restore + update.
+            // - If none: create new.
             $enrollment = Enrollment::withTrashed()
                 ->where('student_id', $student->id)
                 ->where('program_id', $program->id)
@@ -149,10 +145,18 @@ class ImportEnrollmentPrivat extends Command
                 'teacher_rate'             => $teacherRate,
                 'agreed_sessions_per_month'=> $frequency,
                 'status'                   => 'active',
-                'deleted_at'               => null, // restore if was soft-deleted
+                'deleted_at'               => null, // restores if was soft-deleted
             ];
 
             if ($enrollment) {
+                // Re-find any OTHER enrollment with the same key (excluding this one).
+                // Soft-delete any other matches to prevent duplicates.
+                Enrollment::where('student_id', $student->id)
+                    ->where('program_id', $program->id)
+                    ->where('teacher_id', $teacher->id)
+                    ->where('id', '!=', $enrollment->id)
+                    ->delete();
+
                 $enrollment->update($enrollmentData);
                 $results['updated'][] = "{$studentName} | {$programRaw} | {$teacherName}";
             } else {
