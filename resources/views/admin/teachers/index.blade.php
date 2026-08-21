@@ -46,7 +46,8 @@
                                         <input type="checkbox" onclick="toggleAll(this)" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
                                     </th>
                                     <th class="py-3 px-4 font-medium">Foto</th>
-                                    <x-sortable-header label="Nama" column="teachers.full_name" />
+                                    <x-sortable-header label="Nama Lengkap" column="teachers.full_name" />
+                                    <th class="py-3 px-4 font-medium">Nama Panggilan</th>
                                     <th class="py-3 px-4 font-medium">No. Telepon</th>
                                     <th class="py-3 px-4 font-medium">WA</th>
                                     <th class="py-3 px-4 font-medium">Rekening</th>
@@ -68,7 +69,14 @@
                                                 <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 text-xs">-</div>
                                             @endif
                                         </td>
-                                        <td class="py-3 px-4 font-medium text-gray-900">{{ $teacher->displayName }}</td>
+                                        <td class="py-3 px-4">
+                                            <span class="font-medium text-gray-900 @empty($teacher->full_name) text-amber-600 font-semibold @endempty">{{ $teacher->full_name ?: '—' }}</span>
+                                            @empty($teacher->full_name)<span class="text-xs text-amber-500 ml-1">(kosong)</span>@endempty
+                                        </td>
+                                        <td class="py-3 px-4">
+                                            <span class="text-gray-700 @empty($teacher->nickname) text-gray-400 @endempty">{{ $teacher->nickname ?: '—' }}</span>
+                                            @empty($teacher->nickname)<span class="text-xs text-gray-400 ml-1">(kosong)</span>@endempty
+                                        </td>
                                         <td class="py-3 px-4 text-gray-600">{{ $teacher->user?->phone ?? '-' }}</td>
                                         <td class="py-3 px-4 text-gray-600">{{ $teacher->whatsapp_number ?? $teacher->whatsapp ?? '-' }}</td>
                                         <td class="py-3 px-4 text-gray-600">
@@ -104,7 +112,7 @@
                                         </td>
                                     </tr>
                                 @empty
-                                    <tr><td colspan="9"><x-empty-state icon="👨‍🏫" title="Belum ada guru" description="Tambahkan guru baru." action="Tambah Guru" actionUrl="{{ route('admin.teachers.create') }}" /></td></tr>
+                                    <tr><td colspan="10"><x-empty-state icon="👨‍🏫" title="Belum ada guru" description="Tambahkan guru baru." action="Tambah Guru" actionUrl="{{ route('admin.teachers.create') }}" /></td></tr>
                                 @endforelse
                             </tbody>
                         </table>

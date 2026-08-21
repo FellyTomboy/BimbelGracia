@@ -23,7 +23,8 @@
                     <table class="min-w-full text-sm">
                         <thead>
                             <tr class="text-left text-gray-500">
-                                <th class="py-2">Nama</th>
+                                <th class="py-2">Nama Lengkap</th>
+                                <th class="py-2">Nama Panggilan</th>
                                 <th class="py-2">Parent Awal</th>
                                 <th class="py-2">Status</th>
                                 <th class="py-2">Aksi Restore</th>
@@ -32,7 +33,14 @@
                         <tbody class="divide-y">
                             @forelse ($students as $student)
                                 <tr>
-                                    <td class="py-2 font-medium">{{ $student->display_name }}</td>
+                                    <td class="py-2">
+                                        <span class="font-medium text-gray-900 @empty($student->full_name) text-amber-600 font-semibold @endempty">{{ $student->full_name ?: '—' }}</span>
+                                        @empty($student->full_name)<span class="text-xs text-amber-500 ml-1">(kosong)</span>@endempty
+                                    </td>
+                                    <td class="py-2">
+                                        <span class="text-gray-700 @empty($student->nickname) text-gray-400 @endempty">{{ $student->nickname ?: '—' }}</span>
+                                        @empty($student->nickname)<span class="text-xs text-gray-400 ml-1">(kosong)</span>@endempty
+                                    </td>
                                     <td class="py-2">{{ $student->parent?->name ?? ($student->parent_id ? 'Parent dihapus' : 'Tidak ada parent') }}</td>
                                     <td class="py-2">hibernasi</td>
                                     <td class="py-2">

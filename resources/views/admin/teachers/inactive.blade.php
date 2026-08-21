@@ -19,7 +19,8 @@
                     <table class="min-w-full text-sm">
                         <thead>
                             <tr class="text-left text-gray-500">
-                                <th class="py-2">Nama</th>
+                                <th class="py-2">Nama Lengkap</th>
+                                <th class="py-2">Nama Panggilan</th>
                                 <th class="py-2">Email</th>
                                 <th class="py-2">WhatsApp</th>
                                 <th class="py-2">Tarif Kelas</th>
@@ -30,7 +31,14 @@
                         <tbody class="divide-y">
                             @foreach ($teachers as $teacher)
                                 <tr>
-                                    <td class="py-2 font-medium">{{ $teacher->displayName }}</td>
+                                    <td class="py-2">
+                                        <span class="font-medium text-gray-900 @empty($teacher->full_name) text-amber-600 font-semibold @endempty">{{ $teacher->full_name ?: '—' }}</span>
+                                        @empty($teacher->full_name)<span class="text-xs text-amber-500 ml-1">(kosong)</span>@endempty
+                                    </td>
+                                    <td class="py-2">
+                                        <span class="text-gray-700 @empty($teacher->nickname) text-gray-400 @endempty">{{ $teacher->nickname ?: '—' }}</span>
+                                        @empty($teacher->nickname)<span class="text-xs text-gray-400 ml-1">(kosong)</span>@endempty
+                                    </td>
                                     <td class="py-2">{{ $teacher->user?->email ?? '-' }}</td>
                                     <td class="py-2">{{ $teacher->whatsapp_number ?? '-' }}</td>
                                     <td class="py-2">Rp {{ number_format($teacher->class_rate ?? 0) }}</td>

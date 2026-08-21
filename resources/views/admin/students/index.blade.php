@@ -46,7 +46,8 @@
                                     <th class="py-3 px-4 w-10">
                                         <input type="checkbox" onclick="toggleAll(this)" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
                                     </th>
-                                    <x-sortable-header label="Nama" column="students.full_name" />
+                                    <x-sortable-header label="Nama Lengkap" column="students.full_name" />
+                                    <th class="py-3 px-4 font-medium">Nama Panggilan</th>
                                     <th class="py-3 px-4 font-medium">No. Telepon</th>
                                     <th class="py-3 px-4 font-medium">Aksi</th>
                                 </tr>
@@ -57,7 +58,14 @@
                                         <td class="py-3 px-4">
                                             <input type="checkbox" name="ids[]" value="{{ $student->id }}" class="row-checkbox rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" onchange="updateBulkButton()" />
                                         </td>
-                                        <td class="py-3 px-4 font-medium text-gray-900">{{ $student->display_name }}</td>
+                                        <td class="py-3 px-4">
+                                            <span class="font-medium text-gray-900 @empty($student->full_name) text-amber-600 font-semibold @endempty">{{ $student->full_name ?: '—' }}</span>
+                                            @empty($student->full_name)<span class="text-xs text-amber-500 ml-1">(kosong)</span>@endempty
+                                        </td>
+                                        <td class="py-3 px-4">
+                                            <span class="text-gray-700 @empty($student->nickname) text-gray-400 @endempty">{{ $student->nickname ?: '—' }}</span>
+                                            @empty($student->nickname)<span class="text-xs text-gray-400 ml-1">(kosong)</span>@endempty
+                                        </td>
                                         <td class="py-3 px-4 text-gray-600">{{ $student->parent?->user?->phone ?? '-' }}</td>
                                         <td class="py-3 px-4">
                                             <div class="flex items-center gap-2">
@@ -67,7 +75,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="4">
+                                        <td colspan="5">
                                             <x-empty-state icon="👨‍🎓" title="Belum ada murid" description="Tambahkan murid melalui halaman Parent." />
                                         </td>
                                     </tr>
