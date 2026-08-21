@@ -126,6 +126,14 @@ class ImportEnrollmentPrivat extends Command
             $student = $existingStudents[$studentKey];
 
             // ── Enrollment (no duplicates) ──
+            // Guard: soft-delete any existing ACTIVE enrollment with the same key
+            // to prevent duplicates from prior runs of this command.
+            Enrollment::where('student_id', $student->id)
+                ->where('program_id', $program->id)
+                ->where('teacher_id', $teacher->id)
+                ->delete();
+
+            // Now look for a soft-deleted one to restore/update, or create fresh.
             $enrollment = Enrollment::withTrashed()
                 ->where('student_id', $student->id)
                 ->where('program_id', $program->id)
