@@ -13,7 +13,7 @@
                         <select name="teacher_id" class="mt-1 w-full border-gray-300 rounded-md">
                             <option value="">Semua</option>
                             @foreach ($teachers as $teacher)
-                                <option value="{{ $teacher->id }}" @selected($teacherId == $teacher->id)>{{ $teacher->name }}</option>
+                                <option value="{{ $teacher->id }}" @selected($teacherId == $teacher->id)>{{ $teacher->displayName }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -72,7 +72,7 @@
                                             @foreach ($result['rows'] as $row)
                                                 <tr>
                                                     <td class="py-2">{{ sprintf('%02d', $periodMonth) }}/{{ $periodYear }}</td>
-                                                    <td class="py-2">{{ $teacher->name }}</td>
+                                                    <td class="py-2">{{ $teacher->displayName }}</td>
                                                     <td class="py-2">{{ $row['student'] }}</td>
                                                     <td class="py-2">{{ $row['program'] }}<br><span class="text-xs text-gray-500">{{ $row['label_detail'] }}</span></td>
                                                     <td class="py-2">Rp {{ number_format($row['rate']) }}</td>
@@ -100,7 +100,7 @@
                                             <tr>
                                                 <td class="py-2">{{ sprintf('%02d', $attendance->month) }}/{{ $attendance->year }}</td>
                                                 <td class="py-2">
-                                                    <x-hibernated-label :model="$attendance->enrollment?->teacher" :label="$attendance->enrollment?->teacher?->name ?? '-'" type="guru" />
+                                                    <x-hibernated-label :model="$attendance->enrollment?->teacher" :label="$attendance->enrollment?->teacher?->displayName ?? '-'" type="guru" />
                                                 </td>
                                                 <td class="py-2">
                                                     @foreach ($attendance->students as $s)

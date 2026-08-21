@@ -48,7 +48,7 @@
                                     class="block px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors
                                         {{ (request('selected', '0') == $index) ? 'bg-indigo-50/50 font-semibold' : '' }}">
                                     <div class="text-sm font-medium text-gray-900">
-                                        {{ $summary['teacher']?->name ?? 'Guru' }}
+                                        {{ $summary['teacher']?->displayName ?? 'Guru' }}
                                     </div>
                                     <div class="text-xs text-gray-500">WA: {{ $summary['teacher']?->whatsapp_number ?? '-' }}</div>
                                     <div class="mt-1 text-[11px] text-gray-600">

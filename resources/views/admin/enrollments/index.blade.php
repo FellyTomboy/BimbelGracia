@@ -169,7 +169,7 @@
                                             <input type="checkbox" onclick="toggleAllPrivat(this)" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
                                         </th>
                                         <x-sortable-header label="Murid" column="students.name" />
-                                        <x-sortable-header label="Guru" column="teachers.name" />
+                                        <x-sortable-header label="Guru" column="teachers.full_name" />
                                         <x-sortable-header label="Program" column="programs.name" />
                                         <x-sortable-header label="Tarif Ortu" column="enrollments.parent_rate" />
                                         <x-sortable-header label="Tarif Guru" column="enrollments.teacher_rate" />
@@ -189,7 +189,7 @@
                                             <td class="py-3 px-4 font-medium text-gray-900">
                                                 {{ $enrollment->students->map->display_name->implode(', ') ?: '-' }}
                                             </td>
-                                            <td class="py-3 px-4 text-gray-600">{{ $enrollment->teacher?->name ?? '-' }}</td>
+                                            <td class="py-3 px-4 text-gray-600">{{ $enrollment->teacher?->displayName ?? '-' }}</td>
                                             <td class="py-3 px-4 text-gray-600">{{ $enrollment->program?->name ?? '-' }}</td>
                                             <td class="py-3 px-4 text-gray-600">Rp {{ number_format($enrollment->parent_rate) }}</td>
                                             <td class="py-3 px-4 text-gray-600">Rp {{ number_format($enrollment->teacher_rate) }}</td>

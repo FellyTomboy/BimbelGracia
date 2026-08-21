@@ -87,9 +87,9 @@ class ClassStudentSessionController extends Controller
             }
         }
 
-        $teachers = Teacher::orderBy('name')->get(['id', 'name']);
+        $teachers = Teacher::orderBy('full_name')->get();
         $teachersList = $teachers
-            ->map(fn ($t) => ['id' => $t->id, 'name' => $t->name])
+            ->map(fn ($t) => ['id' => $t->id, 'name' => $t->displayName])
             ->values()
             ->toArray();
 
@@ -216,14 +216,14 @@ class ClassStudentSessionController extends Controller
 
         $existingStudentIds = array_keys($existingEnrollmentMap);
 
-        $teachers = Teacher::orderBy('name')->get(['id', 'name']);
+        $teachers = Teacher::orderBy('full_name')->get();
         $teachersList = $teachers
-            ->map(fn ($t) => ['id' => $t->id, 'name' => $t->name])
+            ->map(fn ($t) => ['id' => $t->id, 'name' => $t->displayName])
             ->values()
             ->toArray();
 
         $sessionTeachers = $session->teachers
-            ->map(fn ($t) => ['id' => $t->id, 'name' => $t->name])
+            ->map(fn ($t) => ['id' => $t->id, 'name' => $t->displayName])
             ->values()
             ->toArray();
 

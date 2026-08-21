@@ -67,7 +67,7 @@
                                         <input type="checkbox" name="teacher_ids[]" value="{{ $teacher->id }}"
                                             @checked(in_array($teacher->id, $selectedTeachers))
                                             class="rounded border-gray-300 text-indigo-600" />
-                                        <span>{{ $teacher->name }}</span>
+                                        <span>{{ $teacher->displayName }}</span>
                                     </label>
                                 @endforeach
                             </div>

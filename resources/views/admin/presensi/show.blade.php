@@ -18,7 +18,7 @@
             <div class="bg-white shadow-sm sm:rounded-lg p-6 space-y-3">
                 <p><span class="font-semibold">Tanggal Les:</span> {{ $attendance->lesson_date?->format('d M Y') ?? '-' }}</p>
                 <p><span class="font-semibold">Program:</span> <x-hibernated-label :model="$attendance->enrollment?->program" :label="$attendance->enrollment?->program?->name ?? '-'" type="program" /></p>
-                <p><span class="font-semibold">Guru:</span> <x-hibernated-label :model="$attendance->enrollment?->teacher" :label="$attendance->enrollment?->teacher?->name ?? '-'" type="guru" /></p>
+                <p><span class="font-semibold">Guru:</span> <x-hibernated-label :model="$attendance->enrollment?->teacher" :label="$attendance->enrollment?->teacher?->displayName ?? '-'" type="guru" /></p>
                 <p><span class="font-semibold">Murid:</span>
                     @if ($attendance->students->count() > 0)
                         @foreach ($attendance->students as $student)
@@ -84,7 +84,7 @@
                             <option value="">Pilih enrollment</option>
                             @foreach ($enrollments as $enrollment)
                                 <option value="{{ $enrollment->id }}" @selected(old('enrollment_id', $attendance->enrollment_id) == $enrollment->id)>
-                                    #{{ $enrollment->id }} - {{ $enrollment->program?->name ?? '-' }} - {{ $enrollment->teacher?->name ?? '-' }} - {{ $enrollment->students->map->display_name->implode(', ') }}
+                                    #{{ $enrollment->id }} - {{ $enrollment->program?->name ?? '-' }} - {{ $enrollment->teacher?->displayName ?? '-' }} - {{ $enrollment->students->map->display_name->implode(', ') }}
                                 </option>
                             @endforeach
                         </select>

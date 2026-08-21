@@ -93,7 +93,7 @@
                                                     <div class="flex flex-wrap gap-1 mb-1">
                                                         @foreach ($teachers as $t)
                                                             <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-700">
-                                                                {{ $t->name }}
+                                                                {{ $t->displayName }}
                                                             </span>
                                                         @endforeach
                                                     </div>

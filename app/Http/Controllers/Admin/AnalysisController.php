@@ -502,7 +502,7 @@ class AnalysisController extends Controller
 
     public function generateSalary(Request $request, Teacher $teacher, int $month, int $year): RedirectResponse
     {
-        $hasMissingTeacherIdentity = blank($teacher->full_name) && blank($teacher->nickname) && blank($teacher->name);
+        $hasMissingTeacherIdentity = blank($teacher->nickname) && blank($teacher->full_name);
         $hasMissingTeacherProfile = blank($teacher->major) || blank($teacher->subjects) || blank($teacher->address);
 
         if ($hasMissingTeacherIdentity || $hasMissingTeacherProfile) {

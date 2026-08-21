@@ -172,7 +172,7 @@ class InvoiceService
             'finalTotal' => $result['final_total'],
         ]);
 
-        $teacherSlug = str_replace(' ', '_', strtolower($teacher->name));
+        $teacherSlug = str_replace(' ', '_', strtolower($teacher->full_name));
         $period = sprintf('%02d-%04d', $month, $year);
         $filename = sprintf('pdf/salary/%s/%s.pdf', $teacherSlug, $period);
         Storage::disk('public')->put($filename, $pdf->output());

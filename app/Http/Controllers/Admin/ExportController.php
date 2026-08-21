@@ -253,7 +253,7 @@ class ExportController extends Controller
             ->get()
             ->map(fn (Teacher $teacher) => [
                 $teacher->id,
-                $teacher->name,
+                $teacher->full_name,
                 $teacher->whatsapp_number,
                 $teacher->major,
                 $teacher->subjects,

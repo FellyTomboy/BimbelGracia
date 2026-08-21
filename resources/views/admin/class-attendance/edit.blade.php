@@ -11,7 +11,7 @@
                     <p class="text-sm text-gray-600">
                         <strong>Tanggal:</strong> {{ $attendance->lesson_date?->format('d/m/Y') ?? '-' }} |
                         <strong>Program:</strong> {{ $enrollment?->program?->name ?? '-' }} |
-                        <strong>Guru:</strong> {{ $enrollment?->teacher?->name ?? '-' }}
+                        <strong>Guru:</strong> {{ $enrollment?->teacher?->displayName ?? '-' }}
                     </p>
                     <p class="text-xs text-gray-500 mt-1">Centang murid yang hadir pada sesi ini.</p>
                 </div>

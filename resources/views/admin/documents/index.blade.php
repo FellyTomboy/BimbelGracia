@@ -69,7 +69,7 @@
                                     </td>
                                     <td class="py-3 px-4 text-gray-600 text-xs">
                                         @if ($doc->access_type === 'teacher' && $doc->teachers->isNotEmpty())
-                                            {{ $doc->teachers->pluck('name')->implode(', ') }}
+                                            {{ $doc->teachers->map->displayName->implode(', ') }}
                                         @elseif ($doc->access_type === 'teacher')
                                             <span class="text-gray-400">Belum dipilih</span>
                                         @else

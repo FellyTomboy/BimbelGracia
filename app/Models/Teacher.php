@@ -17,7 +17,6 @@ class Teacher extends Model
 
     protected $fillable = [
         'user_id',
-        'name',
         'nickname',
         'full_name',
         'whatsapp',
@@ -44,7 +43,7 @@ class Teacher extends Model
 
     public function getDisplayNameAttribute(): string
     {
-        return trim((string) ($this->full_name ?: $this->name ?: $this->nickname ?: '')) ?: 'Tanpa nama';
+        return trim((string) ($this->full_name ?: $this->nickname ?: '')) ?: 'Tanpa nama';
     }
 
     public function getProfilePhotoUrlAttribute(): ?string

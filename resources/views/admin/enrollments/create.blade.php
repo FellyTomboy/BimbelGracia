@@ -59,7 +59,7 @@
                         <select name="teacher_id" id="teacher-select" class="mt-1 w-full border-gray-300 rounded-md">
                             <option value="">Pilih guru</option>
                             @foreach ($teachers as $teacher)
-                                <option value="{{ $teacher->id }}" @selected(old('teacher_id') == $teacher->id)>{{ $teacher->name }}</option>
+                                <option value="{{ $teacher->id }}" @selected(old('teacher_id') == $teacher->id)>{{ $teacher->displayName }}</option>
                             @endforeach
                         </select>
                         <p class="text-xs text-gray-500 mt-1">Guru utama untuk privat. Untuk kelas, guru bisa berubah per sesi saat pencatatan kehadiran.</p>

@@ -24,11 +24,6 @@
                         </div>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Nama</label>
-                        <input name="name" value="{{ old('name', $teacher->name) }}" class="mt-1 w-full border-gray-300 rounded-md" placeholder="Opsional jika nama lengkap sudah diisi" />
-                        @error('name')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
-                    </div>
-                    <div>
                         <label class="block text-sm font-medium text-gray-700">Nomor WhatsApp (untuk login)</label>
                         <input type="text" name="whatsapp" value="{{ old('whatsapp', $teacher->user?->phone) }}" class="mt-1 w-full border-gray-300 rounded-md" placeholder="08XXXXXXXXXX" required />
                         @error('whatsapp')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror

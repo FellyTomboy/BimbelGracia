@@ -32,7 +32,7 @@
                 <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden">
                     <div class="p-4 border-b bg-gray-50 flex items-center justify-between flex-wrap gap-2">
                         <div>
-                            <span class="font-semibold text-lg">{{ $summary['teacher']?->name ?? 'Unknown' }}</span>
+                            <span class="font-semibold text-lg">{{ $summary['teacher']?->displayName ?? 'Unknown' }}</span>
                         </div>
                         <div class="flex items-center gap-4 text-sm">
                             <div class="text-right">
@@ -49,7 +49,7 @@
                         <div class="bg-gray-50 rounded p-2 text-sm flex flex-wrap gap-x-6 gap-y-1">
                             <span class="text-gray-500">Rekening:</span>
                             <span><strong>{{ $summary['teacher']->bank_name ?? '-' }}</strong></span>
-                            <span>a/n <strong>{{ $summary['teacher']->bank_owner ?? $summary['teacher']->name }}</strong></span>
+                            <span>a/n <strong>{{ $summary['teacher']->bank_owner ?? $summary['teacher']->displayName }}</strong></span>
                             <span>No. <strong>{{ $summary['teacher']->bank_account ?? '-' }}</strong></span>
                         </div>
                         @endif

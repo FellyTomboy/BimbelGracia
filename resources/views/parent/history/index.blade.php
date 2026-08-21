@@ -49,7 +49,7 @@
                                             <x-hibernated-label :model="$attendance->enrollment?->program" :label="$attendance->enrollment?->program?->name ?? '-'" type="program" />
                                         </td>
                                         <td class="py-3 px-3 sm:px-4">
-                                            <x-hibernated-label :model="$attendance->enrollment?->teacher" :label="$attendance->enrollment?->teacher?->name ?? '-'" type="guru" />
+                                            <x-hibernated-label :model="$attendance->enrollment?->teacher" :label="$attendance->enrollment?->teacher?->displayName ?? '-'" type="guru" />
                                         </td>
                                         <td class="py-3 px-3 sm:px-4 whitespace-nowrap">
                                             {{ $attendance->lesson_date?->format('d/m/Y') ?? '-' }}

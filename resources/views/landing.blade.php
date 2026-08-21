@@ -534,10 +534,10 @@
                     <div class="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto mb-10">
                         @foreach ($founders as $founder)
                             <div class="card rounded-2xl p-6 text-center" style="border-top: 3px solid var(--color-primary);">
-                                <img src="{{ $founder->profile_photo_url }}" alt="{{ $founder->name }}"
+                                <img src="{{ $founder->profile_photo_url }}" alt="{{ $founder->displayName }}"
                                     class="w-20 h-20 rounded-full object-cover mx-auto shadow-md"
                                     style="border: 2px solid var(--color-primary-light);">
-                                <h3 class="mt-3 font-semibold text-base" style="color: var(--text-main);">{{ $founder->name }}</h3>
+                                <h3 class="mt-3 font-semibold text-base" style="color: var(--text-main);">{{ $founder->displayName }}</h3>
                                 @if ($founder->major)
                                     <p class="text-xs mt-0.5" style="color: var(--text-muted);">{{ $founder->major }}</p>
                                 @endif
@@ -558,10 +558,10 @@
                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                         @foreach ($approvedTeachers as $teacher)
                             <div class="card rounded-2xl p-4 text-center">
-                                <img src="{{ $teacher->profile_photo_url }}" alt="{{ $teacher->name }}"
+                                <img src="{{ $teacher->profile_photo_url }}" alt="{{ $teacher->displayName }}"
                                     class="w-16 h-16 rounded-full object-cover mx-auto shadow-sm"
                                     style="border: 2px solid var(--border-light);">
-                                <h3 class="mt-2.5 font-semibold text-sm" style="color: var(--text-main);">{{ $teacher->name }}</h3>
+                                <h3 class="mt-2.5 font-semibold text-sm" style="color: var(--text-main);">{{ $teacher->displayName }}</h3>
                                 @if ($teacher->major)
                                     <p class="text-xs mt-0.5" style="color: var(--text-muted);">{{ $teacher->major }}</p>
                                 @endif

@@ -30,7 +30,7 @@
                         <tbody class="divide-y">
                             @foreach ($teachers as $teacher)
                                 <tr>
-                                    <td class="py-2 font-medium">{{ $teacher->name }}</td>
+                                    <td class="py-2 font-medium">{{ $teacher->displayName }}</td>
                                     <td class="py-2">{{ $teacher->user?->email ?? '-' }}</td>
                                     <td class="py-2">{{ $teacher->whatsapp_number ?? '-' }}</td>
                                     <td class="py-2">Rp {{ number_format($teacher->class_rate ?? 0) }}</td>

@@ -17,15 +17,15 @@
             <div class="mt-6 p-4 border border-gray-200 rounded-xl">
                 <div class="flex items-center gap-4 mb-4">
                     @if ($founder->profile_photo_url)
-                        <img src="{{ $founder->profile_photo_url }}" alt="{{ $founder->name }}"
+                        <img src="{{ $founder->profile_photo_url }}" alt="{{ $founder->displayName }}"
                             class="w-14 h-14 rounded-full object-cover border-2 border-gray-200">
                     @else
                         <div class="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 font-bold text-lg">
-                            {{ substr($founder->name, 0, 1) }}
+                            {{ substr($founder->displayName, 0, 1) }}
                         </div>
                     @endif
                     <div>
-                        <h3 class="font-semibold text-gray-900">{{ $founder->name }}</h3>
+                        <h3 class="font-semibold text-gray-900">{{ $founder->displayName }}</h3>
                         <p class="text-xs text-gray-500">Co-Founder</p>
                     </div>
                 </div>
@@ -35,7 +35,7 @@
 
                     <div>
                         <x-input-label for="founder_name_{{ $founder->id }}" :value="__('Nama')" />
-                        <x-text-input id="founder_name_{{ $founder->id }}" name="founder_name" type="text" class="mt-1 block w-full" :value="old('founder_name', $founder->name)" required />
+                        <x-text-input id="founder_name_{{ $founder->id }}" name="founder_name" type="text" class="mt-1 block w-full" :value="old('founder_name', $founder->full_name)" required />
                         <x-input-error class="mt-2" :messages="$errors->get('founder_name')" />
                     </div>
 

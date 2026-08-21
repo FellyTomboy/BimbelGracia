@@ -86,16 +86,16 @@ class GenerateAllPdfs extends Command
                 ->get();
 
             if ($attendances->isEmpty()) {
-                $this->warn("  Teacher {$teacher->name}: No attendance data for period, skipped.");
+                $this->warn("  Teacher {$teacher->full_name}: No attendance data for period, skipped.");
                 continue;
             }
 
             try {
                 $filename = $invoiceService->generateTeacherSalarySlip($teacher, $month, $year, $attendances);
-                $this->info("  ✓ {$teacher->name} -> storage/app/public/{$filename}");
+                $this->info("  ✓ {$teacher->full_name} -> storage/app/public/{$filename}");
                 $teacherCount++;
             } catch (\Exception $e) {
-                $this->error("  ✗ {$teacher->name}: {$e->getMessage()}");
+                $this->error("  ✗ {$teacher->full_name}: {$e->getMessage()}");
             }
         }
 

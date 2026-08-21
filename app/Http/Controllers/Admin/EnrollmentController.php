@@ -373,7 +373,7 @@ class EnrollmentController extends Controller
                 )
                 ->orderBy('student_sort_name', $direction)
                 ->orderByDesc('enrollments.created_at'),
-            'teachers.name' => $query
+            'teachers.full_name' => $query
                 ->select('enrollments.*')
                 ->selectSub(
                     Teacher::withTrashed()

@@ -46,7 +46,7 @@
                                         <input type="checkbox" onclick="toggleAll(this)" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
                                     </th>
                                     <th class="py-3 px-4 font-medium">Foto</th>
-                                    <x-sortable-header label="Nama" column="teachers.name" />
+                                    <x-sortable-header label="Nama" column="teachers.full_name" />
                                     <th class="py-3 px-4 font-medium">No. Telepon</th>
                                     <th class="py-3 px-4 font-medium">WA</th>
                                     <th class="py-3 px-4 font-medium">Rekening</th>
@@ -63,12 +63,12 @@
                                         </td>
                                         <td class="py-3 px-4">
                                             @if ($teacher->profile_photo_url)
-                                                <img src="{{ $teacher->profile_photo_url }}" alt="{{ $teacher->name }}" class="w-10 h-10 rounded-full object-cover border border-gray-200">
+                                                <img src="{{ $teacher->profile_photo_url }}" alt="{{ $teacher->displayName }}" class="w-10 h-10 rounded-full object-cover border border-gray-200">
                                             @else
                                                 <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 text-xs">-</div>
                                             @endif
                                         </td>
-                                        <td class="py-3 px-4 font-medium text-gray-900">{{ $teacher->name }}</td>
+                                        <td class="py-3 px-4 font-medium text-gray-900">{{ $teacher->displayName }}</td>
                                         <td class="py-3 px-4 text-gray-600">{{ $teacher->user?->phone ?? '-' }}</td>
                                         <td class="py-3 px-4 text-gray-600">{{ $teacher->whatsapp_number ?? $teacher->whatsapp ?? '-' }}</td>
                                         <td class="py-3 px-4 text-gray-600">

@@ -82,7 +82,7 @@ class MonthlyAttendanceController extends Controller
         $imagePath = null;
         if ($request->hasFile('image')) {
             $file = $request->file('image');
-            $teacherSlug = str_replace(' ', '_', strtolower($teacher->name));
+            $teacherSlug = str_replace(' ', '_', strtolower($teacher->full_name));
             $lessonDateStr = $lessonDate->format('Y-m-d');
             $extension = $file->getClientOriginalExtension();
             $imagePath = sprintf('photo/attendance/%s/%d_%s.%s', $teacherSlug, $enrollment->id, $lessonDateStr, $extension);
@@ -219,7 +219,7 @@ class MonthlyAttendanceController extends Controller
                 Storage::disk('public')->delete($attendance->image);
             }
             $file = $request->file('image');
-            $teacherSlug = str_replace(' ', '_', strtolower($teacher->name));
+            $teacherSlug = str_replace(' ', '_', strtolower($teacher->full_name));
             $lessonDateStr = $lessonDate->format('Y-m-d');
             $extension = $file->getClientOriginalExtension();
             $imagePath = sprintf('photo/attendance/%s/%d_%s.%s', $teacherSlug, $attendance->enrollment_id, $lessonDateStr, $extension);

@@ -85,7 +85,7 @@ class ProfileController extends Controller
 
         $file = $validated['profile_photo'];
         $extension = $file->getClientOriginalExtension();
-        $teacherSlug = str_replace(' ', '_', strtolower($teacher->name));
+        $teacherSlug = str_replace(' ', '_', strtolower($teacher->full_name));
         $path = sprintf('photo/profile/%s.%s', $teacherSlug, $extension);
         $file->storeAs(dirname($path), basename($path), 'public');
 
@@ -134,7 +134,7 @@ class ProfileController extends Controller
 
         $file = $validated['profile_photo'];
         $extension = $file->getClientOriginalExtension();
-        $teacherSlug = str_replace(' ', '_', strtolower($teacher->name));
+        $teacherSlug = str_replace(' ', '_', strtolower($teacher->full_name));
         $path = sprintf('photo/profile/%s.%s', $teacherSlug, $extension);
         $file->storeAs(dirname($path), basename($path), 'public');
 
@@ -160,7 +160,7 @@ class ProfileController extends Controller
         ]);
 
         $teacher->update([
-            'name' => $validated['founder_name'],
+            'full_name' => $validated['founder_name'],
             'major' => $validated['founder_major'],
             'founder_description' => $validated['founder_description'],
         ]);

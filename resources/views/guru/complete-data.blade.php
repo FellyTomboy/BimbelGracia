@@ -18,14 +18,14 @@
 
                     <div class="grid md:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">Nama Panggilan</label>
-                            <input type="text" name="nickname" value="{{ old('nickname', $teacher->nickname) }}" class="mt-1 w-full border-gray-300 rounded-md" placeholder="Nama panggilan" />
-                            @error('nickname') <p class="text-xs text-rose-600 mt-1">{{ $message }}</p> @enderror
-                        </div>
-                        <div>
                             <label class="block text-sm font-medium text-gray-700">Nama Lengkap</label>
                             <input type="text" name="full_name" value="{{ old('full_name', $teacher->full_name) }}" class="mt-1 w-full border-gray-300 rounded-md" placeholder="Nama lengkap" />
                             @error('full_name') <p class="text-xs text-rose-600 mt-1">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Nama Panggilan</label>
+                            <input type="text" name="nickname" value="{{ old('nickname', $teacher->nickname) }}" class="mt-1 w-full border-gray-300 rounded-md" placeholder="Nama panggilan" />
+                            @error('nickname') <p class="text-xs text-rose-600 mt-1">{{ $message }}</p> @enderror
                         </div>
                     </div>
 

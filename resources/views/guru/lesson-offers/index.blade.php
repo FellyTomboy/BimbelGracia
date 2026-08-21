@@ -33,7 +33,7 @@
                             @forelse ($offers as $offer)
                                 @php
                                     $contact = $offer->contact_whatsapp ?: $defaultContact;
-                                    $teacherName = $teacher?->name ?? auth()->user()?->name;
+                                    $teacherName = $teacher?->displayName ?? auth()->user()?->name;
 
                                     $scheduleText = '';
                                     if ($offer->schedules) {

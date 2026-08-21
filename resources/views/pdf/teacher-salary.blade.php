@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Slip Gaji - {{ $teacher->name }}</title>
+    <title>Slip Gaji - {{ $teacher->displayName }}</title>
     <style>
         body { font-family: 'DejaVu Sans', sans-serif; font-size: 12px; color: #333; }
         .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #059669; padding-bottom: 15px; }
@@ -35,11 +35,11 @@
 
     <div class="info">
         <table>
-            <tr><td class="label">Nama Guru</td><td>: {{ $teacher->name }}</td></tr>
+            <tr><td class="label">Nama Guru</td><td>: {{ $teacher->displayName }}</td></tr>
             <tr><td class="label">Periode</td><td>: {{ $monthName }} {{ $year }}</td></tr>
             <tr><td class="label">Tanggal</td><td>: {{ now()->format('d/m/Y') }}</td></tr>
             @if ($teacher->bank_name)
-            <tr><td class="label">Rekening</td><td>: {{ $teacher->bank_name }} a/n {{ $teacher->bank_owner ?? $teacher->name }} ({{ $teacher->bank_account }})</td></tr>
+            <tr><td class="label">Rekening</td><td>: {{ $teacher->bank_name }} a/n {{ $teacher->bank_owner ?? $teacher->displayName }} ({{ $teacher->bank_account }})</td></tr>
             @endif
         </table>
     </div>

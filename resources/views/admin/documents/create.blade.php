@@ -63,7 +63,7 @@
                                 @foreach ($teachers as $teacher)
                                     <label class="flex items-center gap-2 text-sm">
                                         <input type="checkbox" name="teacher_ids[]" value="{{ $teacher->id }}" class="rounded border-gray-300 text-indigo-600" />
-                                        <span>{{ $teacher->name }}</span>
+                                        <span>{{ $teacher->displayName }}</span>
                                     </label>
                                 @endforeach
                             </div>

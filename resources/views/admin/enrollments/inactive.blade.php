@@ -36,7 +36,7 @@
                                         <x-hibernated-label :model="$enrollment->program" :label="$enrollment->program?->name ?? '-'" type="program" />
                                     </td>
                                     <td class="py-2">
-                                        <x-hibernated-label :model="$enrollment->teacher" :label="$enrollment->teacher?->name ?? '-'" type="guru" />
+                                        <x-hibernated-label :model="$enrollment->teacher" :label="$enrollment->teacher?->displayName ?? '-'" type="guru" />
                                     </td>
                                     <td class="py-2">
                                         @if ($enrollment->students->count() > 0)

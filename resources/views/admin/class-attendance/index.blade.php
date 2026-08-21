@@ -46,11 +46,11 @@
                                 <tr>
                                     <td class="py-2 pr-4 whitespace-nowrap">{{ $attendance->lesson_date?->format('d/m/Y') ?? '-' }}</td>
                                     <td class="py-2 pr-4">{{ $attendance->enrollment?->program?->name ?? '-' }}</td>
-                                    <td class="py-2 pr-4">{{ $attendance->enrollment?->teacher?->name ?? '-' }}</td>
+                                    <td class="py-2 pr-4">{{ $attendance->enrollment?->teacher?->displayName ?? '-' }}</td>
                                     <td class="py-2 pr-4">
                                         @if ($attendance->students->isNotEmpty())
                                             <span class="text-emerald-600 font-medium">{{ $attendance->students->count() }} murid</span>
-                                            <span class="text-gray-400 text-xs">({{ $attendance->students->pluck('name')->implode(', ') }})</span>
+                                            <span class="text-gray-400 text-xs">({{ $attendance->students->pluck('display_name')->implode(', ') }})</span>
                                         @else
                                             <span class="text-amber-600 italic">Belum diisi</span>
                                         @endif
