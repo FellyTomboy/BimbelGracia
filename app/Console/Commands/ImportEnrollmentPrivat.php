@@ -148,17 +148,12 @@ class ImportEnrollmentPrivat extends Command
                 $enrollment->update($enrollmentData);
                 $results['updated'][] = "{$studentName} | {$programRaw} | {$teacherName}";
             } else {
-                Enrollment::create($enrollmentData);
+                $enrollment = Enrollment::create($enrollmentData);
                 $results['created'][] = "{$studentName} | {$programRaw} | {$teacherName}";
-
-                // Attach to pivot
-                $enrollment = Enrollment::withTrashed()
-                    ->where('student_id', $student->id)
-                    ->where('program_id', $program->id)
-                    ->where('teacher_id', $teacher->id)
-                    ->first();
-                $enrollment->students()->syncWithoutDetaching([$student->id]);
             }
+
+            // Attach student to pivot (use the $enrollment from either path)
+            $enrollment->students()->syncWithoutDetaching([$student->id]);
         }
 
         $bar->finish();
