@@ -41,7 +41,7 @@
                                         <a href="{{ route('admin.enrollments.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Enrollment</a>
                                         <a href="{{ route('admin.lesson-offers.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Tawaran Les</a>
                                         <a href="{{ route('admin.documents.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Dokumen</a>
-                                        <a href="{{ route('admin.discounts.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">🏷️ Diskon/Promo</a>
+                                        <a href="{{ route('admin.discounts.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><img src="{{ asset('storage/icons/icon-diskon.png') }}" alt="" class="w-4 h-4 inline-block mr-2 object-contain">Diskon/Promo</a>
                                         <a href="{{ route('admin.new-students.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Pendaftar Murid Baru</a>
                                         <a href="{{ route('admin.teacher-registrants.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Pendaftar Guru Baru</a>
                                     </div>
@@ -62,10 +62,10 @@
                                         <svg class="h-4 w-4 sub-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                                     </span>
                                     <div class="pl-4 hidden" data-submenu-content="tagihan">
-                                        <a href="{{ route('admin.analysis.ortu') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">💬 Template WA Ortu</a>
-                                        <a href="{{ route('admin.analysis.guru') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">💬 Template WA Guru</a>
-                                        <a href="{{ route('admin.payments.ortu') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">💰 Pembayaran Ortu</a>
-                                        <a href="{{ route('admin.payments.guru') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">💳 Pembayaran Guru</a>
+                                        <a href="{{ route('admin.analysis.ortu') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><img src="{{ asset('storage/icons/icon-wa-ortu.png') }}" alt="" class="w-4 h-4 inline-block mr-2 object-contain">Template WA Ortu</a>
+                                        <a href="{{ route('admin.analysis.guru') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><img src="{{ asset('storage/icons/icon-wa-guru.png') }}" alt="" class="w-4 h-4 inline-block mr-2 object-contain">Template WA Guru</a>
+                                        <a href="{{ route('admin.payments.ortu') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><img src="{{ asset('storage/icons/icon-bayar-ortu.png') }}" alt="" class="w-4 h-4 inline-block mr-2 object-contain">Pembayaran Ortu</a>
+                                        <a href="{{ route('admin.payments.guru') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><img src="{{ asset('storage/icons/icon-bayar-guru.png') }}" alt="" class="w-4 h-4 inline-block mr-2 object-contain">Pembayaran Guru</a>
                                     </div>
                                 </div>
                                 <div class="relative" data-submenu="laporan">
@@ -80,7 +80,7 @@
                                         <a href="{{ route('admin.export.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Export & Backup</a>
                                     </div>
                                 </div>
-                                <a href="{{ route('admin.bank-accounts.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">🏦 Rekening Bimbel</a>
+                                <a href="{{ route('admin.bank-accounts.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><img src="{{ asset('storage/icons/icon-bank.png') }}" alt="" class="w-4 h-4 inline-block mr-2 object-contain">Rekening Bimbel</a>
                             </div>
                         </div>
                     @endif

@@ -135,27 +135,31 @@
 
             {{-- LAUNCHER CARD GRID --}}
             <div>
-                <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">🚀 Menu Cepat</h3>
+                <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Menu Cepat</h3>
                 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                     <a href="{{ route('guru.presensi.create') }}" class="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md hover:scale-[1.03] transition-all duration-200 p-5 flex flex-col items-center justify-center aspect-square">
-                        <div class="text-5xl mb-2">📝</div>
+                        <img src="{{ asset('storage/icons/icon-isi-presensi.png') }}" alt="Isi Presensi" class="w-16 h-16 mb-2 object-contain">
                         <div class="text-xs font-semibold text-gray-700 text-center">Isi Presensi</div>
                     </a>
                     <a href="{{ route('guru.presensi.index') }}" class="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md hover:scale-[1.03] transition-all duration-200 p-5 flex flex-col items-center justify-center aspect-square">
-                        <div class="text-5xl mb-2">📋</div>
+                        <img src="{{ asset('storage/icons/icon-riwayat-presensi.png') }}" alt="Riwayat Presensi" class="w-16 h-16 mb-2 object-contain">
                         <div class="text-xs font-semibold text-gray-700 text-center">Riwayat Presensi</div>
                     </a>
                     <a href="{{ route('guru.history.index') }}" class="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md hover:scale-[1.03] transition-all duration-200 p-5 flex flex-col items-center justify-center aspect-square">
-                        <div class="text-5xl mb-2">📚</div>
+                        <img src="{{ asset('storage/icons/icon-riwayat.png') }}" alt="Riwayat Les" class="w-16 h-16 mb-2 object-contain">
                         <div class="text-xs font-semibold text-gray-700 text-center">Riwayat Les</div>
                     </a>
                     <a href="{{ route('guru.salary-projection.index') }}" class="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md hover:scale-[1.03] transition-all duration-200 p-5 flex flex-col items-center justify-center aspect-square">
-                        <div class="text-5xl mb-2">💰</div>
+                        <img src="{{ asset('storage/icons/icon-proyeksi-gaji.png') }}" alt="Proyeksi Gaji" class="w-16 h-16 mb-2 object-contain">
                         <div class="text-xs font-semibold text-gray-700 text-center">Proyeksi Gaji</div>
                     </a>
                     <a href="{{ route('guru.tawaran.index') }}" class="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md hover:scale-[1.03] transition-all duration-200 p-5 flex flex-col items-center justify-center aspect-square">
-                        <div class="text-5xl mb-2">🎯</div>
+                        <img src="{{ asset('storage/icons/icon-tawaran-colored.png') }}" alt="Tawaran Les" class="w-16 h-16 mb-2 object-contain">
                         <div class="text-xs font-semibold text-gray-700 text-center">Tawaran Les</div>
+                    </a>
+                    <a href="{{ route('guru.documents.index') }}" class="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md hover:scale-[1.03] transition-all duration-200 p-5 flex flex-col items-center justify-center aspect-square">
+                        <img src="{{ asset('storage/icons/icon-dokumen-colored.png') }}" alt="Dokumen" class="w-16 h-16 mb-2 object-contain">
+                        <div class="text-xs font-semibold text-gray-700 text-center">Dokumen</div>
                     </a>
                 </div>
             </div>

@@ -131,14 +131,14 @@
 
             {{-- LAUNCHER CARD GRID --}}
             <div>
-                <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">🚀 Menu Cepat</h3>
+                <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Menu Cepat</h3>
                 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    <a href="{{ route('murid.history.index') }}" class="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md hover:scale-[1.03] transition-all duration-200 p-5 flex flex-col items-center justify-center aspect-square">
-                        <div class="text-5xl mb-2">📚</div>
-                        <div class="text-xs font-semibold text-gray-700 text-center">Riwayat Les</div>
+                    <a href="{{ route('parent.history.index') }}" class="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md hover:scale-[1.03] transition-all duration-200 p-5 flex flex-col items-center justify-center aspect-square">
+                        <img src="{{ asset('storage/icons/icon-presensi-les.png') }}" alt="Presensi Les" class="w-16 h-16 mb-2 object-contain">
+                        <div class="text-xs font-semibold text-gray-700 text-center">Presensi Les</div>
                     </a>
-                    <a href="{{ route('murid.billing.index') }}" class="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md hover:scale-[1.03] transition-all duration-200 p-5 flex flex-col items-center justify-center aspect-square">
-                        <div class="text-5xl mb-2">💰</div>
+                    <a href="{{ route('parent.billing.index') }}" class="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md hover:scale-[1.03] transition-all duration-200 p-5 flex flex-col items-center justify-center aspect-square">
+                        <img src="{{ asset('storage/icons/icon-tagihan.png') }}" alt="Tagihan" class="w-16 h-16 mb-2 object-contain">
                         <div class="text-xs font-semibold text-gray-700 text-center">Tagihan</div>
                     </a>
                 </div>
