@@ -73,9 +73,6 @@ class ProfileController extends Controller
                 'subjects' => ['nullable', 'string', 'max:500'],
                 'major' => ['nullable', 'string', 'max:255'],
                 'address' => ['nullable', 'string', 'max:500'],
-                'bank_name' => ['nullable', 'string', 'max:255'],
-                'bank_account' => ['nullable', 'string', 'max:50'],
-                'bank_owner' => ['nullable', 'string', 'max:255'],
             ]);
             $user->teacher->update($validated);
         } else {
