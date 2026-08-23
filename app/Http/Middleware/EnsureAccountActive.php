@@ -23,15 +23,23 @@ class EnsureAccountActive
         // Only check for non-admin roles that can be soft-deleted
         $role = $user->role?->value;
 
-        if (in_array($role, ['guru', 'parent']) && $user->trashed()) {
-            $adminPhone = $this->getAdminPhone();
-            $message = $this->buildWhatsAppMessage($user, $adminPhone);
+        if (in_array($role, ['guru', 'parent'])) {
+            // Query fresh from DB — Auth::user() may be cached and not reflect trashed status
+            $isTrashed = \App\Models\User::withoutGlobalScopes()
+                ->where('id', $user->id)
+                ->onlyTrashed()
+                ->exists();
 
-            return response()->view('errors.account-deactivated', [
-                'adminPhone' => $adminPhone,
-                'message' => $message,
-                'userName' => $this->getUserDisplayName($user),
-            ], 403);
+            if ($isTrashed) {
+                $adminPhone = $this->getAdminPhone();
+                $message = $this->buildWhatsAppMessage($user, $adminPhone);
+
+                return response()->view('errors.account-deactivated', [
+                    'adminPhone' => $adminPhone,
+                    'message' => $message,
+                    'userName' => $this->getUserDisplayName($user),
+                ], 403);
+            }
         }
 
         return $next($request);
