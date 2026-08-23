@@ -40,7 +40,7 @@ Route::get('/', function () {
 Route::middleware(['auth', 'password.force'])->group(function () {
     Route::get('/dashboard', function () {
         return view('dashboard');
-    })->name('dashboard');
+    })->name('dashboard')->middleware('account.active');
 
             Route::redirect('/', '/dashboard', 301);
 
@@ -275,9 +275,9 @@ Route::middleware(['auth', 'password.force'])->group(function () {
 
     Route::get('/guru', function () {
         return view('guru.dashboard');
-    })->middleware('role:guru')->name('guru.dashboard');
+    })->middleware(['role:guru', 'account.active'])->name('guru.dashboard');
 
-    Route::middleware('role:guru')->prefix('guru')->name('guru.')->group(function () {
+    Route::middleware(['role:guru', 'account.active'])->prefix('guru')->name('guru.')->group(function () {
         Route::get('presensi', [GuruAttendanceController::class, 'index'])->name('presensi.index');
         Route::get('presensi/create', [GuruAttendanceController::class, 'create'])->name('presensi.create');
         Route::post('presensi', [GuruAttendanceController::class, 'store'])->name('presensi.store');
@@ -298,9 +298,9 @@ Route::middleware(['auth', 'password.force'])->group(function () {
 
     Route::get('/parent', function () {
         return view('parent.dashboard');
-    })->middleware('role:parent')->name('parent.dashboard');
+    })->middleware(['role:parent', 'account.active'])->name('parent.dashboard');
 
-    Route::middleware('role:parent')->prefix('parent')->name('parent.')->group(function () {
+    Route::middleware(['role:parent', 'account.active'])->prefix('parent')->name('parent.')->group(function () {
         Route::get('riwayat', [ParentHistoryController::class, 'index'])->name('history.index');
         Route::post('riwayat/{attendance}/tolak', [ParentHistoryController::class, 'reject'])->name('history.reject');
         Route::post('riwayat/{attendance}/batalkan-penolakan', [ParentHistoryController::class, 'cancelReject'])->name('history.cancel-reject');

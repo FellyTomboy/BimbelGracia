@@ -30,54 +30,54 @@
                             <div id="menu-lengkap-dropdown" class="fixed w-56 max-h-[calc(100vh-1rem)] overflow-y-auto overscroll-contain bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-50 py-2 hidden" style="top:0;left:0;">
                                 <div class="relative" data-submenu="data-master">
                                     <span onclick="toggleSubmenu('data-master')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center justify-between">
-                                        Data Master
+                                        <span class="flex items-center gap-2"><img src="{{ asset('storage/icons/icon-data-master.png') }}" alt="" class="w-4 h-4 object-contain shrink-0">Data Master</span>
                                         <svg class="h-4 w-4 sub-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                                     </span>
                                     <div class="pl-4 hidden" data-submenu-content="data-master">
-                                        <a href="{{ route('admin.parents.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Parent</a>
-                                        <a href="{{ route('admin.students.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Murid</a>
-                                        <a href="{{ route('admin.teachers.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Guru</a>
-                                        <a href="{{ route('admin.programs.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Program</a>
-                                        <a href="{{ route('admin.enrollments.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Enrollment</a>
-                                        <a href="{{ route('admin.lesson-offers.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Tawaran Les</a>
-                                        <a href="{{ route('admin.documents.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Dokumen</a>
-                                        <a href="{{ route('admin.discounts.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><img src="{{ asset('storage/icons/icon-diskon.png') }}" alt="" class="w-4 h-4 inline-block mr-2 object-contain">Diskon/Promo</a>
-                                        <a href="{{ route('admin.new-students.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Pendaftar Murid Baru</a>
-                                        <a href="{{ route('admin.teacher-registrants.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Pendaftar Guru Baru</a>
+                                        <a href="{{ route('admin.parents.index') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><img src="{{ asset('storage/icons/icon-parent.png') }}" alt="" class="w-4 h-4 object-contain shrink-0">Parent</a>
+                                        <a href="{{ route('admin.students.index') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><img src="{{ asset('storage/icons/icon-murid.png') }}" alt="" class="w-4 h-4 object-contain shrink-0">Murid</a>
+                                        <a href="{{ route('admin.teachers.index') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><img src="{{ asset('storage/icons/icon-guru.png') }}" alt="" class="w-4 h-4 object-contain shrink-0">Guru</a>
+                                        <a href="{{ route('admin.programs.index') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><img src="{{ asset('storage/icons/icon-program.png') }}" alt="" class="w-4 h-4 object-contain shrink-0">Program</a>
+                                        <a href="{{ route('admin.enrollments.index') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><img src="{{ asset('storage/icons/icon-enrollment.png') }}" alt="" class="w-4 h-4 object-contain shrink-0">Enrollment</a>
+                                        <a href="{{ route('admin.lesson-offers.index') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><img src="{{ asset('storage/icons/icon-tawaran.png') }}" alt="" class="w-4 h-4 object-contain shrink-0">Tawaran Les</a>
+                                        <a href="{{ route('admin.documents.index') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><img src="{{ asset('storage/icons/icon-dokumen.png') }}" alt="" class="w-4 h-4 object-contain shrink-0">Dokumen</a>
+                                        <a href="{{ route('admin.discounts.index') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><img src="{{ asset('storage/icons/icon-diskon.png') }}" alt="" class="w-4 h-4 object-contain shrink-0">Diskon/Promo</a>
+                                        <a href="{{ route('admin.new-students.index') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><img src="{{ asset('storage/icons/icon-pendaftar-murid.png') }}" alt="" class="w-4 h-4 object-contain shrink-0">Pendaftar Murid Baru</a>
+                                        <a href="{{ route('admin.teacher-registrants.index') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><img src="{{ asset('storage/icons/icon-pendaftar-guru.png') }}" alt="" class="w-4 h-4 object-contain shrink-0">Pendaftar Guru Baru</a>
                                     </div>
                                 </div>
                                 <div class="relative" data-submenu="presensi">
                                     <span onclick="toggleSubmenu('presensi')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center justify-between">
-                                        Presensi
+                                        <span class="flex items-center gap-2"><img src="{{ asset('storage/icons/icon-presensi.png') }}" alt="" class="w-4 h-4 object-contain shrink-0">Presensi</span>
                                         <svg class="h-4 w-4 sub-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                                     </span>
                                     <div class="pl-4 hidden" data-submenu-content="presensi">
-                                        <a href="{{ route('admin.presensi.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Validasi Presensi Privat</a>
-                                        <a href="{{ route('admin.class-student-sessions.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Presensi & Jadwal Kelas</a>
+                                        <a href="{{ route('admin.presensi.index') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><img src="{{ asset('storage/icons/icon-validasi-presensi.png') }}" alt="" class="w-4 h-4 object-contain shrink-0">Validasi Presensi Privat</a>
+                                        <a href="{{ route('admin.class-student-sessions.index') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><img src="{{ asset('storage/icons/icon-kelas.png') }}" alt="" class="w-4 h-4 object-contain shrink-0">Presensi & Jadwal Kelas</a>
                                     </div>
                                 </div>
                                 <div class="relative" data-submenu="tagihan">
                                     <span onclick="toggleSubmenu('tagihan')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center justify-between">
-                                        Tagihan
+                                        <span class="flex items-center gap-2"><img src="{{ asset('storage/icons/icon-tagihan.png') }}" alt="" class="w-4 h-4 object-contain shrink-0">Tagihan</span>
                                         <svg class="h-4 w-4 sub-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                                     </span>
                                     <div class="pl-4 hidden" data-submenu-content="tagihan">
-                                        <a href="{{ route('admin.analysis.ortu') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><img src="{{ asset('storage/icons/icon-wa-ortu.png') }}" alt="" class="w-4 h-4 inline-block mr-2 object-contain">Template WA Ortu</a>
-                                        <a href="{{ route('admin.analysis.guru') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><img src="{{ asset('storage/icons/icon-wa-guru.png') }}" alt="" class="w-4 h-4 inline-block mr-2 object-contain">Template WA Guru</a>
-                                        <a href="{{ route('admin.payments.ortu') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><img src="{{ asset('storage/icons/icon-bayar-ortu.png') }}" alt="" class="w-4 h-4 inline-block mr-2 object-contain">Pembayaran Ortu</a>
-                                        <a href="{{ route('admin.payments.guru') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><img src="{{ asset('storage/icons/icon-bayar-guru.png') }}" alt="" class="w-4 h-4 inline-block mr-2 object-contain">Pembayaran Guru</a>
+                                        <a href="{{ route('admin.analysis.ortu') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><img src="{{ asset('storage/icons/icon-wa-ortu.png') }}" alt="" class="w-4 h-4 object-contain shrink-0">Template WA Ortu</a>
+                                        <a href="{{ route('admin.analysis.guru') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><img src="{{ asset('storage/icons/icon-wa-guru.png') }}" alt="" class="w-4 h-4 object-contain shrink-0">Template WA Guru</a>
+                                        <a href="{{ route('admin.payments.ortu') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><img src="{{ asset('storage/icons/icon-bayar-ortu.png') }}" alt="" class="w-4 h-4 object-contain shrink-0">Pembayaran Ortu</a>
+                                        <a href="{{ route('admin.payments.guru') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><img src="{{ asset('storage/icons/icon-bayar-guru.png') }}" alt="" class="w-4 h-4 object-contain shrink-0">Pembayaran Guru</a>
                                     </div>
                                 </div>
                                 <div class="relative" data-submenu="laporan">
                                     <span onclick="toggleSubmenu('laporan')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center justify-between">
-                                        Laporan
+                                        <span class="flex items-center gap-2"><img src="{{ asset('storage/icons/icon-laporan.png') }}" alt="" class="w-4 h-4 object-contain shrink-0">Laporan</span>
                                         <svg class="h-4 w-4 sub-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                                     </span>
                                     <div class="pl-4 hidden" data-submenu-content="laporan">
-                                        <a href="{{ route('admin.class-reports.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Laporan Kelas</a>
-                                        <a href="{{ route('admin.history.students') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Riwayat</a>
-                                        <a href="{{ route('admin.finance.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Keuangan</a>
-                                        <a href="{{ route('admin.export.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Export & Backup</a>
+                                        <a href="{{ route('admin.class-reports.index') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><img src="{{ asset('storage/icons/icon-laporan-kelas.png') }}" alt="" class="w-4 h-4 object-contain shrink-0">Laporan Kelas</a>
+                                        <a href="{{ route('admin.history.students') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><img src="{{ asset('storage/icons/icon-riwayat-admin-line.png') }}" alt="" class="w-4 h-4 object-contain shrink-0">Riwayat</a>
+                                        <a href="{{ route('admin.finance.index') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><img src="{{ asset('storage/icons/icon-keuangan.png') }}" alt="" class="w-4 h-4 object-contain shrink-0">Keuangan</a>
+                                        <a href="{{ route('admin.export.index') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><img src="{{ asset('storage/icons/icon-export.png') }}" alt="" class="w-4 h-4 object-contain shrink-0">Export & Backup</a>
                                     </div>
                                 </div>
                                 <a href="{{ route('admin.bank-accounts.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><img src="{{ asset('storage/icons/icon-bank.png') }}" alt="" class="w-4 h-4 inline-block mr-2 object-contain">Rekening Bimbel</a>

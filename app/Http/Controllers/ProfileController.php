@@ -55,13 +55,36 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        $user = $request->user();
+        $role = $user->role?->value;
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        if ($role === 'parent' && $user->parent) {
+            $validated = $request->validate([
+                'name' => ['required', 'string', 'max:255'],
+                'address' => ['nullable', 'string', 'max:500'],
+            ]);
+            $user->fill(['name' => $validated['name']]);
+            $user->save();
+            $user->parent->update(['address' => $validated['address'] ?? null]);
+        } elseif ($role === 'guru' && $user->teacher) {
+            $validated = $request->validate([
+                'full_name' => ['required', 'string', 'max:255'],
+                'nickname' => ['nullable', 'string', 'max:100'],
+                'subjects' => ['nullable', 'string', 'max:500'],
+                'major' => ['nullable', 'string', 'max:255'],
+                'address' => ['nullable', 'string', 'max:500'],
+                'bank_name' => ['nullable', 'string', 'max:255'],
+                'bank_account' => ['nullable', 'string', 'max:50'],
+                'bank_owner' => ['nullable', 'string', 'max:255'],
+            ]);
+            $user->teacher->update($validated);
+        } else {
+            $user->fill($request->validated());
+            if ($user->isDirty('email')) {
+                $user->email_verified_at = null;
+            }
+            $user->save();
         }
-
-        $request->user()->save();
 
         return Redirect::route('profile.edit')->with('status', 'profile-updated');
     }
