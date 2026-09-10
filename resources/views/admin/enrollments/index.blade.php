@@ -45,9 +45,19 @@
                  return document.querySelector('meta[name=csrf-token]')?.content
                      || document.querySelector('input[name=_token]')?.value;
              },
+
+             // ── Delete confirmation modal ──────────────────────────────────
+             deleteConfirmId: null,
+             deleteLoading: false,
+
+             confirmDelete(id) {
+                 this.deleteConfirmId = id;
+             },
+             cancelDelete() {
+                 this.deleteConfirmId = null;
+             },
              asyncHibernate(enrollmentId) {
-                 const btn = document.querySelector(`tr[data-enrollment-id='${enrollmentId}'] .btn-hibernate`);
-                 if (btn) { btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed'); }
+                 this.deleteLoading = true;
                  fetch(`/admin/enrollments/${enrollmentId}`, {
                      method: 'DELETE',
                      headers: {
@@ -57,6 +67,7 @@
                      },
                  }).then(res => res.json()).then(data => {
                      this.setFlash(data.message);
+                     this.deleteConfirmId = null;
                      this.removeEnrollmentRow(enrollmentId);
                      const countEl = document.querySelector('#count-' + this.tab);
                      if (countEl) {
@@ -64,8 +75,9 @@
                          if (n > 0) countEl.textContent = (n - 1) + ' enrollment';
                      }
                  }).catch(() => {
-                     if (btn) { btn.disabled = false; btn.classList.remove('opacity-50', 'cursor-not-allowed'); }
                      this.setFlash('Gagal hibernasi enrollment.');
+                 }).finally(() => {
+                     this.deleteLoading = false;
                  });
              },
              asyncBulkHibernate() {
@@ -233,7 +245,7 @@
                                                     <a href="{{ route('admin.enrollments.edit', $enrollment) }}"
                                                        class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors">Edit</a>
                                                     <button type="button"
-                                                            onclick="if(confirm('Hibernasi enrollment ini?')) $dispatch('hibernate', { id: {{ $enrollment->id }} })"
+                                                            @click="confirmDelete({{ $enrollment->id }})"
                                                             class="btn-hibernate inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">Hibernasi</button>
                                                 </div>
                                             </td>
@@ -345,7 +357,7 @@
                                                     <a href="{{ route('admin.enrollments.edit', $enrollment) }}"
                                                        class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors">Edit</a>
                                                     <button type="button"
-                                                            onclick="if(confirm('Hibernasi enrollment ini?')) $dispatch('hibernate', { id: {{ $enrollment->id }} })"
+                                                            @click="confirmDelete({{ $enrollment->id }})"
                                                             class="btn-hibernate inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">Hibernasi</button>
                                                 </div>
                                             </td>
@@ -368,8 +380,55 @@
             </div>
         </div>
 
-        {{-- Listen for hibernate custom events from row buttons --}}
+        {{-- Listen for hibernate events from row buttons --}}
         <div @hibernate.window="asyncHibernate($event.detail.id)"></div>
+
+        {{-- ── Modal: Hibernasi Confirmation ───────────────────────────────── --}}
+        <div x-show="deleteConfirmId !== null"
+             x-cloak
+             class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0">
+            <div x-show="deleteConfirmId !== null"
+                 x-transition:enter="transition ease-out duration-200"
+                 x-transition:enter-start="opacity-0 scale-95"
+                 x-transition:enter-end="opacity-100 scale-100"
+                 x-transition:leave="transition ease-in duration-150"
+                 x-transition:leave-start="opacity-100 scale-100"
+                 x-transition:leave-end="opacity-0 scale-95"
+                 class="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
+                <div class="p-6">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        </div>
+                        <div>
+                            <h3 class="text-base font-semibold text-gray-900">Hibernasi Enrollment?</h3>
+                            <p class="text-sm text-gray-500 mt-0.5">Enrollment akan dipindahkan ke data tidak aktif.</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-end gap-2 mt-5">
+                        <button @click="cancelDelete()"
+                                :disabled="deleteLoading"
+                                class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors">
+                            Batal
+                        </button>
+                        <button @click="asyncHibernate(deleteConfirmId)"
+                                :disabled="deleteLoading"
+                                class="px-4 py-2 text-sm font-medium text-white bg-rose-600 rounded-lg hover:bg-rose-700 disabled:opacity-50 transition-colors flex items-center gap-2">
+                            <template x-if="deleteLoading">
+                                <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                            </template>
+                            Hibernasi
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
