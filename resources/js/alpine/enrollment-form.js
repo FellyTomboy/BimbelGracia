@@ -49,11 +49,15 @@ export function EnrollmentForm(config = {}) {
 
         // ── Computed ────────────────────────────────────────────────────────
         checkKelasMode() {
+            // Returns true if type-select is 'kelas', regardless of program selection.
+            // Originally also required the selected program's data-type to be 'kelas',
+            // but that meant create-kelas (where no program is pre-selected) showed
+            // as PRIVAT mode until the user picked a program — confusing UX and
+            // inconsistent with edit-kelas (which is always kelas mode from the start).
+            // Server-side validation in EnrollmentController::isKelasMode() still
+            // rejects submissions where type=kelas but program.type !== 'kelas'.
             const select = document.getElementById(id('type-select'));
-            const programSelect = document.getElementById(id('program-select'));
-            if (!select || !programSelect) return false;
-            const programOption = Array.from(programSelect.options).find(o => o.value === programSelect.value);
-            return select.value === 'kelas' && programOption?.dataset?.type === 'kelas';
+            return select?.value === 'kelas';
         },
 
         getCheckedStudentCount() {
