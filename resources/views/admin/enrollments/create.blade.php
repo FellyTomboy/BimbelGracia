@@ -16,7 +16,7 @@
          x-init="init()">
         <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white shadow-sm sm:rounded-lg">
-                <form id="enrollment-form" class="p-6 space-y-4" @submit.prevent="submit">
+                <form id="enrollment-form" method="POST" class="p-6 space-y-4" @submit.prevent="submit">
 
                     {{-- Top-level error banner --}}
                     <div id="form-error-alert" class="mb-4 rounded-md border border-rose-300 bg-rose-50 p-4" role="alert" style="display:none">

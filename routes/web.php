@@ -90,6 +90,10 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('enrollments.restore');
             Route::post('enrollments/bulk-destroy', [EnrollmentController::class, 'bulkDestroy'])
                 ->name('enrollments.bulk-destroy');
+            Route::get('enrollments/create-form', [EnrollmentController::class, 'createForm'])
+                ->name('enrollments.create-form');
+            Route::get('enrollments/{enrollment}/edit-form', [EnrollmentController::class, 'editForm'])
+                ->name('enrollments.edit-form');
 
             Route::resource('lesson-offers', AdminLessonOfferController::class)->except(['show']);
             Route::get('lesson-offers/inactive', [AdminLessonOfferController::class, 'inactive'])

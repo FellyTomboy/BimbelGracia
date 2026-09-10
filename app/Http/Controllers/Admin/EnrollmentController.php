@@ -118,6 +118,47 @@ class EnrollmentController extends Controller
         return view('admin.enrollments.create', compact('programs', 'teachers', 'students', 'defaultType'));
     }
 
+    public function createForm(Request $request): JsonResponse
+    {
+        $programs = Program::orderBy('name')->get();
+        $teachers = Teacher::orderBy('full_name')->get();
+        $students = Student::orderByRaw('COALESCE(full_name, nickname)')->get();
+        $defaultType = $request->query('type', 'privat');
+
+        $html = view('admin.enrollments._form', [
+            'enrollment' => null,
+            'programs' => $programs,
+            'teachers' => $teachers,
+            'students' => $students,
+            'defaultType' => $defaultType,
+        ])->render();
+
+        return response()->json([
+            'html' => $html,
+            'title' => $defaultType === 'kelas' ? 'Tambah Enrollment Kelas' : 'Tambah Enrollment Privat',
+        ]);
+    }
+
+    public function editForm(Enrollment $enrollment): JsonResponse
+    {
+        $enrollment->load('students');
+        $programs = Program::orderBy('name')->get();
+        $teachers = Teacher::orderBy('full_name')->get();
+        $students = Student::orderByRaw('COALESCE(full_name, nickname)')->get();
+
+        $html = view('admin.enrollments._form', [
+            'enrollment' => $enrollment,
+            'programs' => $programs,
+            'teachers' => $teachers,
+            'students' => $students,
+        ])->render();
+
+        return response()->json([
+            'html' => $html,
+            'title' => 'Edit Enrollment',
+        ]);
+    }
+
     public function isKelasMode(Request $request): bool
     {
         if ($request->input('type') !== 'kelas') {

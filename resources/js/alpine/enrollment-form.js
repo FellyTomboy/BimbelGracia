@@ -1,6 +1,8 @@
 /**
  * Enrollment Form Alpine Component
- * Used by both create.blade.php and edit.blade.php
+ * Used by both create.blade.php / edit.blade.php (standalone) and
+ * _form.blade.php (modal). Supports idPrefix for environments where
+ * the same IDs exist in the surrounding page.
  *
  * Handles:
  * - Type/program/student mode toggling (kelas vs privat)
@@ -11,6 +13,8 @@
  */
 
 export function EnrollmentForm(config = {}) {
+    const id = (suffix) => (config.idPrefix || '') + suffix;
+
     return {
         // ── Config ──────────────────────────────────────────────────────────
         formUrl: config.formUrl || '',
@@ -27,7 +31,7 @@ export function EnrollmentForm(config = {}) {
         // ── Dynamic field state ─────────────────────────────────────────────
         isKelasMode: false,
 
-        // ── Pricing tiers (lifted from nested x-data) ────────────────────────
+        // ── Pricing tiers ────────────────────────────────────────────────────
         tierCount: 3,
         parentTiers: {},
         teacherTiers: {},
@@ -45,18 +49,18 @@ export function EnrollmentForm(config = {}) {
 
         // ── Computed ────────────────────────────────────────────────────────
         checkKelasMode() {
-            const select = document.getElementById('type-select');
-            const programSelect = document.getElementById('program-select');
+            const select = document.getElementById(id('type-select'));
+            const programSelect = document.getElementById(id('program-select'));
             if (!select || !programSelect) return false;
             const programOption = Array.from(programSelect.options).find(o => o.value === programSelect.value);
             return select.value === 'kelas' && programOption?.dataset?.type === 'kelas';
         },
 
         getCheckedStudentCount() {
-            return document.querySelectorAll('#student-checkbox-section .student-checkbox:checked').length;
+            return document.querySelectorAll('#' + id('student-checkbox-section') + ' .student-checkbox:checked').length;
         },
 
-        // ── Tier helpers (called from Alpine template) ──────────────────────
+        // ── Tier helpers ───────────────────────────────────────────────────
         getParentTier(i) {
             return this.parentTiers[i] ?? '';
         },
@@ -94,9 +98,9 @@ export function EnrollmentForm(config = {}) {
         },
 
         filterPrograms() {
-            const select = document.getElementById('program-select');
+            const select = document.getElementById(id('program-select'));
             if (!select) return;
-            const selectedType = document.getElementById('type-select')?.value || 'privat';
+            const selectedType = (document.getElementById(id('type-select')) || { value: 'privat' }).value;
             let hasSelected = false;
             Array.from(select.options).forEach(option => {
                 if (!option.value) { option.style.display = ''; return; }
@@ -108,9 +112,9 @@ export function EnrollmentForm(config = {}) {
         },
 
         applyDefaults() {
-            const select = document.getElementById('program-select');
-            const parentInput = document.getElementById('parent-rate');
-            const teacherInput = document.getElementById('teacher-rate');
+            const select = document.getElementById(id('program-select'));
+            const parentInput = document.getElementById(id('parent-rate'));
+            const teacherInput = document.getElementById(id('teacher-rate'));
             if (!select || !parentInput) return;
             const option = Array.from(select.options).find(o => o.value === select.value);
             if (!option) return;
@@ -119,8 +123,8 @@ export function EnrollmentForm(config = {}) {
             if (!parentInput.dataset.touched && !parentInput.value) {
                 parentInput.value = defaultParent;
             }
-            if (!teacherInput.dataset.touched && !teacherInput.value) {
-                teacherInput.value = defaultTeacher;
+            if (!teacherInput?.dataset.touched && !teacherInput?.value) {
+                if (teacherInput) teacherInput.value = defaultTeacher;
             }
         },
 
@@ -130,19 +134,19 @@ export function EnrollmentForm(config = {}) {
 
         // ── Field visibility ───────────────────────────────────────────────
         updateFieldVisibility() {
-            const typeSelect = document.getElementById('type-select');
-            const teacherSelect = document.getElementById('teacher-select');
-            const teacherField = document.getElementById('teacher-field');
-            const pricingTiers = document.getElementById('pricing-tiers-section');
-            const rateFields = document.getElementById('rate-fields');
-            const teacherRateField = document.getElementById('teacher-rate-field');
-            const sessionsPrivat = document.getElementById('sessions-privat');
-            const sessionsKelas = document.getElementById('sessions-kelas');
-            const studentCheckboxSection = document.getElementById('student-checkbox-section');
-            const studentDropdownSection = document.getElementById('student-dropdown-section');
-            const parentRateLabel = document.getElementById('parent-rate-label');
-            const parentRateInput = document.getElementById('parent-rate');
-            const teacherRateInput = document.getElementById('teacher-rate');
+            const typeSelect = document.getElementById(id('type-select'));
+            const teacherSelect = document.getElementById(id('teacher-select'));
+            const teacherField = document.getElementById(id('teacher-field'));
+            const pricingTiers = document.getElementById(id('pricing-tiers-section'));
+            const rateFields = document.getElementById(id('rate-fields'));
+            const teacherRateField = document.getElementById(id('teacher-rate-field'));
+            const sessionsPrivat = document.getElementById(id('sessions-privat'));
+            const sessionsKelas = document.getElementById(id('sessions-kelas'));
+            const studentCheckboxSection = document.getElementById(id('student-checkbox-section'));
+            const studentDropdownSection = document.getElementById(id('student-dropdown-section'));
+            const parentRateLabel = document.getElementById(id('parent-rate-label'));
+            const parentRateInput = document.getElementById(id('parent-rate'));
+            const teacherRateInput = document.getElementById(id('teacher-rate'));
 
             if (!typeSelect) return;
             const kelasMode = this.isKelasMode;
@@ -161,17 +165,17 @@ export function EnrollmentForm(config = {}) {
             if (kelasMode) {
                 sessionsPrivat?.classList.add('hidden');
                 sessionsKelas?.classList.remove('hidden');
-                document.getElementById('agreed-sessions-select').disabled = true;
-                document.getElementById('agreed-sessions-select').required = false;
-                document.getElementById('agreed-sessions-select-kelas').disabled = false;
-                document.getElementById('agreed-sessions-select-kelas').required = true;
+                const sel1 = document.getElementById(id('agreed-sessions-select'));
+                const sel2 = document.getElementById(id('agreed-sessions-select-kelas'));
+                if (sel1) { sel1.disabled = true; sel1.required = false; }
+                if (sel2) { sel2.disabled = false; sel2.required = true; }
             } else {
                 sessionsPrivat?.classList.remove('hidden');
                 sessionsKelas?.classList.add('hidden');
-                document.getElementById('agreed-sessions-select').disabled = false;
-                document.getElementById('agreed-sessions-select').required = true;
-                document.getElementById('agreed-sessions-select-kelas').disabled = true;
-                document.getElementById('agreed-sessions-select-kelas').required = false;
+                const sel1 = document.getElementById(id('agreed-sessions-select'));
+                const sel2 = document.getElementById(id('agreed-sessions-select-kelas'));
+                if (sel1) { sel1.disabled = false; sel1.required = true; }
+                if (sel2) { sel2.disabled = true; sel2.required = false; }
             }
 
             // Student selection
@@ -179,13 +183,15 @@ export function EnrollmentForm(config = {}) {
                 studentCheckboxSection?.classList.add('hidden');
                 studentDropdownSection?.classList.remove('hidden');
                 studentCheckboxSection?.querySelectorAll('.student-checkbox').forEach(cb => cb.disabled = true);
-                document.getElementById('student-dropdown').disabled = false;
+                const dropdown = document.getElementById(id('student-dropdown'));
+                if (dropdown) dropdown.disabled = false;
                 pricingTiers?.querySelectorAll('input[name^="pricing_tiers"]').forEach(el => el.disabled = true);
             } else {
                 studentCheckboxSection?.classList.remove('hidden');
                 studentDropdownSection?.classList.add('hidden');
                 studentCheckboxSection?.querySelectorAll('.student-checkbox').forEach(cb => cb.disabled = false);
-                document.getElementById('student-dropdown').disabled = true;
+                const dropdown = document.getElementById(id('student-dropdown'));
+                if (dropdown) dropdown.disabled = true;
                 pricingTiers?.querySelectorAll('input[name^="pricing_tiers"]').forEach(el => el.disabled = false);
             }
 
@@ -193,12 +199,12 @@ export function EnrollmentForm(config = {}) {
         },
 
         updatePricingVisibility() {
-            const pricingTiers = document.getElementById('pricing-tiers-section');
-            const rateFields = document.getElementById('rate-fields');
-            const teacherRateField = document.getElementById('teacher-rate-field');
-            const parentRateLabel = document.getElementById('parent-rate-label');
-            const parentRateInput = document.getElementById('parent-rate');
-            const teacherRateInput = document.getElementById('teacher-rate');
+            const pricingTiers = document.getElementById(id('pricing-tiers-section'));
+            const rateFields = document.getElementById(id('rate-fields'));
+            const teacherRateField = document.getElementById(id('teacher-rate-field'));
+            const parentRateLabel = document.getElementById(id('parent-rate-label'));
+            const parentRateInput = document.getElementById(id('parent-rate'));
+            const teacherRateInput = document.getElementById(id('teacher-rate'));
 
             if (!pricingTiers) return;
 
@@ -206,7 +212,7 @@ export function EnrollmentForm(config = {}) {
                 pricingTiers.classList.add('hidden');
                 pricingTiers.querySelectorAll('input[name^="pricing_tiers"]').forEach(el => el.disabled = true);
                 teacherRateField?.classList.add('hidden');
-                teacherRateInput.required = false;
+                if (teacherRateInput) teacherRateInput.required = false;
                 rateFields?.classList.remove('hidden');
                 if (parentRateLabel) parentRateLabel.textContent = 'Harga Paket Sebulan';
                 if (parentRateInput) parentRateInput.required = true;
@@ -219,7 +225,7 @@ export function EnrollmentForm(config = {}) {
                 pricingTiers.querySelectorAll('input[name^="pricing_tiers"]').forEach(el => el.disabled = true);
                 rateFields?.classList.remove('hidden');
                 teacherRateField?.classList.remove('hidden');
-                teacherRateInput.required = true;
+                if (teacherRateInput) teacherRateInput.required = true;
                 if (parentRateLabel) parentRateLabel.textContent = 'Harga Ortu Default (1 murid)';
                 if (parentRateInput) parentRateInput.required = true;
             } else {
@@ -227,7 +233,7 @@ export function EnrollmentForm(config = {}) {
                 pricingTiers.querySelectorAll('input[name^="pricing_tiers"]').forEach(el => el.disabled = false);
                 rateFields?.classList.add('hidden');
                 teacherRateField?.classList.add('hidden');
-                teacherRateInput.required = false;
+                if (teacherRateInput) teacherRateInput.required = false;
                 if (parentRateLabel) parentRateLabel.textContent = 'Harga Ortu Default (1 murid)';
                 if (parentRateInput) parentRateInput.required = true;
             }
@@ -236,20 +242,23 @@ export function EnrollmentForm(config = {}) {
         // ── Student search ─────────────────────────────────────────────────
         onStudentSearch(e) {
             const query = e.target.value.toLowerCase();
-            document.querySelectorAll('#student-checkbox-section .student-label').forEach(label => {
+            document.querySelectorAll('#' + id('student-checkbox-section') + ' .student-label').forEach(label => {
                 const name = label.querySelector('span')?.textContent?.toLowerCase() || '';
                 label.style.display = name.includes(query) ? '' : 'none';
             });
         },
 
-        // ── Form submission ─────────────────────────────────────────────────
+        // ── Form submission (standalone pages only) ─────────────────────────
+        // When used inside crudModal, the modal intercepts submit via
+        // document.addEventListener and calls crudModal.submit() instead.
+        // This method serves as fallback for non-modal usage.
         async submit(e) {
-            e.preventDefault();
+            if (e) e.preventDefault();
+            const form = e?.target ?? document.getElementById('enrollment-form');
+            if (!form) return;
+
             this.errors = {};
-
-            const form = e.target;
             const params = new URLSearchParams();
-
             for (const el of form.querySelectorAll('input[name], select[name], textarea[name]')) {
                 if (el.disabled || el.offsetParent === null) continue;
                 if (el.type === 'checkbox') {
@@ -263,25 +272,13 @@ export function EnrollmentForm(config = {}) {
                 }
             }
 
-            // Pricing tiers: collect from reactive state, not DOM inputs directly
-            // to avoid stale disabled-field issues
-            for (let i = 1; i <= this.tierCount; i++) {
-                if (this.parentTiers[i] != null) {
-                    params.set(`pricing_tiers_parent[${i}]`, this.parentTiers[i]);
-                }
-                if (this.teacherTiers[i] != null) {
-                    params.set(`pricing_tiers_teacher[${i}]`, this.teacherTiers[i]);
-                }
-            }
-
             const method = this.enrollmentId ? 'put' : 'post';
-
             this.submitting = true;
 
             try {
                 const resp = await window.Ajax[method](this.formUrl, params);
                 window.Toast?.success(resp.data?.message || 'Berhasil disimpan.');
-                window.location.href = resp.data?.redirect || '{{ route('admin.enrollments.index') }}';
+                if (resp.data?.redirect) window.location.href = resp.data.redirect;
             } catch (e) {
                 if (e.response?.status === 422) {
                     this.errors = e.response.data.errors || {};
@@ -296,21 +293,17 @@ export function EnrollmentForm(config = {}) {
         },
 
         showErrors() {
-            const form = document.getElementById('enrollment-form');
+            const form = document.getElementById('enrollment-form') || document.getElementById('crud-form');
             if (!form) return;
 
-            // Show/hide top-level error banner
             const topError = form.querySelector('#form-error-alert');
             const hasErrors = Object.keys(this.errors).length > 0;
             if (topError) {
                 topError.style.display = hasErrors ? 'block' : 'none';
                 const ul = topError.querySelector('ul');
-                if (ul) {
-                    ul.innerHTML = Object.values(this.errors).flat().map(m => `<li>${m}</li>`).join('');
-                }
+                if (ul) ul.innerHTML = Object.values(this.errors).flat().map(m => `<li>${m}</li>`).join('');
             }
 
-            // Reset all error indicators
             form.querySelectorAll('[class*="crud-error-"]').forEach(el => {
                 el.style.display = 'none';
                 el.textContent = '';
@@ -320,7 +313,6 @@ export function EnrollmentForm(config = {}) {
                 el.classList.add('border-gray-300');
             });
 
-            // Apply per-field errors
             Object.entries(this.errors).forEach(([field, messages]) => {
                 const errEl = form.querySelector(`.crud-error-${field}`);
                 if (errEl) {
