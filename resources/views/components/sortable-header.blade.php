@@ -15,7 +15,8 @@
 @endphp
 
 <th class="py-3 px-4 font-medium">
-    <a href="{{ request()->fullUrlWithQuery(['sort' => $column, 'direction' => $newDirection]) }}" class="text-gray-500 hover:text-gray-700">
+    <a href="{{ request()->fullUrlWithQuery(['sort' => $column, 'direction' => $newDirection]) }}"
+       class="text-gray-500 hover:text-gray-700">
         {{ $label }}{{ $icon }}
     </a>
 </th>
