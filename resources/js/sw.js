@@ -6,6 +6,11 @@ import { CacheFirst } from 'workbox-strategies';
 import { ExpirationPlugin } from 'workbox-expiration';
 import { NetworkOnly } from 'workbox-strategies';
 
+// ── Activate immediately so the new SW replaces any stale one still
+//    precaching old asset URLs (e.g. app-v9cbNmjo.js from previous builds).
+self.skipWaiting();
+self.clients.claim();
+
 // Precache manifest — injected by vite-plugin-pwa
 precacheAndRoute(self.__WB_MANIFEST);
 
