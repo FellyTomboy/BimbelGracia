@@ -48,12 +48,9 @@
                 const ids = Array.from(checked).map(cb => cb.value);
                 this.bulkLoading = true;
                 try {
-                    const fd = new FormData();
-                    fd.append('_token', document.querySelector('meta[name=csrf-token]')?.content || '');
-                    ids.forEach(id => fd.append('ids[]', id));
-                    const resp = await window.axios.post('{{ route('admin.enrollments.bulk-destroy') }}', fd, {
-                        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
-                    });
+                    const params = new URLSearchParams();
+                    ids.forEach(id => params.append('ids[]', id));
+                    const resp = await window.Ajax.post('{{ route('admin.enrollments.bulk-destroy') }}', params);
                     window.Toast?.success(resp.data?.message || 'Berhasil dihibernasi.');
                     this.bulkConfirmOpen = false;
                     ids.forEach(id => this.removeEnrollmentRow(id));
@@ -233,8 +230,7 @@
              async submit() {
                  const form = document.getElementById('crud-form');
                  if (!form) return;
-                 const action = form.action || window.location.href;
-                 const isFormEdit = form.querySelector('input[name="_method"]')?.value === 'put' || form.method?.toLowerCase() === 'put';
+                 const isFormEdit = this.isEdit;
                  const url = isFormEdit
                      ? (typeof this.updateUrl === 'function' ? this.updateUrl(this.currentId) : `${this.updateUrl}/${this.currentId}`)
                      : this.storeUrl;
