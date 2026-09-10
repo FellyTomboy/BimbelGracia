@@ -184,7 +184,7 @@
          }), {
              activeTab: '{{ $activeTab }}',
              flashMessage: {{ \Illuminate\Support\Js::from(session('status') ?? '') }},
-             showFlash: {{ \Illuminate\Support\Js::from((bool) session('status')) },
+             showFlash: {{ \Illuminate\Support\Js::from((bool) session('status')) }},
              flashTimer: null,
              init() {
                  window._enrollmentFlashSetter = (msg) => { this.setFlash(msg); };
