@@ -173,100 +173,104 @@
         </div>
     </x-slot>
 
+    <script>
+    // Enrollment-specific modal overrides — defined outside x-data to avoid HTML attribute quote conflicts.
+    // Registered via Alpine.component() so they're accessible as methods in x-data.
+    document.addEventListener('alpine:init', () => {
+        Alpine.component('enrollmentModal', () => ({
+            ...crudModal({
+                createUrl: '{{ route('admin.enrollments.create-form') }}',
+                storeUrl: '{{ route('admin.enrollments.store') }}',
+                editUrl: (id) => '/admin/enrollments/' + id + '/edit-form',
+                updateUrl: (id) => '/admin/enrollments/' + id,
+                listSelector: 'table',
+            }),
+            activeTab: '{{ $activeTab }}',
+            flashMessage: {{ \Illuminate\Support\Js::from(session('status') ?? '') }},
+            showFlash: {{ \Illuminate\Support\Js::from((bool) session('status')) }},
+            flashTimer: null,
+            init() {
+                // Call crudModal's init (registers document-level submit interceptor)
+                const parent = crudModal({});
+                if (parent.init) parent.init.call(this);
+                window._enrollmentFlashSetter = (msg) => { this.setFlash(msg); };
+                if (this.showFlash) this._startTimer();
+            },
+            _startTimer() {
+                if (this.flashTimer) clearTimeout(this.flashTimer);
+                this.showFlash = true;
+                this.flashTimer = setTimeout(() => { this.showFlash = false; }, 4000);
+            },
+            setFlash(msg) { this.flashMessage = msg; this._startTimer(); },
+            async refreshTable() {
+                window.location.reload();
+            },
+            async openCreate(typeQuery) {
+                const query = typeQuery || '';
+                const url = this.createUrl + query;
+                this.isEdit = false;
+                this.currentId = null;
+                this.errors = {};
+                this.loading = true;
+                this.modalTitle = 'Memuat...';
+                this.modalBody = '<div class="flex justify-center py-8"><svg class="animate-spin w-8 h-8 text-indigo-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg></div>';
+                this.modalOpen = true;
+                try {
+                    const resp = await window.Ajax.get(url);
+                    this.modalTitle = resp.data.title || 'Tambah Enrollment';
+                    this.modalBody = resp.data.html || '';
+                } catch (e) {
+                    this.modalBody = '<div class="text-center py-8"><p class="text-rose-500 font-medium">Gagal memuat form.</p><button onclick="document.querySelector(\'[data-enrollment-page]\').__x.$data.close()" class="mt-4 text-sm text-indigo-600 hover:underline">Tutup</button></div>';
+                } finally {
+                    this.loading = false;
+                }
+            },
+            async submit() {
+                const form = document.getElementById('crud-form');
+                if (!form) return;
+                const isFormEdit = this.isEdit;
+                const url = isFormEdit
+                    ? (typeof this.updateUrl === 'function' ? this.updateUrl(this.currentId) : this.updateUrl + '/' + this.currentId)
+                    : this.storeUrl;
+                const method = isFormEdit ? 'put' : 'post';
+                this.submitting = true;
+                const params = new URLSearchParams();
+                for (const el of form.querySelectorAll('input[name], select[name], textarea[name]')) {
+                    if (el.disabled) continue;
+                    if (el.type === 'checkbox') { if (el.checked) params.append(el.name, el.value || 'on'); }
+                    else if (el.type === 'radio') { if (el.checked) params.append(el.name, el.value); }
+                    else if (el.tagName === 'SELECT' && el.multiple) { for (const o of el.selectedOptions) params.append(el.name, o.value); }
+                    else { params.append(el.name, el.value); }
+                }
+                form.querySelectorAll('[class^="crud-error-"]').forEach(el => { el.style.display = 'none'; el.textContent = ''; });
+                form.querySelectorAll('[class^="crud-field-"]').forEach(el => { el.classList.remove('border-rose-400','ring-1','ring-rose-300'); el.classList.add('border-gray-300'); });
+                try {
+                    await window.Ajax[method](url, params);
+                    window.Toast?.success(isFormEdit ? 'Berhasil diperbarui.' : 'Berhasil disimpan.');
+                    this.close();
+                    this.refreshTable();
+                } catch (e) {
+                    if (e.response?.status === 422) {
+                        const errors = e.response.data.errors || {};
+                        Object.entries(errors).forEach(([field, messages]) => {
+                            const errEl = form.querySelector('.crud-error-' + field);
+                            if (errEl) { errEl.textContent = Array.isArray(messages) ? messages.join(', ') : messages; errEl.style.display = 'block'; }
+                            const fieldEl = form.querySelector('.crud-field-' + field);
+                            if (fieldEl) { fieldEl.classList.remove('border-gray-300'); fieldEl.classList.add('border-rose-400','ring-1','ring-rose-300'); }
+                        });
+                    } else {
+                        window.Toast?.error('Gagal menyimpan enrollment.');
+                    }
+                    this.submitting = false;
+                }
+            },
+        }));
+    });
+    </script>
+
     <div class="py-8"
          data-enrollment-page
-         x-data="Object.assign(crudModal({
-             createUrl: '{{ route('admin.enrollments.create-form') }}',
-             storeUrl: '{{ route('admin.enrollments.store') }}',
-             editUrl: (id) => `/admin/enrollments/${id}/edit-form`,
-             updateUrl: (id) => `/admin/enrollments/${id}`,
-             listSelector: 'table',
-         }), {
-             activeTab: '{{ $activeTab }}',
-             flashMessage: {{ \Illuminate\Support\Js::from(session('status') ?? '') }},
-             showFlash: {{ \Illuminate\Support\Js::from((bool) session('status')) }},
-             flashTimer: null,
-             init() {
-                 window._enrollmentFlashSetter = (msg) => { this.setFlash(msg); };
-                 if (this.showFlash) this._startTimer();
-             },
-             _startTimer() {
-                 if (this.flashTimer) clearTimeout(this.flashTimer);
-                 this.showFlash = true;
-                 this.flashTimer = setTimeout(() => { this.showFlash = false; }, 4000);
-             },
-             setFlash(msg) { this.flashMessage = msg; this._startTimer(); },
-             async refreshTable() {
-                 window.location.reload();
-             },
-             // Override openCreate to support ?type=kelas via event detail
-             async openCreate(typeQuery) {
-                 const query = typeQuery || '';
-                 const url = this.createUrl + query;
-                 this.isEdit = false;
-                 this.currentId = null;
-                 this.errors = {};
-                 this.loading = true;
-                 this.modalTitle = 'Memuat...';
-                 this.modalBody = `
-                     <div class="flex justify-center py-8">
-                         <svg class="animate-spin w-8 h-8 text-indigo-500" fill="none" viewBox="0 0 24 24">
-                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                         </svg>
-                     </div>`;
-                 this.modalOpen = true;
-                 try {
-                     const resp = await window.Ajax.get(url);
-                     this.modalTitle = resp.data.title || 'Tambah Enrollment';
-                     this.modalBody = resp.data.html || '';
-                 } catch (e) {
-                     this.modalBody = `<div class="text-center py-8"><p class="text-rose-500 font-medium">Gagal memuat form.</p><button @click="close()" class="mt-4 text-sm text-indigo-600 hover:underline">Tutup</button></div>`;
-                 } finally {
-                     this.loading = false;
-                 }
-             },
-             // Override submit: enrollment needs full-page reload, not partial table refresh
-             async submit() {
-                 const form = document.getElementById('crud-form');
-                 if (!form) return;
-                 const isFormEdit = this.isEdit;
-                 const url = isFormEdit
-                     ? (typeof this.updateUrl === 'function' ? this.updateUrl(this.currentId) : `${this.updateUrl}/${this.currentId}`)
-                     : this.storeUrl;
-                 const method = isFormEdit ? 'put' : 'post';
-                 this.submitting = true;
-                 const params = new URLSearchParams();
-                 for (const el of form.querySelectorAll('input[name], select[name], textarea[name]')) {
-                     if (el.disabled) continue;
-                     if (el.type === 'checkbox') { if (el.checked) params.append(el.name, el.value || 'on'); }
-                     else if (el.type === 'radio') { if (el.checked) params.append(el.name, el.value); }
-                     else if (el.tagName === 'SELECT' && el.multiple) { for (const o of el.selectedOptions) params.append(el.name, o.value); }
-                     else { params.append(el.name, el.value); }
-                 }
-                 form.querySelectorAll('[class^="crud-error-"]').forEach(el => { el.style.display = 'none'; el.textContent = ''; });
-                 form.querySelectorAll('[class^="crud-field-"]').forEach(el => { el.classList.remove('border-rose-400','ring-1','ring-rose-300'); el.classList.add('border-gray-300'); });
-                 try {
-                     await window.Ajax[method](url, params);
-                     window.Toast?.success(isFormEdit ? 'Berhasil diperbarui.' : 'Berhasil disimpan.');
-                     this.close();
-                     this.refreshTable();
-                 } catch (e) {
-                     if (e.response?.status === 422) {
-                         const errors = e.response.data.errors || {};
-                         Object.entries(errors).forEach(([field, messages]) => {
-                             const errEl = form.querySelector(`.crud-error-${field}`);
-                             if (errEl) { errEl.textContent = Array.isArray(messages) ? messages.join(', ') : messages; errEl.style.display = 'block'; }
-                             const fieldEl = form.querySelector(`.crud-field-${field}`);
-                             if (fieldEl) { fieldEl.classList.remove('border-gray-300'); fieldEl.classList.add('border-rose-400','ring-1','ring-rose-300'); }
-                         });
-                     } else {
-                         window.Toast?.error('Gagal menyimpan enrollment.');
-                     }
-                     this.submitting = false;
-                 }
-             },
-         })"
+         x-data="enrollmentModal"
          @open-create-modal.window="openCreate($event.detail)"
          @open-create-kelas-modal.window="openCreate('?type=kelas')">
 
