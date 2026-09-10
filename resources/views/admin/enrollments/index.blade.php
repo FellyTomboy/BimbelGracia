@@ -159,11 +159,11 @@
                 if (btn) btn.classList.toggle('hidden', checked.length === 0);
             },
 
-            // ── Modal stubs (delegate to page-level crudModal via $parent) ─
-            // Edit button inside tab div calls $parent.openEdit(id)
-            // These stubs prevent "openEdit is not a function" if called before delegation
-            openEdit(id) { this.$parent.openEdit && this.$parent.openEdit(id); },
-            openCreate() { this.$parent.openCreate && this.$parent.openCreate(); },
+            // Modal actions are dispatched via window custom events:
+            //   open-create-modal → enrollmentModal.openCreate()
+            //   open-create-kelas-modal → enrollmentModal.openCreate('?type=kelas')
+            //   open-edit-modal → enrollmentModal.openEdit(id)
+            // So tab rows emit events; no direct parent access needed.
         };
     }
 
@@ -283,7 +283,8 @@
          data-enrollment-page
          x-data="enrollmentModal"
          @open-create-modal.window="openCreate($event.detail)"
-         @open-create-kelas-modal.window="openCreate('?type=kelas')">
+         @open-create-kelas-modal.window="openCreate('?type=kelas')"
+         @open-edit-modal.window="openEdit($event.detail)">
 
         {{-- ── Create / Edit Modal Shell ─────────────────────────────── --}}
         <div x-show="modalOpen"
@@ -495,7 +496,7 @@
                                                 </td>
                                                 <td class="py-3 px-4">
                                                     <div class="flex items-center gap-2">
-                                                        <button type="button" @click="$parent.openEdit({{ $enrollment->id }})"
+                                                        <button type="button" onclick="window.dispatchEvent(new CustomEvent('open-edit-modal', {detail: {{ $enrollment->id }}}))"
                                                                    class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors">Edit</button>
                                                         <button type="button" @click="confirmDelete({{ $enrollment->id }})"
                                                                 class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">Hibernasi</button>
@@ -716,7 +717,7 @@
                                                 </td>
                                                 <td class="py-3 px-4">
                                                     <div class="flex items-center gap-2">
-                                                        <button type="button" @click="$parent.openEdit({{ $enrollment->id }})"
+                                                        <button type="button" onclick="window.dispatchEvent(new CustomEvent('open-edit-modal', {detail: {{ $enrollment->id }}}))"
                                                                    class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors">Edit</button>
                                                         <button type="button" @click="confirmDelete({{ $enrollment->id }})"
                                                                 class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">Hibernasi</button>
