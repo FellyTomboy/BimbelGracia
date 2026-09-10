@@ -13,14 +13,112 @@
         </div>
     </x-slot>
 
-    <div class="py-8" x-data="{ tab: '{{ $activeTab }}' }">
+    <div class="py-8"
+         x-data="{
+             tab: '{{ $activeTab }}',
+             flashMessage: {{ \Illuminate\Support\Js::from(session('status') ?? '') }},
+             showFlash: {{ \Illuminate\Support\Js::from((bool) session('status')) }},
+             flashTimer: null,
+             init() {
+                 if (this.showFlash) {
+                     this.flashTimer = setTimeout(() => { this.showFlash = false; }, 4000);
+                 }
+             },
+             setFlash(msg) {
+                 if (this.flashTimer) clearTimeout(this.flashTimer);
+                 this.flashMessage = msg;
+                 this.showFlash = true;
+                 this.flashTimer = setTimeout(() => { this.showFlash = false; }, 4000);
+             },
+             removeEnrollmentRow(enrollmentId) {
+                 const row = document.querySelector(`tr[data-enrollment-id='${enrollmentId}']`);
+                 if (row) {
+                     row.style.transition = 'opacity 0.3s';
+                     row.style.opacity = '0';
+                     setTimeout(() => row.remove(), 300);
+                 }
+             },
+             removeEnrollmentRows(ids) {
+                 ids.forEach(id => this.removeEnrollmentRow(id));
+             },
+             csrfToken() {
+                 return document.querySelector('meta[name=csrf-token]')?.content
+                     || document.querySelector('input[name=_token]')?.value;
+             },
+             asyncHibernate(enrollmentId) {
+                 const btn = document.querySelector(`tr[data-enrollment-id='${enrollmentId}'] .btn-hibernate`);
+                 if (btn) { btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed'); }
+                 fetch(`/admin/enrollments/${enrollmentId}`, {
+                     method: 'DELETE',
+                     headers: {
+                         'X-CSRF-TOKEN': this.csrfToken(),
+                         'Accept': 'application/json',
+                         'X-Requested-With': 'XMLHttpRequest',
+                     },
+                 }).then(res => res.json()).then(data => {
+                     this.setFlash(data.message);
+                     this.removeEnrollmentRow(enrollmentId);
+                     const countEl = document.querySelector('#count-' + this.tab);
+                     if (countEl) {
+                         const n = parseInt(countEl.textContent.replace(/\D/g, '')) || 0;
+                         if (n > 0) countEl.textContent = (n - 1) + ' enrollment';
+                     }
+                 }).catch(() => {
+                     if (btn) { btn.disabled = false; btn.classList.remove('opacity-50', 'cursor-not-allowed'); }
+                     this.setFlash('Gagal hibernasi enrollment.');
+                 });
+             },
+             asyncBulkHibernate() {
+                 const checked = document.querySelectorAll('.row-checkbox-' + this.tab + ':checked');
+                 if (checked.length === 0) return;
+                 const ids = Array.from(checked).map(cb => cb.value);
+                 const btn = document.getElementById('bulk-delete-btn-' + this.tab);
+                 if (btn) { btn.disabled = true; }
+                 const fd = new FormData();
+                 fd.append('_token', this.csrfToken());
+                 ids.forEach(id => fd.append('ids[]', id));
+                 fetch('{{ route('admin.enrollments.bulk-destroy') }}', {
+                     method: 'POST',
+                     body: fd,
+                     headers: {
+                         'X-CSRF-TOKEN': this.csrfToken(),
+                         'Accept': 'application/json',
+                         'X-Requested-With': 'XMLHttpRequest',
+                     },
+                 }).then(res => res.json()).then(data => {
+                     this.setFlash(data.message);
+                     this.removeEnrollmentRows(ids);
+                     const countEl = document.getElementById('count-' + this.tab);
+                     if (countEl) {
+                         const n = parseInt(countEl.textContent.replace(/\D/g, '')) || 0;
+                         const newN = Math.max(0, n - ids.length);
+                         countEl.textContent = newN + ' enrollment';
+                     }
+                     if (btn) {
+                         btn.classList.add('hidden');
+                         btn.disabled = false;
+                     }
+                     document.querySelectorAll('.row-checkbox-' + this.tab).forEach(cb => cb.checked = false);
+                 }).catch(() => {
+                     if (btn) { btn.disabled = false; }
+                     this.setFlash('Gagal hibernasi massal.');
+                 });
+             },
+         }">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            @if (session('status'))
-                <div class="mb-4 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl text-sm flex items-center gap-2">
-                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    {{ session('status') }}
-                </div>
-            @endif
+            {{-- Flash Banner (Alpine, survives across AJAX calls) --}}
+            <div x-show="showFlash"
+                 x-transition:enter="transition ease-out duration-300"
+                 x-transition:enter-start="opacity-0 translate-y-2"
+                 x-transition:enter-end="opacity-100 translate-y-0"
+                 x-transition:leave="transition ease-in duration-200"
+                 x-transition:leave-start="opacity-100"
+                 x-transition:leave-end="opacity-0"
+                 class="mb-4 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl text-sm flex items-center gap-2">
+                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span x-text="flashMessage"></span>
+                <button @click="showFlash = false" class="ml-auto text-emerald-500 hover:text-emerald-700 font-bold text-lg leading-none">&times;</button>
+            </div>
 
             @if (($mismatchKelasCount ?? 0) > 0 || ($mismatchPrivatCount ?? 0) > 0)
                 <div class="mb-4 bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded-xl text-sm flex items-center gap-3">
@@ -30,7 +128,7 @@
                         ({{ $mismatchKelasCount ?? 0 }} kelas, {{ $mismatchPrivatCount ?? 0 }} privat).
                     </span>
                     <a href="{{ route('admin.enrollments.mismatches') }}" class="ml-auto inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-800 text-xs font-medium transition-colors">
-                        Lihat & Review →
+                        Lihat &amp; Review →
                     </a>
                 </div>
             @endif
@@ -63,10 +161,12 @@
                             </div>
                         </form>
                         <div class="flex items-center gap-3">
-                            <button onclick="submitBulkDeleteKelas()" id="bulk-delete-btn-kelas" class="hidden inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">
+                            <button @click.prevent="asyncBulkHibernate()"
+                                    id="bulk-delete-btn-kelas"
+                                    class="hidden inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">
                                 Hibernasi Massal
                             </button>
-                            <span class="text-sm text-gray-400">{{ $kelasEnrollments->total() }} enrollment</span>
+                            <span id="count-kelas" class="text-sm text-gray-400">{{ $kelasEnrollments->total() }} enrollment</span>
                             <a href="{{ route('admin.enrollments.create', ['type' => 'kelas']) }}"
                                class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition-all shadow-sm">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
@@ -74,8 +174,7 @@
                             </a>
                         </div>
                     </div>
-                    <form id="bulk-form-kelas" method="POST" action="{{ route('admin.enrollments.bulk-destroy') }}" onsubmit="return validateBulkDeleteKelas()">
-                        @csrf
+                    <div>
                         <div class="overflow-x-auto">
                             <table class="min-w-full text-sm">
                                 <thead>
@@ -94,7 +193,7 @@
                                 </thead>
                                 <tbody class="divide-y divide-gray-50">
                                     @forelse ($kelasEnrollments as $enrollment)
-                                        <tr class="hover:bg-gray-50/50 transition-colors">
+                                        <tr data-enrollment-id="{{ $enrollment->id }}" class="hover:bg-gray-50/50 transition-colors">
                                             <td class="py-3 px-4">
                                                 <input type="checkbox" name="ids[]" value="{{ $enrollment->id }}"
                                                        class="row-checkbox-kelas rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
@@ -134,8 +233,8 @@
                                                     <a href="{{ route('admin.enrollments.edit', $enrollment) }}"
                                                        class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors">Edit</a>
                                                     <button type="button"
-                                                            onclick="submitDelete('/admin/enrollments/{{ $enrollment->id }}', 'Hibernasi enrollment ini?')"
-                                                            class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">Hibernasi</button>
+                                                            onclick="if(confirm('Hibernasi enrollment ini?')) $dispatch('hibernate', { id: {{ $enrollment->id }} })"
+                                                            class="btn-hibernate inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">Hibernasi</button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -149,7 +248,7 @@
                                 </tbody>
                             </table>
                         </div>
-                    </form>
+                    </div>
                     @if ($kelasEnrollments->hasPages())
                         <div class="p-4 border-t border-gray-100">{{ $kelasEnrollments->withQueryString()->links() }}</div>
                     @endif
@@ -170,10 +269,12 @@
                             </div>
                         </form>
                         <div class="flex items-center gap-3">
-                            <button onclick="submitBulkDeletePrivat()" id="bulk-delete-btn-privat" class="hidden inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">
+                            <button @click.prevent="asyncBulkHibernate()"
+                                    id="bulk-delete-btn-privat"
+                                    class="hidden inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">
                                 Hibernasi Massal
                             </button>
-                            <span class="text-sm text-gray-400">{{ $privatEnrollments->total() }} enrollment</span>
+                            <span id="count-privat" class="text-sm text-gray-400">{{ $privatEnrollments->total() }} enrollment</span>
                             <a href="{{ route('admin.enrollments.create', ['type' => 'privat']) }}"
                                class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition-all shadow-sm">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
@@ -181,8 +282,7 @@
                             </a>
                         </div>
                     </div>
-                    <form id="bulk-form-privat" method="POST" action="{{ route('admin.enrollments.bulk-destroy') }}" onsubmit="return validateBulkDeletePrivat()">
-                        @csrf
+                    <div>
                         <div class="overflow-x-auto">
                             <table class="min-w-full text-sm">
                                 <thead>
@@ -203,7 +303,7 @@
                                 </thead>
                                 <tbody class="divide-y divide-gray-50">
                                     @forelse ($privatEnrollments as $enrollment)
-                                        <tr class="hover:bg-gray-50/50 transition-colors">
+                                        <tr data-enrollment-id="{{ $enrollment->id }}" class="hover:bg-gray-50/50 transition-colors">
                                             <td class="py-3 px-4">
                                                 <input type="checkbox" name="ids[]" value="{{ $enrollment->id }}"
                                                        class="row-checkbox-privat rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
@@ -245,8 +345,8 @@
                                                     <a href="{{ route('admin.enrollments.edit', $enrollment) }}"
                                                        class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors">Edit</a>
                                                     <button type="button"
-                                                            onclick="submitDelete('/admin/enrollments/{{ $enrollment->id }}', 'Hibernasi enrollment ini?')"
-                                                            class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">Hibernasi</button>
+                                                            onclick="if(confirm('Hibernasi enrollment ini?')) $dispatch('hibernate', { id: {{ $enrollment->id }} })"
+                                                            class="btn-hibernate inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">Hibernasi</button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -260,13 +360,16 @@
                                 </tbody>
                             </table>
                         </div>
-                    </form>
+                    </div>
                     @if ($privatEnrollments->hasPages())
                         <div class="p-4 border-t border-gray-100">{{ $privatEnrollments->withQueryString()->links() }}</div>
                     @endif
                 </div>
             </div>
         </div>
+
+        {{-- Listen for hibernate custom events from row buttons --}}
+        <div @hibernate.window="asyncHibernate($event.detail.id)"></div>
     </div>
 
     <script>
@@ -278,13 +381,6 @@
             const checked = document.querySelectorAll('.row-checkbox-kelas:checked');
             document.getElementById('bulk-delete-btn-kelas').classList.toggle('hidden', checked.length === 0);
         }
-        function validateBulkDeleteKelas() {
-            const checked = document.querySelectorAll('.row-checkbox-kelas:checked');
-            if (checked.length === 0) { alert('Pilih minimal 1 data untuk dihibernasi.'); return false; }
-            return confirm('Hibernasi ' + checked.length + ' enrollment kelas yang dipilih?');
-        }
-        function submitBulkDeleteKelas() { document.getElementById('bulk-form-kelas').submit(); }
-
         function toggleAllPrivat(source) {
             document.querySelectorAll('.row-checkbox-privat').forEach(cb => cb.checked = source.checked);
             updateBulkButtonPrivat();
@@ -293,24 +389,8 @@
             const checked = document.querySelectorAll('.row-checkbox-privat:checked');
             document.getElementById('bulk-delete-btn-privat').classList.toggle('hidden', checked.length === 0);
         }
-        function validateBulkDeletePrivat() {
-            const checked = document.querySelectorAll('.row-checkbox-privat:checked');
-            if (checked.length === 0) { alert('Pilih minimal 1 data untuk dihibernasi.'); return false; }
-            return confirm('Hibernasi ' + checked.length + ' enrollment privat yang dipilih?');
-        }
-        function submitBulkDeletePrivat() { document.getElementById('bulk-form-privat').submit(); }
 
-        function submitDelete(action, message) {
-            if (!confirm(message)) return;
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = action;
-            form.innerHTML = '<input name="_token" value="{{ csrf_token() }}"><input name="_method" value="DELETE">';
-            document.body.appendChild(form);
-            form.submit();
-        }
-
-        // Scroll preservation
+        // Scroll preservation (only for non-AJAX page loads)
         (function () {
             var key = 'scroll_' + location.pathname + '?{{ http_build_query(request()->query()) }}';
             window.addEventListener('load', function () {

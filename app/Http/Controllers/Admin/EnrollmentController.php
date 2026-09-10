@@ -15,6 +15,7 @@ use App\Services\MonthlySnapshotSyncService;
 use Illuminate\Support\Facades\DB;
 use App\Traits\SearchAndSort;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -316,9 +317,8 @@ class EnrollmentController extends Controller
             ->with('status', 'Enrollment berhasil diperbarui.');
     }
 
-    public function destroy(Enrollment $enrollment): RedirectResponse
+    public function destroy(Request $request, Enrollment $enrollment): RedirectResponse|JsonResponse
     {
-        // simpan id untuk sink snapshot setelah delete
         $enrollmentId = $enrollment->id;
 
         $enrollment->update([
@@ -329,12 +329,21 @@ class EnrollmentController extends Controller
 
         $this->snapshotSyncService->syncAll();
 
+        $message = 'Enrollment dihibernasi.';
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => $message,
+                'enrollment_id' => $enrollmentId,
+            ]);
+        }
+
         return redirect()
             ->route('admin.enrollments.index')
-            ->with('status', 'Enrollment dihibernasi.');
+            ->with('status', $message);
     }
 
-    public function bulkDestroy(Request $request): RedirectResponse
+    public function bulkDestroy(Request $request): RedirectResponse|JsonResponse
     {
         $validated = $request->validate([
             'ids' => ['required', 'array'],
@@ -349,17 +358,23 @@ class EnrollmentController extends Controller
             ->where('status', 'active')
             ->update(['status' => 'hibernasi']);
 
-        // Only delete enrollments that no longer have active attendance records.
-        // Enrollments that have newly created attendances (race between step 1 and 2)
-        // are kept but remain hibernated — attendances stay valid.
         Enrollment::whereIn('id', $validated['ids'])
             ->where('status', 'hibernasi')
             ->whereDoesntHave('attendances')
             ->delete();
 
+        $message = "{$count} enrollment berhasil dihibernasi.";
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => $message,
+                'ids' => $validated['ids'],
+            ]);
+        }
+
         return redirect()
             ->route('admin.enrollments.index')
-            ->with('status', "{$count} enrollment berhasil dihibernasi.");
+            ->with('status', $message);
     }
 
     public function restore(Request $request): RedirectResponse
