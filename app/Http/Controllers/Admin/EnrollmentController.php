@@ -377,7 +377,7 @@ class EnrollmentController extends Controller
             ->with('status', $message);
     }
 
-    public function restore(Request $request): RedirectResponse
+    public function restore(Request $request): RedirectResponse|JsonResponse
     {
         $enrollmentId = $request->route('enrollment');
         $enrollment = Enrollment::withTrashed()->findOrFail($enrollmentId);
@@ -389,9 +389,18 @@ class EnrollmentController extends Controller
 
         $this->snapshotSyncService->syncAll();
 
+        $message = 'Enrollment berhasil dipulihkan.';
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => $message,
+                'enrollment_id' => $enrollmentId,
+            ]);
+        }
+
         return redirect()
             ->route('admin.enrollments.index')
-            ->with('status', 'Enrollment berhasil dipulihkan.');
+            ->with('status', $message);
     }
 
     /**
