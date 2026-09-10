@@ -14,7 +14,7 @@ if [ -d "$MEMORY_DIR" ]; then
     [ "$(basename "$f")" = "MEMORY.md" ] && continue
 
     # Cek apakah ini file bug fix/error
-    if grep -q "type: bug\|type: error\|type: fix" "$f" 2>/dev/null; then
+    if grep -q -E "type: bug|type: error|type: fix" "$f" 2>/dev/null; then
       COUNT=$((COUNT + 1))
       echo ""
       echo "File: $(basename "$f")"
