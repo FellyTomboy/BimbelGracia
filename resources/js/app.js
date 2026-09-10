@@ -11,6 +11,12 @@ import './utils/ajax';
 window.Alpine = Alpine;
 Alpine.plugin(collapse);
 Alpine.data('crudModal', crudModal);
+// Expose to window so per-page Alpine.data factories (e.g. enrollmentModal)
+// can spread it via `...crudModal({...})` from their inline <script> scope.
+// Alpine.data() only registers the provider in Alpine's internal scope — it
+// does NOT make the identifier accessible in the lexical scope of an
+// Alpine.data factory defined in a Blade <script>.
+window.crudModal = crudModal;
 window.EnrollmentForm = EnrollmentForm;
 
 Alpine.start();
