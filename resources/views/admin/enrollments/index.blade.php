@@ -1,5 +1,21 @@
-<script>
-    // Enrollment tab Alpine factory — registered via Alpine.data() in app.js
+<x-app-layout>
+    <x-slot name="title">Enrollment</x-slot>
+    <x-slot name="header">
+        <div class="flex items-center justify-between">
+            <div>
+                <x-breadcrumb :items="[['label' => 'Enrollment']]" />
+                <h2 class="font-semibold text-xl text-gray-800 leading-tight">Enrollment</h2>
+                <p class="text-sm text-gray-500 mt-0.5">Kelola pendaftaran murid ke program</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <a href="{{ route('admin.enrollments.inactive') }}" class="inline-flex items-center px-4 py-2 rounded-xl border border-slate-300 bg-slate-100 text-sm font-medium text-slate-800 shadow-sm hover:bg-slate-200 hover:border-slate-400 transition-all">Data tidak aktif</a>
+            </div>
+        </div>
+    </x-slot>
+
+    <script>
+    // Enrollment tab Alpine factory — defined globally so it survives even if Alpine.data() registration throws.
+    // Registered as Alpine.data below so Alpine resolves it via provider scope (not just window).
     function enrollmentTab(config) {
         return {
             type: config.type,
@@ -156,28 +172,15 @@
     window._enrollmentSetFlash = function(msg) {
         if (window._enrollmentFlashSetter) window._enrollmentFlashSetter(msg);
     };
-</script>
 
-<x-app-layout>
-    <x-slot name="title">Enrollment</x-slot>
-    <x-slot name="header">
-        <div class="flex items-center justify-between">
-            <div>
-                <x-breadcrumb :items="[['label' => 'Enrollment']]" />
-                <h2 class="font-semibold text-xl text-gray-800 leading-tight">Enrollment</h2>
-                <p class="text-sm text-gray-500 mt-0.5">Kelola pendaftaran murid ke program</p>
-            </div>
-            <div class="flex items-center gap-3">
-                <a href="{{ route('admin.enrollments.inactive') }}" class="inline-flex items-center px-4 py-2 rounded-xl border border-slate-300 bg-slate-100 text-sm font-medium text-slate-800 shadow-sm hover:bg-slate-200 hover:border-slate-400 transition-all">Data tidak aktif</a>
-            </div>
-        </div>
-    </x-slot>
-
-    <script>
-    // Enrollment-specific modal overrides — defined outside x-data to avoid HTML attribute quote conflicts.
-    // Registered via Alpine.component() so they're accessible as methods in x-data.
     document.addEventListener('alpine:init', () => {
-        Alpine.component('enrollmentModal', () => ({
+        try {
+            Alpine.data('enrollmentTab', enrollmentTab);
+        } catch (e) {
+            console.error('[enrollment] Alpine.data("enrollmentTab") failed:', e);
+        }
+        try {
+            Alpine.data('enrollmentModal', () => ({
             ...crudModal({
                 createUrl: '{{ route('admin.enrollments.create-form') }}',
                 storeUrl: '{{ route('admin.enrollments.store') }}',
@@ -190,9 +193,14 @@
             showFlash: {{ \Illuminate\Support\Js::from((bool) session('status')) }},
             flashTimer: null,
             init() {
-                // Call crudModal's init (registers document-level submit interceptor)
-                const parent = crudModal({});
-                if (parent.init) parent.init.call(this);
+                // Inline submit listener — find the closest Alpine component with submit().
+                // crudModal({}).init adds a document-level listener with [x-data^="crudModal"] selector
+                // which never matches because this page uses x-data="enrollmentModal".
+                document.addEventListener('submit', (e) => {
+                    if (!e.target || e.target.id !== 'crud-form') return;
+                    e.preventDefault();
+                    if (this.submit) this.submit();
+                }, true);
                 window._enrollmentFlashSetter = (msg) => { this.setFlash(msg); };
                 if (this.showFlash) this._startTimer();
             },
@@ -265,6 +273,9 @@
                 }
             },
         }));
+        } catch (e) {
+            console.error('[enrollment] Alpine.data("enrollmentModal") failed:', e);
+        }
     });
     </script>
 
