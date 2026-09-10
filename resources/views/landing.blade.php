@@ -447,22 +447,15 @@
                 <div class="text-center mb-10">
                     <p class="section-label mb-2" style="color: var(--color-primary);">Biaya Belajar</p>
                     <h2 class="text-3xl font-semibold" style="color: var(--text-main);">Harga Program</h2>
-                    <p class="mt-3 text-sm" style="color: var(--text-muted);">Biaya belajar per pertemuan berdasarkan divisi dan jenis les</p>
+                    <p class="mt-3 text-sm" style="color: var(--text-muted);">Pilihan program les berdasarkan divisi dan jenjang</p>
                 </div>
 
                 @php
-                    $programs = \App\Models\Program::query()
-                        ->where('status', 'active')
-                        ->orderBy('division')
-                        ->orderBy('type')
-                        ->get()
-                        ->groupBy('division');
                     $divisions = ['TK', 'SD', 'SMP', 'SMA', 'UTBK'];
                 @endphp
 
                 <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                     @forelse ($divisions as $div)
-                        @php $divPrograms = $programs->get($div, collect()); @endphp
                         <div class="card rounded-2xl p-6 space-y-4">
                             <div class="flex items-center gap-3">
                                 <div class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm" style="background: var(--color-primary-light); color: var(--color-primary);">
@@ -470,27 +463,7 @@
                                 </div>
                                 <h3 class="text-base font-semibold" style="color: var(--text-main);">Divisi {{ $div }}</h3>
                             </div>
-                            @if ($divPrograms->isNotEmpty())
-                                <div class="space-y-3">
-                                    @foreach ($divPrograms as $program)
-                                        <div class="flex items-center justify-between text-sm">
-                                            <span style="color: var(--text-secondary);">{{ $program->name }}</span>
-                                            <span class="font-semibold" style="color: var(--text-main);">
-                                                @if ($program->default_parent_rate)
-                                                    Rp{{ number_format($program->default_parent_rate, 0, ',', '.') }}
-                                                @else
-                                                    <span style="color: var(--text-muted);">Hubungi</span>
-                                                @endif
-                                            </span>
-                                        </div>
-                                        @if ($program->description)
-                                            <p class="text-xs -mt-2" style="color: var(--text-muted);">{{ $program->description }}</p>
-                                        @endif
-                                    @endforeach
-                                </div>
-                            @else
-                                <p class="text-sm" style="color: var(--text-muted);">Hubungi admin untuk info harga</p>
-                            @endif
+                            <p class="text-sm" style="color: var(--text-muted);">Hubungi admin untuk info harga</p>
                         </div>
                     @empty
                         <div class="col-span-full text-center" style="color: var(--text-muted);">
@@ -498,7 +471,6 @@
                         </div>
                     @endforelse
                 </div>
-                <p class="mt-6 text-center text-xs" style="color: var(--text-muted);">* Harga dapat berubah. Hubungi admin untuk informasi terbaru.</p>
             </section>
 
             <!-- ========== OUR TEACHERS ========== -->

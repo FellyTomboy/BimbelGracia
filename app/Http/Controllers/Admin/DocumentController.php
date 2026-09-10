@@ -36,7 +36,7 @@ class DocumentController extends Controller
 
     public function create(): View
     {
-        $teachers = Teacher::where('status', 'active')->orderBy('name')->get();
+        $teachers = Teacher::where('status', 'active')->orderBy('full_name')->get();
         return view('admin.documents.create', compact('teachers'));
     }
 
@@ -89,7 +89,7 @@ class DocumentController extends Controller
     public function edit(Document $document): View
     {
         $document->load('teachers');
-        $teachers = Teacher::where('status', 'active')->orderBy('name')->get();
+        $teachers = Teacher::where('status', 'active')->orderBy('full_name')->get();
         return view('admin.documents.edit', compact('document', 'teachers'));
     }
 

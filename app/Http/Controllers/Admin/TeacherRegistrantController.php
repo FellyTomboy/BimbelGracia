@@ -60,7 +60,7 @@ class TeacherRegistrantController extends Controller
         try {
             Teacher::create([
                 'user_id' => $user->id,
-                'name' => $teacherRegistrant->name,
+                'full_name' => $teacherRegistrant->name,
                 'whatsapp' => $phone,
                 'major' => $teacherRegistrant->major,
                 'subjects' => $teacherRegistrant->subjects,

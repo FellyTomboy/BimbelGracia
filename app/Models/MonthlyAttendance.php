@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Traits\Auditable;
+use App\Services\AttendanceFineService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -37,6 +38,11 @@ class MonthlyAttendance extends Model
         'created_by',
         'parent_rate',
         'teacher_rate',
+        'agreed_sessions_per_month',
+        'attendance_penalty_type',
+        'attendance_penalty_value',
+        'late_penalty_type',
+        'late_penalty_value',
         'payment_proof',
         'payment_proof_status',
     ];
@@ -97,12 +103,31 @@ class MonthlyAttendance extends Model
     protected static function booted()
     {
         static::creating(function ($attendance) {
+            $fineService = app(AttendanceFineService::class);
+
             // Store rates at time of validation for historical accuracy
             if (! $attendance->parent_rate && $attendance->enrollment) {
                 $attendance->parent_rate = $attendance->enrollment->parent_rate;
             }
             if (! $attendance->teacher_rate && $attendance->enrollment) {
                 $attendance->teacher_rate = $attendance->enrollment->teacher_rate;
+            }
+            // Store agreed_sessions_per_month snapshot for historical accuracy
+            if ($attendance->agreed_sessions_per_month === null && $attendance->enrollment) {
+                $attendance->agreed_sessions_per_month = $attendance->enrollment->agreed_sessions_per_month;
+            }
+            // Store fine settings snapshot at creation time
+            if (! $attendance->attendance_penalty_type) {
+                $attendance->attendance_penalty_type = $fineService->getAttendancePenaltyType();
+            }
+            if (! $attendance->attendance_penalty_value && $attendance->attendance_penalty_value !== '0') {
+                $attendance->attendance_penalty_value = $fineService->getAttendancePenaltyValue();
+            }
+            if (! $attendance->late_penalty_type) {
+                $attendance->late_penalty_type = $fineService->getLatePenaltyType();
+            }
+            if (! $attendance->late_penalty_value && $attendance->late_penalty_value !== '0') {
+                $attendance->late_penalty_value = $fineService->getLatePenaltyValue();
             }
             // Auto-set month/year from lesson_date
             if ($attendance->lesson_date && ! $attendance->month) {

@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -34,6 +35,23 @@ class Program extends Model
     public function enrollments(): HasMany
     {
         return $this->hasMany(Enrollment::class);
+    }
+
+    public function teacherRates(): HasMany
+    {
+        return $this->hasMany(TeacherProgramRate::class);
+    }
+
+    public function teachers(): BelongsToMany
+    {
+        return $this->belongsToMany(Teacher::class, 'teacher_program_rates')
+            ->withPivot('rate')
+            ->withTimestamps();
+    }
+
+    public function isKelas(): bool
+    {
+        return strtolower((string) ($this->type ?? 'privat')) === 'kelas';
     }
 
     protected static function booted()

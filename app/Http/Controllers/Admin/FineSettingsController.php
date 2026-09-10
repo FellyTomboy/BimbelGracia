@@ -28,6 +28,41 @@ class FineSettingsController extends Controller
             ['value' => $lateEnabled, 'updated_at' => now()]
         );
 
+        if ($request->has('billing_mode')) {
+            \DB::table('settings')->updateOrInsert(
+                ['key' => AttendanceFineService::KEY_BILLING_MODE],
+                ['value' => $request->validated()['billing_mode'], 'updated_at' => now()]
+            );
+        }
+
+        if ($request->has('late_penalty_type')) {
+            \DB::table('settings')->updateOrInsert(
+                ['key' => AttendanceFineService::KEY_LATE_PENALTY_TYPE],
+                ['value' => $request->validated()['late_penalty_type'], 'updated_at' => now()]
+            );
+        }
+
+        if ($request->has('late_penalty_value')) {
+            \DB::table('settings')->updateOrInsert(
+                ['key' => AttendanceFineService::KEY_LATE_PENALTY_VALUE],
+                ['value' => (string) $request->validated()['late_penalty_value'], 'updated_at' => now()]
+            );
+        }
+
+        if ($request->has('attendance_penalty_type')) {
+            \DB::table('settings')->updateOrInsert(
+                ['key' => AttendanceFineService::KEY_ATTENDANCE_PENALTY_TYPE],
+                ['value' => $request->validated()['attendance_penalty_type'], 'updated_at' => now()]
+            );
+        }
+
+        if ($request->has('attendance_penalty_value')) {
+            \DB::table('settings')->updateOrInsert(
+                ['key' => AttendanceFineService::KEY_ATTENDANCE_PENALTY_VALUE],
+                ['value' => (string) $request->validated()['attendance_penalty_value'], 'updated_at' => now()]
+            );
+        }
+
         $this->fineService->invalidateCache();
 
         return Redirect::route('profile.edit')->with('status', 'fine-settings-updated');
@@ -44,6 +79,22 @@ class FineSettingsController extends Controller
         \DB::table('settings')->updateOrInsert(
             ['key' => AttendanceFineService::KEY_LATE_PENALTY],
             ['value' => 'false', 'updated_at' => now()]
+        );
+        \DB::table('settings')->updateOrInsert(
+            ['key' => AttendanceFineService::KEY_LATE_PENALTY_TYPE],
+            ['value' => 'percent', 'updated_at' => now()]
+        );
+        \DB::table('settings')->updateOrInsert(
+            ['key' => AttendanceFineService::KEY_LATE_PENALTY_VALUE],
+            ['value' => '10', 'updated_at' => now()]
+        );
+        \DB::table('settings')->updateOrInsert(
+            ['key' => AttendanceFineService::KEY_ATTENDANCE_PENALTY_TYPE],
+            ['value' => 'fixed', 'updated_at' => now()]
+        );
+        \DB::table('settings')->updateOrInsert(
+            ['key' => AttendanceFineService::KEY_ATTENDANCE_PENALTY_VALUE],
+            ['value' => '5000', 'updated_at' => now()]
         );
 
         $this->fineService->invalidateCache();

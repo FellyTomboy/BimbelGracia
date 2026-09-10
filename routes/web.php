@@ -42,14 +42,10 @@ Route::middleware(['auth', 'password.force'])->group(function () {
         return view('dashboard');
     })->name('dashboard')->middleware('account.active');
 
-            Route::redirect('/', '/dashboard', 301);
-
     Route::prefix('admin')
         ->middleware('role:admin')
         ->name('admin.')
         ->group(function () {
-            Route::redirect('/', '/dashboard', 301);
-
             Route::get('students', [StudentController::class, 'index'])
                 ->name('students.index');
             Route::get('students/inactive', [StudentController::class, 'inactive'])
@@ -58,16 +54,20 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('students.bulk-destroy');
             Route::delete('students/{student}', [StudentController::class, 'destroy'])
                 ->name('students.destroy');
-            Route::post('students/{student}/restore', [StudentController::class, 'restore'])
+            Route::post('students/{studentId}/restore', [StudentController::class, 'restore'])
                 ->name('students.restore');
 
             Route::resource('teachers', TeacherController::class)->except(['show']);
             Route::get('teachers/inactive', [TeacherController::class, 'inactive'])
                 ->name('teachers.inactive');
-            Route::post('teachers/{teacher}/restore', [TeacherController::class, 'restore'])
+            Route::post('teachers/{teacherId}/restore', [TeacherController::class, 'restore'])
                 ->name('teachers.restore');
             Route::post('teachers/bulk-destroy', [TeacherController::class, 'bulkDestroy'])
                 ->name('teachers.bulk-destroy');
+            Route::get('teachers/create-form', [TeacherController::class, 'createForm'])
+                ->name('teachers.create-form');
+            Route::get('teachers/{teacher}/form', [TeacherController::class, 'editForm'])
+                ->name('teachers.edit-form');
 
             Route::post('programs/bulk-destroy', [ProgramController::class, 'bulkDestroy'])
                 ->name('programs.bulk-destroy');
@@ -76,10 +76,16 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('programs.inactive');
             Route::post('programs/{program}/restore', [ProgramController::class, 'restore'])
                 ->name('programs.restore');
+            Route::get('programs/form', [ProgramController::class, 'createForm'])
+                ->name('programs.create-form');
+            Route::get('programs/{program}/form', [ProgramController::class, 'editForm'])
+                ->name('programs.edit-form');
 
             Route::resource('enrollments', EnrollmentController::class)->except(['show']);
             Route::get('enrollments/inactive', [EnrollmentController::class, 'inactive'])
                 ->name('enrollments.inactive');
+            Route::get('enrollments/mismatches', [EnrollmentController::class, 'mismatches'])
+                ->name('enrollments.mismatches');
             Route::post('enrollments/{enrollment}/restore', [EnrollmentController::class, 'restore'])
                 ->name('enrollments.restore');
             Route::post('enrollments/bulk-destroy', [EnrollmentController::class, 'bulkDestroy'])
@@ -106,12 +112,22 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('parents.restore');
             Route::post('parents/bulk-destroy', [ParentController::class, 'bulkDestroy'])
                 ->name('parents.bulk-destroy');
+            Route::post('parents/bulk-restore', [ParentController::class, 'bulkRestore'])
+                ->name('parents.bulk-restore');
             Route::delete('parents/{parent}/students/{student}', [ParentController::class, 'removeStudent'])
                 ->name('parents.remove-student');
             Route::post('parents/{parent}/add-student', [ParentController::class, 'addStudent'])
                 ->name('parents.add-student');
+            Route::put('parents/{parent}/students/{student}', [ParentController::class, 'updateStudent'])
+                ->name('parents.update-student');
             Route::post('parents/{parent}/change-password', [ParentController::class, 'changePassword'])
                 ->name('parents.change-password');
+            Route::get('parents/create-form', [ParentController::class, 'createForm'])
+                ->name('parents.create-form');
+            Route::get('parents/{parent}/edit-form', [ParentController::class, 'editForm'])
+                ->name('parents.edit-form');
+            Route::get('parents/{parent}/students-json', [ParentController::class, 'studentsJson'])
+                ->name('parents.students-json');
             Route::post('teachers/{teacher}/approve-photo', [TeacherController::class, 'approvePhoto'])
                 ->name('teachers.approve-photo');
             Route::post('teachers/{teacher}/change-password', [TeacherController::class, 'changePassword'])
@@ -124,8 +140,20 @@ Route::middleware(['auth', 'password.force'])->group(function () {
 
             Route::get('presensi', [AdminAttendanceController::class, 'index'])
                 ->name('presensi.index');
+            Route::get('presensi/create', [AdminAttendanceController::class, 'create'])
+                ->name('presensi.create');
+            Route::post('presensi/bulk', [AdminAttendanceController::class, 'storeBulk'])
+                ->name('presensi.store-bulk');
+            Route::post('presensi', [AdminAttendanceController::class, 'store'])
+                ->name('presensi.store');
             Route::get('presensi/{attendance}', [AdminAttendanceController::class, 'show'])
                 ->name('presensi.show');
+            Route::get('presensi/{attendance}/edit', [AdminAttendanceController::class, 'edit'])
+                ->name('presensi.edit');
+            Route::put('presensi/{attendance}', [AdminAttendanceController::class, 'update'])
+                ->name('presensi.update');
+            Route::delete('presensi/{attendance}', [AdminAttendanceController::class, 'destroy'])
+                ->name('presensi.destroy');
             Route::post('presensi/{attendance}/enrollment', [AdminAttendanceController::class, 'updateEnrollment'])
                 ->name('presensi.enrollment');
             Route::post('presensi/{attendance}/validate', [AdminAttendanceController::class, 'validateAttendance'])
@@ -141,8 +169,12 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('analysis.ortu');
             Route::post('analysis/ortu/discount', [AnalysisController::class, 'updateEnrollmentDiscount'])
                 ->name('analysis.ortu-discount');
+            Route::patch('analysis/ortu/wa-notification', [AnalysisController::class, 'toggleParentWaNotification'])
+                ->name('analysis.ortu.wa-notification');
             Route::get('analysis/guru', [AnalysisController::class, 'guru'])
                 ->name('analysis.guru');
+            Route::patch('analysis/guru/wa-notification', [AnalysisController::class, 'toggleTeacherWaNotification'])
+                ->name('analysis.guru.wa-notification');
             Route::get('payments/ortu', [AnalysisController::class, 'paymentsOrtu'])
                 ->name('payments.ortu');
             Route::get('payments/guru', [AnalysisController::class, 'paymentsGuru'])
@@ -151,8 +183,22 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('payments.ortu.payment');
             Route::post('payments/guru/{attendance}/payment', [AnalysisController::class, 'updateTeacherPayment'])
                 ->name('payments.guru.payment');
-            Route::post('payments/{attendance}/confirm-proof', [AnalysisController::class, 'confirmPaymentProof'])
+            Route::post('payments/{attendance}/confirm-proof', [AnalysisController::class, 'confirmParentPaymentProof'])
                 ->name('payments.confirm-proof');
+            Route::post('payments/proof/{paymentProof}/confirm', [AnalysisController::class, 'confirmParentPaymentProof'])
+                ->name('payments.ortu.confirm-proof');
+            Route::post('payments/ortu/monthly-payment', [AnalysisController::class, 'updateParentMonthlyPayment'])
+                ->name('payments.ortu.monthly-payment');
+            Route::post('payments/guru/monthly-payment', [AnalysisController::class, 'updateTeacherMonthlyPayment'])
+                ->name('payments.guru.monthly-payment');
+            Route::get('payments/ortu-summary', [FinanceController::class, 'ortuSummary'])
+                ->name('payments.ortu-summary');
+            Route::get('payments/guru-summary', [FinanceController::class, 'guruSummary'])
+                ->name('payments.guru-summary');
+            Route::patch('payments/ortu/status', [FinanceController::class, 'updateOrtuPaymentStatus'])
+                ->name('payments.ortu.status');
+            Route::patch('payments/guru/status', [FinanceController::class, 'updateGuruPaymentStatus'])
+                ->name('payments.guru.status');
             Route::post('analysis/generate-invoice/{student}/{month}/{year}', [AnalysisController::class, 'generateInvoice'])
                 ->name('analysis.generate-invoice');
             Route::post('analysis/generate-salary/{teacher}/{month}/{year}', [AnalysisController::class, 'generateSalary'])
@@ -281,8 +327,10 @@ Route::middleware(['auth', 'password.force'])->group(function () {
         Route::get('presensi', [GuruAttendanceController::class, 'index'])->name('presensi.index');
         Route::get('presensi/create', [GuruAttendanceController::class, 'create'])->name('presensi.create');
         Route::post('presensi', [GuruAttendanceController::class, 'store'])->name('presensi.store');
+        Route::post('presensi/bulk', [GuruAttendanceController::class, 'storeBulk'])->name('presensi.store-bulk');
         Route::get('presensi/{attendance}/edit', [GuruAttendanceController::class, 'edit'])->name('presensi.edit');
         Route::put('presensi/{attendance}', [GuruAttendanceController::class, 'update'])->name('presensi.update');
+        Route::delete('presensi/{attendance}', [GuruAttendanceController::class, 'destroy'])->name('presensi.destroy');
         Route::get('tawaran', [GuruLessonOfferController::class, 'index'])->name('tawaran.index');
         Route::get('riwayat', [GuruHistoryController::class, 'index'])->name('history.index');
         Route::get('proyeksi-gaji', [GuruSalaryProjectionController::class, 'index'])->name('salary-projection.index');
@@ -307,7 +355,7 @@ Route::middleware(['auth', 'password.force'])->group(function () {
         Route::get('tagihan', [ParentBillingController::class, 'index'])->name('billing.index');
         Route::get('complete-data', [ParentBillingController::class, 'completeData'])->name('billing.complete-data');
         Route::post('complete-data', [ParentBillingController::class, 'submitCompleteData'])->name('billing.submit-complete-data');
-        Route::post('tagihan/{attendance}/upload', [ParentBillingController::class, 'uploadProof'])->name('billing.upload-proof');
+        Route::post('tagihan/upload/{parentId}/{year}/{month}', [ParentBillingController::class, 'uploadProof'])->name('billing.upload-proof');
         Route::post('tagihan/invoice/{year}/{month}', [ParentBillingController::class, 'downloadInvoice'])->name('billing.download-invoice');
     });
 
@@ -318,6 +366,7 @@ Route::middleware(['auth', 'password.force'])->group(function () {
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::patch('/profile/teacher', [ProfileController::class, 'updateTeacher'])->name('profile.teacher.update');
     Route::patch('/profile/bank', [ProfileController::class, 'updateBank'])->name('profile.bank.update');
     Route::post('/profile/founder/{teacher}', [ProfileController::class, 'updateFounder'])->name('profile.founder.update');
     Route::post('/profile/founder/{teacher}/photo', [ProfileController::class, 'uploadFounderPhoto'])->name('profile.founder.photo');
@@ -342,5 +391,23 @@ Route::get('register-teacher/{token}', [RegisterTeacherController::class, 'form'
     ->name('register-teacher.form');
 Route::post('register-teacher/{token}', [RegisterTeacherController::class, 'submit'])
     ->name('register-teacher.submit');
+
+Route::get('pdf/parent/{parent}/{filename}', [\App\Http\Controllers\PdfController::class, 'serveParentInvoice'])
+    ->middleware('throttle:pdf-access')
+    ->name('pdf.parent');
+Route::get('pdf/guru/{teacher}/{filename}', [\App\Http\Controllers\PdfController::class, 'serveTeacherSlip'])
+    ->middleware('throttle:pdf-access')
+    ->name('pdf.guru');
+
+// Public complete-data routes (no auth) for guests redirected from PdfController
+Route::get('complete-data/parent/{parent}', [\App\Http\Controllers\Parent\BillingController::class, 'completeDataPublic'])
+    ->name('complete-data.parent');
+Route::post('complete-data/parent/{parent}', [\App\Http\Controllers\Parent\BillingController::class, 'submitCompleteDataPublic'])
+    ->name('complete-data.parent.submit');
+
+Route::get('complete-data/guru/{teacher}', [\App\Http\Controllers\Admin\TeacherController::class, 'completeDataPublic'])
+    ->name('complete-data.guru');
+Route::post('complete-data/guru/{teacher}', [\App\Http\Controllers\Admin\TeacherController::class, 'submitCompleteDataPublic'])
+    ->name('complete-data.guru.submit');
 
 require __DIR__.'/auth.php';

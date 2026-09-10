@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
+use App\Helpers\JenjangMatcher;
 use App\Http\Controllers\Controller;
 use App\Models\Enrollment;
 use App\Models\MonthlyAttendance;
@@ -28,7 +29,7 @@ class EnrollmentController extends Controller
     public function index(Request $request): View
     {
         $params = $this->getSearchSortParams($request);
-        $activeTab = $request->query('type', 'kelas');
+        $activeTab = $request->query('type', 'privat');
 
         $buildQuery = function (string $type) use ($params) {
             $q = Enrollment::query()
@@ -37,7 +38,8 @@ class EnrollmentController extends Controller
 
             $q = $this->applySearch($q, $params['search'], [
                 'program.name',
-                'teacher.name',
+                'teacher.full_name',
+                'teacher.nickname',
                 'enrollments.status',
                 'students.full_name',
                 'students.nickname',
@@ -49,7 +51,24 @@ class EnrollmentController extends Controller
         $kelasEnrollments = (clone $buildQuery('kelas'))->paginate(20)->withQueryString();
         $privatEnrollments = (clone $buildQuery('privat'))->paginate(20)->withQueryString();
 
-        return view('admin.enrollments.index', compact('kelasEnrollments', 'privatEnrollments', 'activeTab'));
+        // Mismatch counts (only count active, non-deleted enrollments)
+        $mismatchKelasCount = Enrollment::where('type', 'kelas')
+            ->where('status', 'active')
+            ->whereNull('deleted_at')
+            ->with(['program', 'students'])
+            ->get()
+            ->filter(fn ($e) => JenjangMatcher::isMismatch($e))
+            ->count();
+
+        $mismatchPrivatCount = Enrollment::where('type', 'privat')
+            ->where('status', 'active')
+            ->whereNull('deleted_at')
+            ->with(['program', 'students'])
+            ->get()
+            ->filter(fn ($e) => JenjangMatcher::isMismatch($e))
+            ->count();
+
+        return view('admin.enrollments.index', compact('kelasEnrollments', 'privatEnrollments', 'activeTab', 'mismatchKelasCount', 'mismatchPrivatCount'));
     }
 
     public function inactive(): View
@@ -63,11 +82,36 @@ class EnrollmentController extends Controller
         return view('admin.enrollments.inactive', compact('enrollments'));
     }
 
+    public function mismatches(Request $request): View
+    {
+        $activeTab = $request->query('type', 'kelas');
+
+        $buildQuery = function (string $type) {
+            return Enrollment::query()
+                ->where('type', $type)
+                ->where('status', 'active')
+                ->whereNull('deleted_at')
+                ->with(['program', 'teacher', 'students']);
+        };
+
+        $allKelas = (clone $buildQuery('kelas'))->get()->filter(fn ($e) => JenjangMatcher::isMismatch($e));
+        $allPrivat = (clone $buildQuery('privat'))->get()->filter(fn ($e) => JenjangMatcher::isMismatch($e));
+
+        $mismatches = $activeTab === 'privat' ? $allPrivat : $allKelas;
+
+        return view('admin.enrollments.mismatches', [
+            'mismatches' => $mismatches,
+            'allKelasCount' => $allKelas->count(),
+            'allPrivatCount' => $allPrivat->count(),
+            'activeTab' => $activeTab,
+        ]);
+    }
+
     public function create(Request $request): View
     {
         $programs = Program::orderBy('name')->get();
-        $teachers = Teacher::orderBy('name')->get();
-        $students = Student::orderBy('name')->get();
+        $teachers = Teacher::orderBy('full_name')->get();
+        $students = Student::orderByRaw('COALESCE(full_name, nickname)')->get();
         $defaultType = $request->query('type', 'privat');
 
         return view('admin.enrollments.create', compact('programs', 'teachers', 'students', 'defaultType'));
@@ -178,8 +222,8 @@ class EnrollmentController extends Controller
     {
         $enrollment->load('students');
         $programs = Program::orderBy('name')->get();
-        $teachers = Teacher::orderBy('name')->get();
-        $students = Student::orderBy('name')->get();
+        $teachers = Teacher::orderBy('full_name')->get();
+        $students = Student::orderByRaw('COALESCE(full_name, nickname)')->get();
 
         return view('admin.enrollments.edit', compact('enrollment', 'programs', 'teachers', 'students'));
     }
@@ -318,8 +362,9 @@ class EnrollmentController extends Controller
             ->with('status', "{$count} enrollment berhasil dihibernasi.");
     }
 
-    public function restore(int $enrollmentId): RedirectResponse
+    public function restore(Request $request): RedirectResponse
     {
+        $enrollmentId = $request->route('enrollment');
         $enrollment = Enrollment::withTrashed()->findOrFail($enrollmentId);
         $enrollment->restore();
 
@@ -377,7 +422,7 @@ class EnrollmentController extends Controller
                 ->select('enrollments.*')
                 ->selectSub(
                     Teacher::withTrashed()
-                        ->select('name')
+                        ->selectRaw('COALESCE(full_name, nickname)')
                         ->whereColumn('teachers.id', 'enrollments.teacher_id')
                         ->limit(1),
                     'teacher_sort_name'

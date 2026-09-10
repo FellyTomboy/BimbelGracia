@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Helpers\StudentGrade;
 use App\Models\NewStudent;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class RegisterStudentController extends Controller
@@ -45,6 +47,8 @@ class RegisterStudentController extends Controller
             'students' => ['required', 'array', 'min:1'],
             'students.*.nickname' => ['required', 'string', 'max:255'],
             'students.*.full_name' => ['nullable', 'string', 'max:255'],
+            'students.*.sekolah' => ['nullable', 'string', 'max:255'],
+            'students.*.kelas' => ['nullable', 'string', Rule::in(StudentGrade::LEVELS)],
             'notes' => ['nullable', 'string'],
         ]);
 

@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\MonthlyAttendance;
 use App\Models\Teacher;
 use App\Services\AttendanceFineService;
+use App\Services\CalculationService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +16,10 @@ use Illuminate\View\View;
 
 class SalaryProjectionController extends Controller
 {
-    public function __construct(private AttendanceFineService $fineService) {}
+    public function __construct(
+        private AttendanceFineService $fineService,
+        private CalculationService $calculationService,
+    ) {}
 
     public function index(Request $request): View
     {
@@ -26,13 +30,49 @@ class SalaryProjectionController extends Controller
             ->first();
 
         $attendances = MonthlyAttendance::with(['enrollment.program', 'enrollment.teacher', 'students'])
-            ->when($teacher, fn ($query) => $query->whereHas('enrollment', fn ($sub) => $sub->where('teacher_id', $teacher->id)))
+            ->when($teacher, function ($query) use ($teacher) {
+                $query->where(function ($q) use ($teacher) {
+                    $q->whereHas('enrollment', fn ($sub) => $sub->where('teacher_id', $teacher->id));
+                    $q->orWhere('session_teacher_id', $teacher->id);
+                });
+            })
             ->whereIn('status_validation', ['terima', 'terlambat'])
             ->where('month', $month)
             ->where('year', $year)
-            ->orderByDesc('year')
-            ->orderByDesc('month')
+            ->orderBy('enrollment_id')
+            ->orderByDesc('lesson_date')
             ->get();
+
+        $result = $this->calculationService->calculateTeacherSalary($teacher?->id, $month, $year, $attendances);
+
+        $groupedRows = collect($result['rows'])->map(function (array $row) {
+            $presentCount = $row['present_count'] ?? 0;
+            $isPrivat = ($row['type'] ?? '') === 'privat';
+            $isKelas = ($row['type'] ?? '') === 'kelas';
+            $countLabel = $isPrivat
+                ? ($presentCount > 1 ? sprintf('grup %d orang', $presentCount) : '')
+                : ($isKelas ? '1 siswa (kelas)' : 'kelas tanpa murid');
+            $sessionCount = $row['count'];
+            $ratePerSession = $sessionCount > 0 ? (int) round($row['total'] / $sessionCount) : 0;
+
+            return [
+                'enrollment_id' => $row['enrollment_id'],
+                'enrollment' => $row['enrollment'],
+                'program' => $row['program'],
+                'students' => $row['_students'] ?? collect(),
+                'session_count' => $sessionCount,
+                'late_count' => $row['late_count'],
+                'total_rate' => $row['total'],
+                'rate_per_session' => $ratePerSession,
+                'total_penalty' => $row['penalty'],
+                'total_salary' => $row['total'] - $row['penalty'],
+                'overall_status' => $row['overall_status'],
+                'payment_status' => $row['payment_status'],
+                'type' => $row['type'],
+                'present_count' => $presentCount,
+                'label_detail' => $countLabel,
+            ];
+        });
 
         $totals = $this->buildTotals($attendances);
         $chart = $this->buildMonthlyChart($teacher?->id);
@@ -41,7 +81,7 @@ class SalaryProjectionController extends Controller
             'month' => $month,
             'year' => $year,
             'teacher' => $teacher,
-            'attendances' => $attendances,
+            'groupedRows' => $groupedRows,
             'totals' => $totals,
             'chart' => $chart,
         ]);
@@ -64,9 +104,7 @@ class SalaryProjectionController extends Controller
             // Use snapshot rate from attendance record (captured at time of validation), not current enrollment rate
             $rate = (int) ($attendance->teacher_rate ?? $attendance->enrollment?->teacher_rate ?? 0);
             $isLate = $attendance->status_validation === 'terlambat';
-            $penalty = $this->fineService->isLatePenaltyEnabled() && $isLate
-                ? (int) ($rate * 0.1)
-                : 0;
+            $penalty = $this->calculationService->getLatePenaltyFrozen($attendance, $rate, $isLate ? 1 : 0);
             $total = $rate - $penalty;
 
             return [
@@ -108,7 +146,10 @@ class SalaryProjectionController extends Controller
 
         $query = DB::table('enrollment_attendances')
             ->join('enrollments', 'enrollment_attendances.enrollment_id', '=', 'enrollments.id')
-            ->selectRaw('enrollment_attendances.year, enrollment_attendances.month, SUM(CASE WHEN enrollment_attendances.status_validation = ? THEN enrollment_attendances.teacher_rate WHEN enrollment_attendances.status_validation = ? THEN enrollment_attendances.teacher_rate * 0.9 ELSE 0 END) as total', ['terima', 'terlambat'])
+            ->selectRaw('enrollment_attendances.year, enrollment_attendances.month,
+                SUM(CASE WHEN enrollment_attendances.status_validation = ? THEN enrollment_attendances.teacher_rate ELSE 0 END) as terima_total,
+                COUNT(CASE WHEN enrollment_attendances.status_validation = ? THEN 1 END) as terlambat_count,
+                SUM(CASE WHEN enrollment_attendances.status_validation = ? THEN enrollment_attendances.teacher_rate ELSE 0 END) as terlambat_gross', ['terima', 'terlambat', 'terlambat'])
             ->whereIn('enrollment_attendances.status_validation', ['terima', 'terlambat'])
             ->where(function ($builder) use ($teacherId) {
                 $builder->where('enrollments.teacher_id', $teacherId)
@@ -133,7 +174,17 @@ class SalaryProjectionController extends Controller
 
         foreach ($periods as $period) {
             $key = $period->format('Y-m');
-            $totals[] = (float) ($byPeriod[$key]->total ?? 0);
+            $row = $byPeriod[$key] ?? null;
+            if (! $row) {
+                $totals[] = 0.0;
+                continue;
+            }
+            $terima = (float) ($row->terima_total ?? 0);
+            $terlambatGross = (float) ($row->terlambat_gross ?? 0);
+            $lateCount = (int) ($row->terlambat_count ?? 0);
+            $avgRate = $lateCount > 0 ? $terlambatGross / $lateCount : 0;
+            $penalty = $this->fineService->getLatePenaltyAmount($avgRate, $lateCount);
+            $totals[] = $terima + $terlambatGross - $penalty;
         }
 
         return [

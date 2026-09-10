@@ -58,24 +58,22 @@
                             <th>Tarif</th>
                             <th>Jml</th>
                             <th>Subtotal</th>
-                            <th>Diskon</th>
                             <th>Denda</th>
                             <th>Total</th>
                         </tr>
                     </thead>
         @endif
         <tr>
-            <td>{{ $row['program'] }} - {{ $row['teacher'] }}{{ $row['detail'] }}</td>
+            <td>
+                @if (($row['type'] ?? '') === 'kelas')
+                    {{ $row['program'] }}
+                @else
+                    {{ trim(($row['program'] ?? '') . ' - ' . ($row['teacher'] ?? '-') . ' ' . ($row['detail'] ?? ''), " \t\n\r\0\x0B-") }}
+                @endif
+            </td>
             <td>Rp {{ number_format($row['rate']) }}</td>
             <td>{{ $row['count'] }}x</td>
             <td>Rp {{ number_format($row['subtotal']) }}</td>
-            <td>
-                @if (($row['discount'] ?? 0) > 0)
-                    <span style="color:#b91c1c;">-Rp {{ number_format($row['discount']) }}</span>
-                @else
-                    -
-                @endif
-            </td>
             <td>{{ $row['penalty'] > 0 ? '+Rp '.number_format($row['penalty']) : '-' }}</td>
             <td>Rp {{ number_format($row['total']) }}</td>
         </tr>
@@ -86,18 +84,15 @@
     @endforeach
 
     <div class="total">
-        @if ($grandDiscount > 0 || $grandPenalty > 0)
+        @if ($grandPenalty > 0)
             <div style="font-size:12px; color:#666; margin-bottom:4px;">
-                Subtotal: Rp {{ number_format($grandGross) }}
-                @if ($grandDiscount > 0)
-                    &nbsp;|&nbsp; Diskon: <span style="color:#b91c1c;">-Rp {{ number_format($grandDiscount) }}</span>
-                @endif
                 @if ($grandPenalty > 0)
                     &nbsp;|&nbsp; Denda: <span style="color:#b91c1c;">+Rp {{ number_format($grandPenalty) }}</span>
                 @endif
             </div>
         @endif
         Total: Rp {{ number_format($grandTotal) }}
+        <div style="font-size:10px; color:#999; font-weight:normal; margin-top:4px;">Total akhir sudah termasuk potongan harga. Untuk info lebih detail bisa menghubungi admin.</div>
     </div>
 
     @if (count($penalties) > 0 && ($grandPenalty ?? 0) > 0 && app(\App\Services\AttendanceFineService::class)->isAttendancePenaltyEnabled())
@@ -107,17 +102,14 @@
                 @foreach ($penalties as $p)
                     {{ $p['student'] }} - Program <strong>{{ $p['program'] }}</strong>: Kehadiran {{ $p['attended'] }}x dari {{ $p['total_sessions'] }} pertemuan (target minimal {{ $p['agreed'] / 2 }}x).<br>
                 @endforeach
-                Tarif per pertemuan akan naik <strong>Rp 5.000</strong> bulan depan jika kehadiran tetap rendah.
+                @if(($attendancePenaltyType ?? 'fixed') === 'percent')
+                    Tarif per pertemuan akan naik <strong>{{ $attendancePenaltyDisplayLabel }}</strong> bulan depan jika kehadiran tetap rendah.
+                @else
+                    Tarif per pertemuan akan naik <strong>{{ $attendancePenaltyDisplayLabel }}</strong> per pertemuan bulan depan jika kehadiran tetap rendah.
+                @endif
             </p>
         </div>
     @endif
-
-    @php
-        $bankAccounts = \App\Models\BankAccount::query()
-            ->where('status', 'active')
-            ->orderBy('id')
-            ->get();
-    @endphp
 
     @if ($bankAccounts->isNotEmpty())
         <div class="bank-info" style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #e5e7eb;">

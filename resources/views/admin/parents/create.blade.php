@@ -40,15 +40,23 @@
                         <div class="mt-1" id="students-container">
                             @if (old('students'))
                                 @foreach (old('students') as $index => $student)
-                                <div class="flex items-center gap-2 mt-2 student-row" data-index="{{ $index }}">
-                                    <input type="text" name="students[{{ $index }}][nickname]" value="{{ old('students.' . $index . '.nickname', $student['nickname'] ?? '') }}" class="flex-1 border-gray-300 rounded-md" placeholder="Nickname murid" />
-                                    <input type="text" name="students[{{ $index }}][full_name]" value="{{ $student['full_name'] ?? '' }}" class="flex-1 border-gray-300 rounded-md" placeholder="Nama lengkap (opsional)" />
-                                    <button type="button" onclick="this.closest('.student-row').remove()" class="text-rose-500 hover:text-rose-700 text-sm">&times;</button>
+                                <div class="flex flex-wrap items-center gap-2 mt-2 student-row" data-index="{{ $index }}">
+                                    <input type="text" name="students[{{ $index }}][nickname]" value="{{ old('students.' . $index . '.nickname', $student['nickname'] ?? '') }}" class="flex-1 min-w-[140px] border-gray-300 rounded-md" placeholder="Nickname murid" />
+                                    <input type="text" name="students[{{ $index }}][full_name]" value="{{ old('students.' . $index . '.full_name', $student['full_name'] ?? '') }}" class="flex-1 min-w-[160px] border-gray-300 rounded-md" placeholder="Nama lengkap (opsional)" />
+                                    <input type="text" name="students[{{ $index }}][sekolah]" value="{{ old('students.' . $index . '.sekolah', $student['sekolah'] ?? '') }}" class="flex-1 min-w-[140px] border-gray-300 rounded-md" placeholder="Sekolah (opsional)" />
+                                    <select name="students[{{ $index }}][kelas]" class="w-32 min-w-[120px] border-gray-300 rounded-md">
+                                        @foreach (\App\Helpers\StudentGrade::options() as $value => $label)
+                                            <option value="{{ $value }}" @selected(old('students.' . $index . '.kelas', $student['kelas'] ?? '') === $value)>{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                    <button type="button" onclick="this.closest('.student-row').remove()" class="text-rose-500 hover:text-rose-700 text-sm px-1">&times;</button>
                                 </div>
                                 @endforeach
                             @endif
                         </div>
+                        <p class="text-xs text-gray-400 mt-1">Kolom: Nickname, Nama lengkap, Sekolah, Kelas (semua opsional kecuali nickname jika baris diisi)</p>
                         @error('students.*.nickname') <p class="text-rose-600 text-xs mt-1">Nickname murid tidak boleh kosong jika ditambahkan</p> @enderror
+                        @error('students.*.kelas') <p class="text-rose-600 text-xs mt-1">Kelas tidak valid</p> @enderror
                     </div>
 
                     <div class="flex items-center gap-3 pt-4">
@@ -67,12 +75,18 @@
         function addStudentRow() {
             const container = document.getElementById('students-container');
             const div = document.createElement('div');
-            div.className = 'flex items-center gap-2 mt-2 student-row';
+            div.className = 'flex flex-wrap items-center gap-2 mt-2 student-row';
             div.dataset.index = studentIndex;
+            let kelasOptions = '<option value="">— Pilih kelas —</option>';
+            @foreach (\App\Helpers\StudentGrade::LEVELS as $level)
+                kelasOptions += `<option value="{{ $level }}">{{ $level }}</option>`;
+            @endforeach
             div.innerHTML = `
-                <input type="text" name="students[${studentIndex}][nickname]" class="flex-1 border-gray-300 rounded-md" placeholder="Nickname murid" />
-                <input type="text" name="students[${studentIndex}][full_name]" class="flex-1 border-gray-300 rounded-md" placeholder="Nama lengkap (opsional)" />
-                <button type="button" onclick="this.closest('.student-row').remove()" class="text-rose-500 hover:text-rose-700 text-sm">&times;</button>
+                <input type="text" name="students[${studentIndex}][nickname]" class="flex-1 min-w-[140px] border-gray-300 rounded-md" placeholder="Nickname murid" />
+                <input type="text" name="students[${studentIndex}][full_name]" class="flex-1 min-w-[160px] border-gray-300 rounded-md" placeholder="Nama lengkap (opsional)" />
+                <input type="text" name="students[${studentIndex}][sekolah]" class="flex-1 min-w-[140px] border-gray-300 rounded-md" placeholder="Sekolah (opsional)" />
+                <select name="students[${studentIndex}][kelas]" class="w-32 min-w-[120px] border-gray-300 rounded-md">${kelasOptions}</select>
+                <button type="button" onclick="this.closest('.student-row').remove()" class="text-rose-500 hover:text-rose-700 text-sm px-1">&times;</button>
             `;
             container.appendChild(div);
             studentIndex++;

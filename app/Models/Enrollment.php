@@ -119,7 +119,7 @@ class Enrollment extends Model
 
     /**
      * Get parent rate with attendance penalty applied.
-     * If student attends less than 50% of agreed sessions, base rate increases by Rp 5.000.
+     * If student attends less than 50% of agreed sessions, base rate increases by the configured penalty per session.
      * Note: only applies to privat enrollments. For kelas, billing uses fixed 50% rule, not this method.
      */
     public function applyAttendancePenaltyParent(int $presentCount, int $totalSessionsThisMonth, int $studentTotalPresent): int
@@ -130,7 +130,7 @@ class Enrollment extends Model
         $baseRate = $this->getParentRateForCount($presentCount);
 
         if ($this->hasAttendancePenalty($totalSessionsThisMonth, $studentTotalPresent)) {
-            return $baseRate + 5000;
+            return $baseRate + $this->fines()->getAttendancePenaltyPerSession(1);
         }
 
         return $baseRate;
@@ -138,7 +138,7 @@ class Enrollment extends Model
 
     /**
      * Get teacher rate with attendance penalty applied.
-     * If student attends less than 50% of agreed sessions, base rate increases by Rp 5.000.
+     * If student attends less than 50% of agreed sessions, base rate increases by the configured penalty per session.
      * Note: only applies to privat enrollments. For kelas, billing uses fixed rate.
      */
     public function applyAttendancePenaltyTeacher(int $presentCount, int $totalSessionsThisMonth, int $studentTotalPresent): int
@@ -149,7 +149,7 @@ class Enrollment extends Model
         $baseRate = $this->getTeacherRateForCount($presentCount);
 
         if ($this->hasAttendancePenalty($totalSessionsThisMonth, $studentTotalPresent)) {
-            return $baseRate + 5000;
+            return $baseRate + $this->fines()->getAttendancePenaltyPerSession(1);
         }
 
         return $baseRate;

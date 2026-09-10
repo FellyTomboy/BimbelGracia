@@ -6,158 +6,84 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\MonthlyAttendance;
+use App\Models\ParentModel;
+use App\Models\PaymentProof;
 use App\Models\Student;
 use App\Models\Teacher;
+use App\Services\CalculationService;
 use App\Services\MonthlySnapshotSyncService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class FinanceController extends Controller
 {
+    public function __construct(
+        private CalculationService $calculationService,
+    ) {}
+
     public function index(Request $request): View
     {
-        [$month, $year] = $this->resolvePeriod($request);
-
-        // Private gross revenue — exclude attendances with pending parent review
-        $privatGross = DB::table('enrollment_attendances')
-            ->join('enrollments', 'enrollment_attendances.enrollment_id', '=', 'enrollments.id')
-            ->join('attendance_student', 'enrollment_attendances.id', '=', 'attendance_student.attendance_id')
-            ->join('programs', 'enrollments.program_id', '=', 'programs.id')
-            ->whereIn('enrollment_attendances.status_validation', ['terima', 'terlambat'])
-            ->where(function ($q) {
-                $q->whereNull('enrollment_attendances.parent_review_status')
-                  ->orWhere('enrollment_attendances.parent_review_status', '!=', 'pending');
-            })
-            ->where('enrollment_attendances.month', $month)
-            ->where('enrollment_attendances.year', $year)
-            ->where('enrollments.type', '!=', 'kelas')
-            ->sum(DB::raw('attendance_student.total_present * enrollment_attendances.parent_rate'));
-
-        // Class gross revenue: per student per enrollment per month with 50% attendance rule
-        // Subquery aggregates student attendance across all sessions in the month,
-        // then outer query applies the monthly package rate correctly (once per student per enrollment).
-        $classGrossRaw = DB::table('enrollment_attendances as ea')
-            ->join('enrollments as e', 'ea.enrollment_id', '=', 'e.id')
-            ->join('attendance_student as ats', 'ea.id', '=', 'ats.attendance_id')
-            ->selectRaw('SUM(
-                CASE
-                    WHEN att_pct.att_pct <= 0.5 THEN ROUND(ea.parent_rate * 0.5)
-                    WHEN att_pct.att_pct > 0.5 THEN ea.parent_rate
-                    ELSE 0
-                END
-            ) as class_revenue')
-            ->join(DB::raw("(
-                SELECT ea_inner.enrollment_id, ats_inner.student_id,
-                       SUM(ats_inner.total_present) * 1.0 /
-                       NULLIF(MAX(e_inner.agreed_sessions_per_month), 0) as att_pct
-                FROM enrollment_attendances ea_inner
-                JOIN enrollments e_inner ON ea_inner.enrollment_id = e_inner.id
-                JOIN attendance_student ats_inner ON ea_inner.id = ats_inner.attendance_id
-                WHERE ea_inner.status_validation IN ('terima','terlambat')
-                  AND (ea_inner.parent_review_status IS NULL OR ea_inner.parent_review_status != 'pending')
-                  AND e_inner.type = 'kelas'
-                  AND ea_inner.month = ?
-                  AND ea_inner.year = ?
-                GROUP BY ea_inner.enrollment_id, ats_inner.student_id
-            ) AS att_pct", [$month, $year]), function ($join) {
-                $join->on('ea.enrollment_id', '=', 'att_pct.enrollment_id')
-                     ->on('ats.student_id', '=', 'att_pct.student_id');
-            })
-            ->addBinding([$month, $year], 'join')
-            ->whereIn('ea.status_validation', ['terima', 'terlambat'])
-            ->where(function ($q) {
-                $q->whereNull('ea.parent_review_status')
-                  ->orWhere('ea.parent_review_status', '!=', 'pending');
-            })
-            ->where('ea.month', $month)
-            ->where('ea.year', $year)
-            ->where('e.type', '=', 'kelas')
-            ->value('class_revenue') ?? 0;
-
-        $activeClassStudents = DB::table('monthly_student_snapshots')
-            ->where('month', $month)
-            ->where('year', $year)
-            ->value('class_students_count') ?? 0;
-
-        $gross = $privatGross + $classGrossRaw;
-
-        // Teacher cost: privat (full rate for terima, 90% for terlambat)
-        // Mathematically equivalent to: gross - (late_count * rate * 0.1)
-        //   Terima:   pays full rate                          → rate × 1.0
-        //   Terlambat: pays 90% of rate (10% deducted)     → rate × 0.9
-        // This mirrors CalculationService/AnalysisController formula: penalty = lateCount × rate × 0.1
-        $privatTeacherCostRaw = DB::table('enrollment_attendances')
-            ->join('enrollments', 'enrollment_attendances.enrollment_id', '=', 'enrollments.id')
-            ->join('programs', 'enrollments.program_id', '=', 'programs.id')
-            ->selectRaw('
-                SUM(CASE WHEN enrollment_attendances.status_validation = ? THEN enrollment_attendances.teacher_rate ELSE 0 END) +
-                SUM(CASE WHEN enrollment_attendances.status_validation = ? THEN enrollment_attendances.teacher_rate * 0.9 ELSE 0 END) as total
-            ', ['terima', 'terlambat'])
-            ->whereIn('enrollment_attendances.status_validation', ['terima', 'terlambat'])
-            ->where(function ($q) {
-                $q->whereNull('enrollment_attendances.parent_review_status')
-                  ->orWhere('enrollment_attendances.parent_review_status', '!=', 'pending');
-            })
-            ->where('enrollment_attendances.month', $month)
-            ->where('enrollment_attendances.year', $year)
-            ->where('enrollments.type', '!=', 'kelas')
-            ->value('total') ?? 0;
-
-        // Teacher cost: kelas (full rate for terima, 90% for terlambat)
-        // Same formula as privat — rate is stored as snapshot in enrollment_attendances.teacher_rate
-        $classTeacherCostRaw = DB::table('enrollment_attendances')
-            ->join('enrollments', 'enrollment_attendances.enrollment_id', '=', 'enrollments.id')
-            ->selectRaw('
-                SUM(CASE WHEN enrollment_attendances.status_validation = ? THEN enrollment_attendances.teacher_rate ELSE 0 END) +
-                SUM(CASE WHEN enrollment_attendances.status_validation = ? THEN enrollment_attendances.teacher_rate * 0.9 ELSE 0 END) as total
-            ', ['terima', 'terlambat'])
-            ->whereIn('enrollment_attendances.status_validation', ['terima', 'terlambat'])
-            ->where(function ($q) {
-                $q->whereNull('enrollment_attendances.parent_review_status')
-                  ->orWhere('enrollment_attendances.parent_review_status', '!=', 'pending');
-            })
-            ->where('enrollment_attendances.month', $month)
-            ->where('enrollment_attendances.year', $year)
-            ->where('enrollments.type', '=', 'kelas')
-            ->value('total') ?? 0;
-
-        $teacherCost = (int) $privatTeacherCostRaw + (int) $classTeacherCostRaw;
-
-        $net = $gross - $teacherCost;
-
-        $activeStudents = Student::query()
-            ->where('status', 'active')
-            ->count();
-
-        $activeTeachers = Teacher::query()
-            ->where('status', 'active')
-            ->count();
-
-        $needsFix = MonthlyAttendance::query()
-            ->where('status_validation', 'ditolak')
-            ->where('month', $month)
-            ->where('year', $year)
-            ->count();
-
         $mode = $this->resolveMode($request);
         [$rangeStart, $rangeEnd] = $this->resolveRange($request, $mode);
 
-        $chartFinance = $this->buildFinanceChartByRange($rangeStart, $rangeEnd, $mode);
+        // All financial metrics use CalculationService, aggregated over the selected range
+        $rangeFinance = $this->buildFinanceChartByRange($rangeStart, $rangeEnd, $mode);
+        $privatGrossRange = array_sum($rangeFinance['privatGross']);
+        $kelasGrossRange = array_sum($rangeFinance['kelasGross']);
+        $privatNetRange = array_sum($rangeFinance['privatNet']);
+        $kelasNetRange = array_sum($rangeFinance['kelasNet']);
+
+        $allTeacherSalariesRange = $this->buildTeacherCostByRange($rangeStart, $rangeEnd, $mode);
+        $privatTeacherCost = $allTeacherSalariesRange['privat'];
+        $kelasTeacherCost = $allTeacherSalariesRange['kelas'];
+        $teacherCost = $privatTeacherCost + $kelasTeacherCost;
+
+        $gross = $privatGrossRange + $kelasGrossRange;
+        $net = $gross - $teacherCost;
+
+        $chartFinance = $rangeFinance;
         $chartStudents = $this->buildStudentsChartByRange($rangeStart, $rangeEnd, $mode);
         $chartTeachers = $this->buildTeachersChartByRange($rangeStart, $rangeEnd, $mode);
+
+        // Build a readable label for the selected period
+        $singleMonth = $rangeStart->format('Y-m') === $rangeEnd->format('Y-m');
+        $periodLabel = $singleMonth
+            ? $rangeStart->format('F Y')
+            : $rangeStart->format('M Y') . ' – ' . $rangeEnd->format('M Y');
+
+        // Global counts (not period-specific)
+        $activeStudents = Student::query()->where('status', 'active')->count();
+        $activeTeachers = Teacher::query()->where('status', 'active')->count();
+
+        // needsFix: count rejected attendances across the full range using CalculationService context
+        $needsFix = $this->countNeedsFixByRange($rangeStart, $rangeEnd, $mode);
+
+        // Snapshot-based counts: average across the range for a stable KPI
+        [$activeClassStudents, $activePrivateStudents] = $this->avgStudentSnapshotsByRange($rangeStart, $rangeEnd, $mode);
+        $activeTeachersPeriod = $this->avgTeacherSnapshotsByRange($rangeStart, $rangeEnd, $mode);
+
+        // Single-month values (for URL param links that need a specific month)
+        [$month, $year] = $this->resolvePeriod($request);
 
         return view('admin.finance.dashboard', [
             'month' => $month,
             'year' => $year,
-            'gross' => $gross,
-            'teacherCost' => $teacherCost,
-            'net' => $net,
+            'periodLabel' => $periodLabel,
+            'privatGross' => (int) $privatGrossRange,
+            'kelasGross' => (int) $kelasGrossRange,
+            'privatTeacherCost' => (int) $privatTeacherCost,
+            'kelasTeacherCost' => (int) $kelasTeacherCost,
+            'privatNet' => (int) $privatNetRange,
+            'kelasNet' => (int) $kelasNetRange,
             'activeStudents' => $activeStudents,
             'activeClassStudents' => $activeClassStudents,
+            'activePrivateStudents' => $activePrivateStudents,
             'activeTeachers' => $activeTeachers,
+            'activeTeachersPeriod' => $activeTeachersPeriod,
             'needsFix' => $needsFix,
 
             'mode' => $mode,
@@ -257,109 +183,64 @@ class FinanceController extends Controller
 
     private function buildFinanceChartByRange(Carbon $rangeStart, Carbon $rangeEnd, string $mode): array
     {
+        // Pre-fetch all attendances for the range with needed relations
+        $allAttendances = MonthlyAttendance::with([
+            'enrollment.program',
+            'enrollment.teacher',
+            'sessionTeacher',
+            'students',
+        ])
+            ->where('year', '>=', $rangeStart->year)
+            ->where('year', '<=', $rangeEnd->year)
+            ->whereIn('status_validation', ['terima', 'terlambat'])
+            ->where(fn ($q) =>
+                $q->whereNull('parent_review_status')
+                  ->orWhere('parent_review_status', '!=', 'pending')
+            )
+            ->get();
+
         if ($mode === 'yearly') {
             $years = range($rangeStart->year, $rangeEnd->year);
             $labels = array_map(fn ($y) => (string) $y, $years);
 
-            $privatGross = DB::table('enrollment_attendances')
-                ->join('enrollments', 'enrollment_attendances.enrollment_id', '=', 'enrollments.id')
-                ->join('attendance_student', 'enrollment_attendances.id', '=', 'attendance_student.attendance_id')
-                ->join('programs', 'enrollments.program_id', '=', 'programs.id')
-                ->selectRaw('enrollment_attendances.year, SUM(attendance_student.total_present * enrollment_attendances.parent_rate) as gross')
-                ->whereIn('enrollment_attendances.status_validation', ['terima', 'terlambat'])
-                ->where(function ($q) {
-                    $q->whereNull('enrollment_attendances.parent_review_status')
-                      ->orWhere('enrollment_attendances.parent_review_status', '!=', 'pending');
-                })
-                ->whereBetween('enrollment_attendances.year', [$rangeStart->year, $rangeEnd->year])
-                ->where('enrollments.type', '!=', 'kelas')
-                ->groupBy('enrollment_attendances.year')
-                ->pluck('gross', 'year');
+            $privatGrossSeries = [];
+            $privatNetSeries = [];
+            $kelasGrossSeries = [];
+            $kelasNetSeries = [];
 
-            // Class gross: per student per enrollment per year with 50% attendance rule
-            // att_pct subquery is correlated to outer ea via enrollment_id+student_id, aggregates all months
-            $attPctSubYear = DB::table('enrollment_attendances as ea2')
-                ->join('enrollments as e2', 'ea2.enrollment_id', '=', 'e2.id')
-                ->join('attendance_student as ats2', 'ea2.id', '=', 'ats2.attendance_id')
-                ->selectRaw('SUM(ats2.total_present) * 1.0 / NULLIF(MAX(e2.agreed_sessions_per_month), 0)')
-                ->whereColumn('ea2.enrollment_id', 'ea.enrollment_id')
-                ->whereColumn('ats2.student_id', 'ats.student_id')
-                ->whereIn('ea2.status_validation', ['terima', 'terlambat'])
-                ->where(function ($q) {
-                    $q->whereNull('ea2.parent_review_status')
-                      ->orWhere('ea2.parent_review_status', '!=', 'pending');
-                })
-                ->where('e2.type', '=', 'kelas')
-                ->whereBetween('ea2.year', [$rangeStart->year, $rangeEnd->year])
-                ->groupBy('ea2.enrollment_id', 'ats2.student_id');
-
-            $classGrossRaw = DB::table('enrollment_attendances as ea')
-                ->join('enrollments as e', 'ea.enrollment_id', '=', 'e.id')
-                ->join('attendance_student as ats', 'ea.id', '=', 'ats.attendance_id')
-                ->selectRaw("ea.year, ea.parent_rate, ({$attPctSubYear->toSql()}) as att_pct")
-                ->mergeBindings($attPctSubYear)
-                ->whereIn('ea.status_validation', ['terima', 'terlambat'])
-                ->where(function ($q) {
-                    $q->whereNull('ea.parent_review_status')
-                      ->orWhere('ea.parent_review_status', '!=', 'pending');
-                })
-                ->where('e.type', '=', 'kelas')
-                ->whereBetween('ea.year', [$rangeStart->year, $rangeEnd->year])
-                ->get();
-
-            $classGrossByYear = [];
-            foreach ($classGrossRaw as $row) {
-                if (!isset($classGrossByYear[$row->year])) {
-                    $classGrossByYear[$row->year] = 0;
-                }
-                if ($row->att_pct !== null) {
-                    $classGrossByYear[$row->year] += $row->att_pct <= 0.5
-                        ? (int) round($row->parent_rate * 0.5)
-                        : (int) $row->parent_rate;
-                }
-            }
-            $classGross = collect($classGrossByYear);
-
-            // Teacher cost: privat only
-            $privatCost = DB::table('enrollment_attendances')
-                ->join('enrollments', 'enrollment_attendances.enrollment_id', '=', 'enrollments.id')
-                ->join('programs', 'enrollments.program_id', '=', 'programs.id')
-                ->selectRaw('enrollment_attendances.year, SUM(CASE WHEN enrollment_attendances.status_validation = ? THEN enrollment_attendances.teacher_rate WHEN enrollment_attendances.status_validation = ? THEN enrollment_attendances.teacher_rate * 0.9 ELSE 0 END) as cost', ['terima', 'terlambat'])
-                // Terima: rate × 1.0; Terlambat: rate × 0.9 (equivalent to: gross - lateCount × rate × 0.1)
-                ->whereIn('enrollment_attendances.status_validation', ['terima', 'terlambat'])
-                ->where(function ($q) {
-                    $q->whereNull('enrollment_attendances.parent_review_status')
-                      ->orWhere('enrollment_attendances.parent_review_status', '!=', 'pending');
-                })
-                ->whereBetween('enrollment_attendances.year', [$rangeStart->year, $rangeEnd->year])
-                ->where('enrollments.type', '!=', 'kelas')
-                ->groupBy('enrollment_attendances.year')
-                ->pluck('cost', 'year');
-
-            // Teacher cost: kelas only
-            $kelasCost = DB::table('enrollment_attendances')
-                ->join('enrollments', 'enrollment_attendances.enrollment_id', '=', 'enrollments.id')
-                ->selectRaw('enrollment_attendances.year, SUM(CASE WHEN enrollment_attendances.status_validation = ? THEN enrollment_attendances.teacher_rate WHEN enrollment_attendances.status_validation = ? THEN enrollment_attendances.teacher_rate * 0.9 ELSE 0 END) as cost', ['terima', 'terlambat'])
-                ->whereIn('enrollment_attendances.status_validation', ['terima', 'terlambat'])
-                ->where(function ($q) {
-                    $q->whereNull('enrollment_attendances.parent_review_status')
-                      ->orWhere('enrollment_attendances.parent_review_status', '!=', 'pending');
-                })
-                ->whereBetween('enrollment_attendances.year', [$rangeStart->year, $rangeEnd->year])
-                ->where('enrollments.type', '=', 'kelas')
-                ->groupBy('enrollment_attendances.year')
-                ->pluck('cost', 'year');
-
-            $grossSeries = [];
-            $netSeries = [];
             foreach ($years as $y) {
-                $g = (float) ($privatGross[$y] ?? 0) + (float) ($classGross[$y] ?? 0);
-                $c = (float) ($privatCost[$y] ?? 0) + (float) ($kelasCost[$y] ?? 0);
-                $grossSeries[] = $g;
-                $netSeries[] = $g - $c;
+                $yearAttendances = $allAttendances->where('year', $y);
+                $privatAtt = $yearAttendances->filter(fn ($a) => $a->enrollment?->isPrivat());
+                $classAtt = $yearAttendances->filter(fn ($a) => $a->enrollment?->isKelas());
+
+                $privatBillings = $this->calculationService->calculateAllStudentBillings(1, $y, $privatAtt);
+                $classBillings = $this->calculationService->calculateAllStudentBillings(1, $y, $classAtt);
+                $allSalaries = $this->calculationService->calculateAllTeacherSalaries(1, $y, $yearAttendances);
+
+                $pg = collect($privatBillings)->sum(fn ($b) => $b['billing']['grand_total'] ?? 0);
+                $kg = collect($classBillings)->sum(fn ($b) => $b['billing']['grand_total'] ?? 0);
+
+                $privatCost = 0;
+                $kelasCost = 0;
+                foreach ($allSalaries as $salary) {
+                    $rows = $salary['billing']['rows'] ?? collect();
+                    $privatCost += $rows->whereIn('type', ['privat', 'privat_tanpa_murid'])->sum('total');
+                    $kelasCost += $rows->whereIn('type', ['kelas', 'kelas_tanpa_murid'])->sum('total');
+                }
+
+                $privatGrossSeries[] = $pg;
+                $privatNetSeries[] = $pg - $privatCost;
+                $kelasGrossSeries[] = $kg;
+                $kelasNetSeries[] = $kg - $kelasCost;
             }
 
-            return ['labels' => $labels, 'gross' => $grossSeries, 'net' => $netSeries];
+            return [
+                'labels' => $labels,
+                'privatGross' => $privatGrossSeries,
+                'privatNet' => $privatNetSeries,
+                'kelasGross' => $kelasGrossSeries,
+                'kelasNet' => $kelasNetSeries,
+            ];
         }
 
         $periods = collect();
@@ -370,148 +251,47 @@ class FinanceController extends Controller
         }
 
         $labels = $periods->map(fn ($d) => $d->format('M Y'))->values()->all();
-        $conditions = $periods->map(fn ($d) => ['month' => $d->month, 'year' => $d->year])->values()->all();
-        $periodWhere = collect($conditions)->map(fn ($c) => "(ea.month = {$c['month']} AND ea.year = {$c['year']})")->implode(' OR ');
 
-        $privatGross = DB::table('enrollment_attendances')
-            ->join('enrollments', 'enrollment_attendances.enrollment_id', '=', 'enrollments.id')
-            ->join('attendance_student', 'enrollment_attendances.id', '=', 'attendance_student.attendance_id')
-            ->join('programs', 'enrollments.program_id', '=', 'programs.id')
-            ->selectRaw('enrollment_attendances.year, enrollment_attendances.month, SUM(attendance_student.total_present * enrollment_attendances.parent_rate) as gross')
-            ->whereIn('enrollment_attendances.status_validation', ['terima', 'terlambat'])
-            ->where(function ($q) {
-                $q->whereNull('enrollment_attendances.parent_review_status')
-                  ->orWhere('enrollment_attendances.parent_review_status', '!=', 'pending');
-            })
-            ->where('enrollments.type', '!=', 'kelas')
-            ->where(function ($builder) use ($conditions) {
-                foreach ($conditions as $condition) {
-                    $builder->orWhere(fn ($sub) => $sub
-                        ->where('enrollment_attendances.month', $condition['month'])
-                        ->where('enrollment_attendances.year', $condition['year'])
-                    );
-                }
-            })
-            ->groupBy('enrollment_attendances.year', 'enrollment_attendances.month')
-            ->get()
-            ->keyBy(fn ($r) => sprintf('%04d-%02d', $r->year, $r->month));
+        $privatGrossSeries = [];
+        $privatNetSeries = [];
+        $kelasGrossSeries = [];
+        $kelasNetSeries = [];
 
-        // Class gross: per student per enrollment per month with 50% attendance rule
-        // att_pct subquery is correlated via whereColumn; selected as a column, referenced in CASE
-        $attPctSub = DB::table('enrollment_attendances as ea2')
-            ->join('enrollments as e2', 'ea2.enrollment_id', '=', 'e2.id')
-            ->join('attendance_student as ats2', 'ea2.id', '=', 'ats2.attendance_id')
-            ->selectRaw('SUM(ats2.total_present) * 1.0 / NULLIF(MAX(e2.agreed_sessions_per_month), 0)')
-            ->whereColumn('ea2.enrollment_id', 'ea.enrollment_id')
-            ->whereColumn('ats2.student_id', 'ats.student_id')
-            ->whereColumn('ea2.month', 'ea.month')
-            ->whereColumn('ea2.year', 'ea.year')
-            ->whereIn('ea2.status_validation', ['terima', 'terlambat'])
-            ->where(function ($q) {
-                $q->whereNull('ea2.parent_review_status')
-                  ->orWhere('ea2.parent_review_status', '!=', 'pending');
-            })
-            ->where('e2.type', '=', 'kelas')
-            ->where(function ($builder) use ($conditions) {
-                foreach ($conditions as $condition) {
-                    $builder->orWhere(fn ($sub) => $sub
-                        ->where('ea2.month', $condition['month'])
-                        ->where('ea2.year', $condition['year'])
-                    );
-                }
-            })
-            ->groupBy('ea2.enrollment_id', 'ats2.student_id', 'ea2.month', 'ea2.year');
-
-        $classGrossRaw = DB::table('enrollment_attendances as ea')
-            ->join('enrollments as e', 'ea.enrollment_id', '=', 'e.id')
-            ->join('attendance_student as ats', 'ea.id', '=', 'ats.attendance_id')
-            ->selectRaw("ea.year, ea.month, ea.parent_rate, ({$attPctSub->toSql()}) as att_pct")
-            ->mergeBindings($attPctSub)
-            ->whereIn('ea.status_validation', ['terima', 'terlambat'])
-            ->where(function ($q) {
-                $q->whereNull('ea.parent_review_status')
-                  ->orWhere('ea.parent_review_status', '!=', 'pending');
-            })
-            ->where('e.type', '=', 'kelas')
-            ->where(function ($builder) use ($conditions) {
-                foreach ($conditions as $condition) {
-                    $builder->orWhere(fn ($sub) => $sub
-                        ->where('ea.month', $condition['month'])
-                        ->where('ea.year', $condition['year'])
-                    );
-                }
-            })
-            ->get();
-
-        // Compute gross from att_pct column in PHP
-        $classGross = [];
-        foreach ($classGrossRaw as $row) {
-            $key = sprintf('%04d-%02d', $row->year, $row->month);
-            if (!isset($classGross[$key])) {
-                $classGross[$key] = 0;
-            }
-            if ($row->att_pct !== null) {
-                $classGross[$key] += $row->att_pct <= 0.5
-                    ? (int) round($row->parent_rate * 0.5)
-                    : (int) $row->parent_rate;
-            }
-        }
-        $classGross = collect($classGross)->map(fn ($v) => ['gross' => $v])->keyBy(fn ($r, $k) => $k);
-
-        $privatCost = DB::table('enrollment_attendances')
-            ->join('enrollments', 'enrollment_attendances.enrollment_id', '=', 'enrollments.id')
-            ->join('programs', 'enrollments.program_id', '=', 'programs.id')
-            ->selectRaw('enrollment_attendances.year, enrollment_attendances.month, SUM(CASE WHEN enrollment_attendances.status_validation = ? THEN enrollment_attendances.teacher_rate WHEN enrollment_attendances.status_validation = ? THEN enrollment_attendances.teacher_rate * 0.9 ELSE 0 END) as cost', ['terima', 'terlambat'])
-            ->whereIn('enrollment_attendances.status_validation', ['terima', 'terlambat'])
-            ->where(function ($q) {
-                $q->whereNull('enrollment_attendances.parent_review_status')
-                  ->orWhere('enrollment_attendances.parent_review_status', '!=', 'pending');
-            })
-            ->where('enrollments.type', '!=', 'kelas')
-            ->where(function ($builder) use ($conditions) {
-                foreach ($conditions as $condition) {
-                    $builder->orWhere(fn ($sub) => $sub
-                        ->where('enrollment_attendances.month', $condition['month'])
-                        ->where('enrollment_attendances.year', $condition['year'])
-                    );
-                }
-            })
-            ->groupBy('enrollment_attendances.year', 'enrollment_attendances.month')
-            ->get()
-            ->keyBy(fn ($r) => sprintf('%04d-%02d', $r->year, $r->month));
-
-        $kelasCost = DB::table('enrollment_attendances')
-            ->join('enrollments', 'enrollment_attendances.enrollment_id', '=', 'enrollments.id')
-            ->selectRaw('enrollment_attendances.year, enrollment_attendances.month, SUM(CASE WHEN enrollment_attendances.status_validation = ? THEN enrollment_attendances.teacher_rate WHEN enrollment_attendances.status_validation = ? THEN enrollment_attendances.teacher_rate * 0.9 ELSE 0 END) as cost', ['terima', 'terlambat'])
-            ->whereIn('enrollment_attendances.status_validation', ['terima', 'terlambat'])
-            ->where(function ($q) {
-                $q->whereNull('enrollment_attendances.parent_review_status')
-                  ->orWhere('enrollment_attendances.parent_review_status', '!=', 'pending');
-            })
-            ->where('enrollments.type', '=', 'kelas')
-            ->where(function ($builder) use ($conditions) {
-                foreach ($conditions as $condition) {
-                    $builder->orWhere(fn ($sub) => $sub
-                        ->where('enrollment_attendances.month', $condition['month'])
-                        ->where('enrollment_attendances.year', $condition['year'])
-                    );
-                }
-            })
-            ->groupBy('enrollment_attendances.year', 'enrollment_attendances.month')
-            ->get()
-            ->keyBy(fn ($r) => sprintf('%04d-%02d', $r->year, $r->month));
-
-        $grossSeries = [];
-        $netSeries = [];
         foreach ($periods as $d) {
-            $key = $d->format('Y-m');
-            $g = (float) ($privatGross[$key]->gross ?? 0) + (float) ($classGross[$key]->gross ?? 0);
-            $c = (float) ($privatCost[$key]->cost ?? 0) + (float) ($kelasCost[$key]->cost ?? 0);
-            $grossSeries[] = $g;
-            $netSeries[] = $g - $c;
+            $m = $d->month;
+            $y = $d->year;
+            $periodAtt = $allAttendances->filter(fn ($a) => $a->month === $m && $a->year === $y);
+            $privatAtt = $periodAtt->filter(fn ($a) => $a->enrollment?->isPrivat());
+            $classAtt = $periodAtt->filter(fn ($a) => $a->enrollment?->isKelas());
+
+            $privatBillings = $this->calculationService->calculateAllStudentBillings($m, $y, $privatAtt);
+            $classBillings = $this->calculationService->calculateAllStudentBillings($m, $y, $classAtt);
+            $allSalaries = $this->calculationService->calculateAllTeacherSalaries($m, $y, $periodAtt);
+
+            $pg = collect($privatBillings)->sum(fn ($b) => $b['billing']['grand_total'] ?? 0);
+            $kg = collect($classBillings)->sum(fn ($b) => $b['billing']['grand_total'] ?? 0);
+
+            $privatCost = 0;
+            $kelasCost = 0;
+            foreach ($allSalaries as $salary) {
+                $rows = $salary['billing']['rows'] ?? collect();
+                $privatCost += $rows->whereIn('type', ['privat', 'privat_tanpa_murid'])->sum('total');
+                $kelasCost += $rows->whereIn('type', ['kelas', 'kelas_tanpa_murid'])->sum('total');
+            }
+
+            $privatGrossSeries[] = $pg;
+            $privatNetSeries[] = $pg - $privatCost;
+            $kelasGrossSeries[] = $kg;
+            $kelasNetSeries[] = $kg - $kelasCost;
         }
 
-        return ['labels' => $labels, 'gross' => $grossSeries, 'net' => $netSeries];
+        return [
+            'labels' => $labels,
+            'privatGross' => $privatGrossSeries,
+            'privatNet' => $privatNetSeries,
+            'kelasGross' => $kelasGrossSeries,
+            'kelasNet' => $kelasNetSeries,
+        ];
     }
 
     private function buildStudentsChartByRange(Carbon $rangeStart, Carbon $rangeEnd, string $mode): array
@@ -614,5 +394,453 @@ class FinanceController extends Controller
         }
 
         return ['labels' => $labels, 'series' => $series];
+    }
+
+    private function buildTeacherCostByRange(Carbon $rangeStart, Carbon $rangeEnd, string $mode): array
+    {
+        $allAttendances = MonthlyAttendance::with([
+            'enrollment.program',
+            'enrollment.teacher',
+            'sessionTeacher',
+            'students',
+        ])
+            ->where('year', '>=', $rangeStart->year)
+            ->where('year', '<=', $rangeEnd->year)
+            ->whereIn('status_validation', ['terima', 'terlambat'])
+            ->where(fn ($q) =>
+                $q->whereNull('parent_review_status')
+                  ->orWhere('parent_review_status', '!=', 'pending')
+            )
+            ->get();
+
+        $privatTotal = 0;
+        $kelasTotal = 0;
+
+        if ($mode === 'yearly') {
+            foreach (range($rangeStart->year, $rangeEnd->year) as $y) {
+                $yearAtt = $allAttendances->where('year', $y);
+                $salaries = $this->calculationService->calculateAllTeacherSalaries(1, $y, $yearAtt);
+                [$p, $k] = $this->sumTeacherCostFromSalaries($salaries);
+                $privatTotal += $p;
+                $kelasTotal += $k;
+            }
+        } else {
+            $cursor = $rangeStart->copy()->startOfMonth();
+            while ($cursor->lte($rangeEnd)) {
+                $m = $cursor->month;
+                $y = $cursor->year;
+                $periodAtt = $allAttendances->filter(fn ($a) => $a->month === $m && $a->year === $y);
+                $salaries = $this->calculationService->calculateAllTeacherSalaries($m, $y, $periodAtt);
+                [$p, $k] = $this->sumTeacherCostFromSalaries($salaries);
+                $privatTotal += $p;
+                $kelasTotal += $k;
+                $cursor->addMonthNoOverflow();
+            }
+        }
+
+        return ['privat' => (int) $privatTotal, 'kelas' => (int) $kelasTotal];
+    }
+
+    private function countNeedsFixByRange(Carbon $rangeStart, Carbon $rangeEnd, string $mode): int
+    {
+        if ($mode === 'yearly') {
+            return MonthlyAttendance::query()
+                ->where('status_validation', 'ditolak')
+                ->whereBetween('year', [$rangeStart->year, $rangeEnd->year])
+                ->count();
+        }
+
+        $pairs = collect();
+        $cursor = $rangeStart->copy()->startOfMonth();
+        while ($cursor->lte($rangeEnd)) {
+            $pairs->push(['year' => $cursor->year, 'month' => $cursor->month]);
+            $cursor->addMonthNoOverflow();
+        }
+
+        return MonthlyAttendance::query()
+            ->where('status_validation', 'ditolak')
+            ->where(function ($q) use ($pairs) {
+                foreach ($pairs as $p) {
+                    $q->orWhere(fn ($sub) => $sub->where('year', $p['year'])->where('month', $p['month']));
+                }
+            })
+            ->count();
+    }
+
+    private function avgStudentSnapshotsByRange(Carbon $rangeStart, Carbon $rangeEnd, string $mode): array
+    {
+        if ($mode === 'yearly') {
+            $row = DB::table('monthly_student_snapshots')
+                ->whereBetween('year', [$rangeStart->year, $rangeEnd->year])
+                ->selectRaw('AVG(class_students_count) as class_avg, AVG(private_students_count) as private_avg')
+                ->first();
+            return [(int) round((float) ($row->class_avg ?? 0)), (int) round((float) ($row->private_avg ?? 0))];
+        }
+
+        $pairs = collect();
+        $cursor = $rangeStart->copy()->startOfMonth();
+        while ($cursor->lte($rangeEnd)) {
+            $pairs->push(['year' => $cursor->year, 'month' => $cursor->month]);
+            $cursor->addMonthNoOverflow();
+        }
+
+        $row = DB::table('monthly_student_snapshots')
+            ->where(function ($q) use ($pairs) {
+                foreach ($pairs as $p) {
+                    $q->orWhere(fn ($sub) => $sub->where('year', $p['year'])->where('month', $p['month']));
+                }
+            })
+            ->selectRaw('AVG(class_students_count) as class_avg, AVG(private_students_count) as private_avg')
+            ->first();
+        return [(int) round((float) ($row->class_avg ?? 0)), (int) round((float) ($row->private_avg ?? 0))];
+    }
+
+    private function avgTeacherSnapshotsByRange(Carbon $rangeStart, Carbon $rangeEnd, string $mode): int
+    {
+        if ($mode === 'yearly') {
+            $avg = DB::table('monthly_teacher_snapshots')
+                ->whereBetween('year', [$rangeStart->year, $rangeEnd->year])
+                ->selectRaw('AVG(teachers_count) as avg')
+                ->value('avg');
+            return (int) round((float) ($avg ?? 0));
+        }
+
+        $pairs = collect();
+        $cursor = $rangeStart->copy()->startOfMonth();
+        while ($cursor->lte($rangeEnd)) {
+            $pairs->push(['year' => $cursor->year, 'month' => $cursor->month]);
+            $cursor->addMonthNoOverflow();
+        }
+
+        $avg = DB::table('monthly_teacher_snapshots')
+            ->where(function ($q) use ($pairs) {
+                foreach ($pairs as $p) {
+                    $q->orWhere(fn ($sub) => $sub->where('year', $p['year'])->where('month', $p['month']));
+                }
+            })
+            ->selectRaw('AVG(teachers_count) as avg')
+            ->value('avg');
+        return (int) round((float) ($avg ?? 0));
+    }
+
+    private function sumTeacherCostFromSalaries(array $salaries): array
+    {
+        $privat = 0;
+        $kelas = 0;
+        foreach ($salaries as $salary) {
+            $rows = $salary['billing']['rows'] ?? collect();
+            $privat += $rows->whereIn('type', ['privat', 'privat_tanpa_murid'])->sum('total');
+            $kelas += $rows->whereIn('type', ['kelas', 'kelas_tanpa_murid'])->sum('total');
+        }
+        return [$privat, $kelas];
+    }
+
+    // ─── Ringkasan Payment Views ───────────────────────────────────────────────
+
+    private function monthName(int $month): string
+    {
+        $names = [1 => 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+            'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+        return $names[$month] ?? 'Bulan';
+    }
+
+    public function ortuSummary(): View
+    {
+        $allAttendances = MonthlyAttendance::with([
+            'enrollment.program',
+            'enrollment.teacher',
+            'sessionTeacher',
+            'students',
+        ])
+            ->whereIn('status_validation', ['terima', 'terlambat'])
+            ->where(fn ($q) =>
+                $q->whereNull('parent_review_status')
+                  ->orWhere('parent_review_status', '!=', 'pending')
+            )
+            ->orderBy('year')
+            ->orderBy('month')
+            ->get();
+
+        if ($allAttendances->isEmpty()) {
+            return view('admin.payments.ortu-summary', [
+                'months' => [],
+                'parents' => collect(),
+                'cellMap' => [],
+                'proofMap' => [],
+            ]);
+        }
+
+        // Step 1: Distinct months sorted ASC
+        $months = $allAttendances
+            ->map(fn ($a) => ['month' => $a->month, 'year' => $a->year])
+            ->unique(fn ($p) => $p['month'] . '-' . $p['year'])
+            ->sort(fn ($a, $b) =>
+                $a['year'] !== $b['year']
+                    ? $a['year'] <=> $b['year']
+                    : $a['month'] <=> $b['month']
+            )
+            ->values()
+            ->all();
+
+        // Step 2: Build per-(parent, month) cell data
+        $cellMap = []; // key: "parentId-month-year"
+        foreach ($allAttendances as $attendance) {
+            foreach ($attendance->students as $student) {
+                if (($student->pivot->total_present ?? 0) <= 0) {
+                    continue;
+                }
+                $parent = $student->parent;
+                if (!$parent) {
+                    continue;
+                }
+                $key = $parent->id . '-' . $attendance->month . '-' . $attendance->year;
+                if (!isset($cellMap[$key])) {
+                    $cellMap[$key] = [
+                        'parent_id' => $parent->id,
+                        'month' => $attendance->month,
+                        'year' => $attendance->year,
+                        'grand_total' => 0,
+                        'payment_status' => null,
+                        'attendance_ids' => [],
+                    ];
+                }
+                $cellMap[$key]['attendance_ids'][] = $attendance->id;
+            }
+        }
+
+        // Step 3: Compute grand_total per cell and aggregate payment status
+        foreach ($cellMap as $key => &$cell) {
+            $cellParentId = $cell['parent_id'];
+
+            // Sum grand_total across all students of this parent for this month
+            $totalGrand = 0;
+            $studentIdsSeen = [];
+            foreach ($allAttendances as $a) {
+                if ($a->month !== $cell['month'] || $a->year !== $cell['year']) {
+                    continue;
+                }
+                foreach ($a->students as $s) {
+                    if ($s->parent_id !== $cellParentId) {
+                        continue;
+                    }
+                    if (($s->pivot->total_present ?? 0) <= 0) {
+                        continue;
+                    }
+                    if (isset($studentIdsSeen[$s->id])) {
+                        continue;
+                    }
+                    $studentIdsSeen[$s->id] = true;
+
+                    $studentAtt = $allAttendances->filter(
+                        fn ($att) =>
+                            $att->month === $cell['month']
+                            && $att->year === $cell['year']
+                            && $att->students->contains('id', $s->id)
+                            && ($att->students->firstWhere('id', $s->id)->pivot->total_present ?? 0) > 0
+                    );
+
+                    $result = $this->calculationService->calculateStudentBilling(
+                        $s, $cell['month'], $cell['year'], $studentAtt
+                    );
+                    $totalGrand += $result['grand_total'];
+                }
+            }
+            $cell['grand_total'] = $totalGrand;
+
+            // Aggregate payment_status
+            if (!empty($cell['attendance_ids'])) {
+                $paidCount = MonthlyAttendance::whereIn('id', $cell['attendance_ids'])
+                    ->where('parent_payment_status', 'paid')->count();
+                $totalCount = MonthlyAttendance::whereIn('id', $cell['attendance_ids'])->count();
+                $cell['payment_status'] = ($paidCount > 0 && $paidCount === $totalCount) ? 'paid' : 'unpaid';
+            }
+        }
+        unset($cell);
+
+        // Step 4: Approved PaymentProof map
+        $proofMap = [];
+        foreach ($months as $p) {
+            $proofs = PaymentProof::where('month', $p['month'])
+                ->where('year', $p['year'])
+                ->where('status', 'approved')
+                ->pluck('parent_id')
+                ->unique();
+            foreach ($proofs as $pid) {
+                $proofMap[$pid . '-' . $p['month'] . '-' . $p['year']] = true;
+            }
+        }
+
+        // Step 5: Parents who have data (ParentModel has no status column; filter by active students)
+        $parentIdsWithData = collect($cellMap)->pluck('parent_id')->unique()->values()->all();
+        $parents = ParentModel::whereIn('id', $parentIdsWithData)
+            ->with(['students' => fn ($q) => $q->where('status', 'active')])
+            ->get()
+            ->sortBy('name')
+            ->values();
+
+        return view('admin.payments.ortu-summary', [
+            'months' => $months,
+            'parents' => $parents,
+            'cellMap' => $cellMap,
+            'proofMap' => $proofMap,
+            'monthName' => fn (int $m) => $this->monthName($m),
+        ]);
+    }
+
+    public function guruSummary(): View
+    {
+        $allAttendances = MonthlyAttendance::with([
+            'enrollment.program',
+            'enrollment.teacher',
+            'sessionTeacher',
+            'students',
+        ])
+            ->whereIn('status_validation', ['terima', 'terlambat'])
+            ->orderBy('year')
+            ->orderBy('month')
+            ->get();
+
+        if ($allAttendances->isEmpty()) {
+            return view('admin.payments.guru-summary', [
+                'months' => [],
+                'teachers' => collect(),
+                'cellMap' => [],
+            ]);
+        }
+
+        // Step 1: Distinct months
+        $months = $allAttendances
+            ->map(fn ($a) => ['month' => $a->month, 'year' => $a->year])
+            ->unique(fn ($p) => $p['month'] . '-' . $p['year'])
+            ->sort(fn ($a, $b) =>
+                $a['year'] !== $b['year']
+                    ? $a['year'] <=> $b['year']
+                    : $a['month'] <=> $b['month']
+            )
+            ->values()
+            ->all();
+
+        // Step 2: Identify active teachers with attendance records
+        $allTeacherIds = collect()
+            ->merge($allAttendances->pluck('enrollment.teacher')->filter()->unique('id')->pluck('id'))
+            ->merge($allAttendances->pluck('sessionTeacher')->filter()->unique('id')->pluck('id'))
+            ->unique(fn ($id) => $id)
+            ->values();
+
+        $teachers = Teacher::whereIn('id', $allTeacherIds)
+            ->where('status', 'active')
+            ->get()
+            ->sortBy('full_name')
+            ->values();
+
+        // Step 3: Build cell map per teacher+month
+        $cellMap = [];
+        foreach ($teachers as $teacher) {
+            $teacherId = $teacher->id;
+            foreach ($months as $p) {
+                $month = $p['month'];
+                $year = $p['year'];
+
+                $teacherAttendances = $allAttendances->filter(
+                    fn (MonthlyAttendance $a) =>
+                        $a->month === $month && $a->year === $year
+                        && (
+                            ($a->enrollment && !$a->enrollment->isKelas()
+                                && (int) ($a->enrollment->teacher_id ?? 0) === $teacherId)
+                            || ((int) ($a->session_teacher_id ?? 0) === $teacherId)
+                        )
+                );
+
+                if ($teacherAttendances->isEmpty()) {
+                    continue;
+                }
+
+                $result = $this->calculationService->calculateTeacherSalary(
+                    $teacherId, $month, $year, $teacherAttendances
+                );
+
+                $attendanceIds = collect($result['rows'])
+                    ->flatMap(fn (array $row) => $row['attendance_ids'] ?? [])
+                    ->unique()
+                    ->values()
+                    ->toArray();
+
+                $allPaid = !empty($attendanceIds)
+                    && MonthlyAttendance::whereIn('id', $attendanceIds)
+                        ->where('teacher_payment_status', 'paid')->count() === count($attendanceIds);
+                $anyHeld = !empty($attendanceIds)
+                    && MonthlyAttendance::whereIn('id', $attendanceIds)
+                        ->where('teacher_payment_status', 'held')->exists();
+
+                $paymentStatus = $allPaid ? 'paid' : ($anyHeld ? 'held' : 'unpaid');
+
+                $cellMap[$teacherId . '-' . $month . '-' . $year] = [
+                    'teacher_id' => $teacherId,
+                    'month' => $month,
+                    'year' => $year,
+                    'final_total' => $result['final_total'],
+                    'payment_status' => $paymentStatus,
+                    'attendance_ids' => $attendanceIds,
+                ];
+            }
+        }
+
+        return view('admin.payments.guru-summary', [
+            'months' => $months,
+            'teachers' => $teachers,
+            'cellMap' => $cellMap,
+            'monthName' => fn (int $m) => $this->monthName($m),
+        ]);
+    }
+
+    public function updateOrtuPaymentStatus(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'parent_id' => ['required', 'integer', 'exists:parents,id'],
+            'month' => ['required', 'integer', 'min:1', 'max:12'],
+            'year' => ['required', 'integer', 'min:2020', 'max:2100'],
+            'status' => ['required', 'in:unpaid,paid'],
+        ]);
+
+        $studentIds = Student::where('parent_id', $validated['parent_id'])->pluck('id');
+
+        $updated = MonthlyAttendance::where('month', $validated['month'])
+            ->where('year', $validated['year'])
+            ->whereHas('students', fn ($q) => $q->whereIn('students.id', $studentIds))
+            ->whereIn('status_validation', ['terima', 'terlambat'])
+            ->update(['parent_payment_status' => $validated['status']]);
+
+        return response()->json([
+            'success' => true,
+            'updated' => $updated,
+            'status' => $validated['status'],
+        ]);
+    }
+
+    public function updateGuruPaymentStatus(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'teacher_id' => ['required', 'integer', 'exists:teachers,id'],
+            'month' => ['required', 'integer', 'min:1', 'max:12'],
+            'year' => ['required', 'integer', 'min:2020', 'max:2100'],
+            'status' => ['required', 'in:unpaid,paid,held'],
+        ]);
+
+        $updated = MonthlyAttendance::where('month', $validated['month'])
+            ->where('year', $validated['year'])
+            ->where(fn ($q) =>
+                $q->whereHas('enrollment', fn ($eq) =>
+                    $eq->where('teacher_id', $validated['teacher_id'])
+                )
+                ->orWhere('session_teacher_id', $validated['teacher_id'])
+            )
+            ->whereIn('status_validation', ['terima', 'terlambat'])
+            ->update(['teacher_payment_status' => $validated['status']]);
+
+        return response()->json([
+            'success' => true,
+            'updated' => $updated,
+            'status' => $validated['status'],
+        ]);
     }
 }

@@ -23,7 +23,9 @@
 </head>
 <body>
     <div class="header">
+        @if (file_exists(public_path('storage/website/logo_bimbel.jpg')))
         <img src="{{ public_path('storage/website/logo_bimbel.jpg') }}" alt="Bimbel Gracia" />
+        @endif
         <h1>INVOICE</h1>
         <p>Bimbel Gracia</p>
     </div>
@@ -40,10 +42,9 @@
         <thead>
             <tr>
                 <th>Program / Guru</th>
-                <th>Tarif</th>
+                <th>Biaya</th>
                 <th>Jumlah</th>
                 <th>Subtotal</th>
-                <th>Diskon</th>
                 <th>Denda</th>
                 <th>Total</th>
             </tr>
@@ -51,17 +52,12 @@
         <tbody>
             @foreach ($rows as $row)
                 <tr>
-                    <td>{{ $row['program'] }} - {{ $row['teacher'] }}{{ $row['detail'] }}</td>
+                    <td>
+                        {{ $row['teacher'] }} - {{ $row['program'] }}{{ $row['detail'] ? ' ' . $row['detail'] : '' }}
+                    </td>
                     <td>Rp {{ number_format($row['rate']) }}</td>
                     <td>{{ $row['count'] }}x</td>
                     <td>Rp {{ number_format($row['subtotal']) }}</td>
-                    <td>
-                        @if (($row['discount'] ?? 0) > 0)
-                            <span style="color:#b91c1c;">-Rp {{ number_format($row['discount']) }}</span>
-                        @else
-                            -
-                        @endif
-                    </td>
                     <td>
                         @if (($row['penalty'] ?? 0) > 0)
                             <span style="color:#b91c1c;">+Rp {{ number_format($row['penalty']) }}</span>
@@ -77,6 +73,7 @@
 
     <div class="total">
         Total: Rp {{ number_format($grandTotal) }}
+        <div style="font-size:10px; color:#999; font-weight:normal; margin-top:4px;">Total akhir sudah termasuk potongan harga. Untuk info lebih detail bisa menghubungi admin.</div>
     </div>
 
     @if ($penaltyInfo && ($totalPenalty ?? 0) > 0 && app(\App\Services\AttendanceFineService::class)->isAttendancePenaltyEnabled())
@@ -84,19 +81,12 @@
             <p style="margin: 0; font-size: 11px; color: #991b1b;">
                 <strong>⚠️ Peringatan Absensi Rendah</strong><br>
                 Program <strong>{{ $penaltyInfo['program'] }}</strong>: Kehadiran {{ $penaltyInfo['attended'] }}x dari {{ $penaltyInfo['total_sessions'] }} pertemuan (target minimal {{ $penaltyInfo['agreed'] / 2 }}x).<br>
-                Tarif per pertemuan akan naik <strong>Rp 5.000</strong> bulan depan jika kehadiran tetap rendah.
+                Biaya per pertemuan akan naik <strong>{{ $attendancePenaltyDisplayLabel }}</strong> per pertemuan bulan depan jika kehadiran tetap rendah.
             </p>
         </div>
     @endif
 
-    @php
-        $bankAccounts = \App\Models\BankAccount::query()
-            ->where('status', 'active')
-            ->orderBy('id')
-            ->get();
-    @endphp
-
-    @if ($bankAccounts->isNotEmpty())
+    @if (! empty($bankAccounts) && $bankAccounts->isNotEmpty())
         <div class="bank-info" style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #e5e7eb;">
             <h3 style="font-size: 13px; font-weight: bold; margin: 0 0 8px;">Informasi Pembayaran</h3>
             <table style="width: 100%; font-size: 11px;">

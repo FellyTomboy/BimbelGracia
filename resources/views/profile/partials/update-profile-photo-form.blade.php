@@ -20,7 +20,15 @@
                 <x-input-error class="mt-2" :messages="$errors->get('profile_photo')" />
                 <p class="text-xs text-gray-500 mt-1">Format: JPG/PNG. Maks 2MB.</p>
             </div>
-            <x-primary-button>{{ __('Upload') }}</x-primary-button>
+            <div class="flex items-center gap-4">
+                <x-primary-button>{{ __('Upload') }}</x-primary-button>
+
+                @if (session('status') === 'photo-uploaded')
+                    <p x-data="{ show: true }" x-show="show" x-transition x-init="setTimeout(() => show = false, 2000)" class="text-sm text-gray-600">
+                        {{ __('Tersimpan.') }}
+                    </p>
+                @endif
+            </div>
         </form>
 
         {{-- Preview --}}

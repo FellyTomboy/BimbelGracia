@@ -48,7 +48,7 @@ class CleanupOldFiles extends Command
         $disk = Storage::disk('public');
         $count = 0;
 
-        if (!$disk->exists($directory)) {
+        if (! $disk->exists($directory)) {
             return 0;
         }
 
@@ -63,7 +63,6 @@ class CleanupOldFiles extends Command
             }
         }
 
-        // Remove empty subdirectories
         $this->removeEmptyDirectories($disk, $directory);
 
         return $count;
@@ -73,7 +72,6 @@ class CleanupOldFiles extends Command
     {
         $directories = $disk->allDirectories($directory);
 
-        // Sort by depth (deepest first)
         $directories = array_reverse($directories);
 
         foreach ($directories as $dir) {

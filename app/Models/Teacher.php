@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class Teacher extends Model
 {
@@ -43,7 +44,12 @@ class Teacher extends Model
 
     public function getDisplayNameAttribute(): string
     {
-        return trim((string) ($this->full_name ?: $this->nickname ?: '')) ?: 'Tanpa nama';
+        $fn = trim((string) ($this->full_name ?? ''));
+        $nn = trim((string) ($this->nickname ?? ''));
+        if ($fn) {
+            return $nn ? "{$fn} ({$nn})" : $fn;
+        }
+        return $nn ?: 'Tanpa nama';
     }
 
     public function getProfilePhotoUrlAttribute(): ?string
@@ -76,6 +82,21 @@ class Teacher extends Model
     public function enrollments(): HasMany
     {
         return $this->hasMany(Enrollment::class);
+    }
+
+    public function enrollmentAttendances(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            MonthlyAttendance::class,
+            Enrollment::class,
+            'teacher_id',
+            'enrollment_id'
+        );
+    }
+
+    public function programRates(): HasMany
+    {
+        return $this->hasMany(TeacherProgramRate::class);
     }
 
     protected static function booted()

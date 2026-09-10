@@ -30,7 +30,7 @@
                         </thead>
                         <tbody class="divide-y">
                             @foreach ($programs as $program)
-                                <tr>
+                                <tr id="program-row-{{ $program->id }}">
                                     <td class="py-2 font-medium">{{ $program->name }}</td>
                                     <td class="py-2">{{ $program->type }}</td>
                                     <td class="py-2">{{ $program->subject ?? '-' }}</td>
@@ -38,10 +38,13 @@
                                     <td class="py-2">Rp {{ number_format($program->default_teacher_rate) }}</td>
                                     <td class="py-2">hibernasi</td>
                                     <td class="py-2">
-                                        <form method="POST" action="{{ route('admin.programs.restore', $program->id) }}">
-                                            @csrf
-                                            <button type="submit" class="text-emerald-600">Restore</button>
-                                        </form>
+                                        <button type="button"
+                                                data-program-id="{{ $program->id }}"
+                                                data-program-name="{{ $program->name }}"
+                                                onclick="restoreProgram(this)"
+                                                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 transition-colors">
+                                            Restore
+                                        </button>
                                     </td>
                                 </tr>
                             @endforeach
@@ -51,4 +54,22 @@
             </div>
         </div>
     </div>
+
+    <script>
+        async function restoreProgram(btn) {
+            const id = btn.dataset.programId;
+            const name = btn.dataset.programName;
+            if (!confirm('Pulihkan program "' + name + '"?')) return;
+
+            btn.disabled = true;
+            try {
+                await window.Ajax.post(`/admin/programs/${id}/restore`);
+                window.Toast?.success('Program berhasil dipulihkan.');
+                const row = document.getElementById(`program-row-${id}`);
+                if (row) row.remove();
+            } catch (e) {
+                btn.disabled = false;
+            }
+        }
+    </script>
 </x-app-layout>

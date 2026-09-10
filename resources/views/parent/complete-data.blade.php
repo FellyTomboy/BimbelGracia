@@ -31,21 +31,47 @@
                     </div>
 
                     <div class="border-t border-gray-200 pt-6">
-                        <h4 class="text-base font-semibold text-gray-900 mb-4">Nama lengkap murid</h4>
+                        <h4 class="text-base font-semibold text-gray-900 mb-4">Nama murid</h4>
                         <div class="space-y-4">
                             @foreach ($students as $student)
-                                <div class="grid md:grid-cols-2 gap-4 items-center border border-gray-200 rounded-md p-3">
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700">Nama panggilan</label>
-                                        <input type="text" value="{{ $student->nickname }}" class="mt-1 w-full border-gray-300 rounded-md bg-gray-50" disabled />
+                                <div class="border border-gray-200 rounded-md p-3">
+                                    <p class="text-sm font-medium text-gray-500 mb-3">{{ $student->nickname ?: 'Murid' }}</p>
+                                    <div class="grid md:grid-cols-2 gap-4 mb-3">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700">Nama Panggilan</label>
+                                            <input type="text" name="students[{{ $loop->index }}][nickname]" value="{{ old('students.' . $loop->index . '.nickname', $student->nickname) }}" class="mt-1 w-full border-gray-300 rounded-md" required placeholder="Nama panggilan" />
+                                            @error('students.' . $loop->index . '.nickname')
+                                                <p class="text-xs text-rose-600 mt-1">{{ $message }}</p>
+                                            @enderror
+                                            <input type="hidden" name="students[{{ $loop->index }}][id]" value="{{ $student->id }}">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700">Nama Lengkap</label>
+                                            <input type="text" name="students[{{ $loop->index }}][full_name]" value="{{ old('students.' . $loop->index . '.full_name', $student->full_name) }}" class="mt-1 w-full border-gray-300 rounded-md" required placeholder="Nama lengkap" />
+                                            @error('students.' . $loop->index . '.full_name')
+                                                <p class="text-xs text-rose-600 mt-1">{{ $message }}</p>
+                                            @enderror
+                                        </div>
                                     </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700">Nama lengkap murid</label>
-                                        <input type="hidden" name="students[{{ $loop->index }}][id]" value="{{ $student->id }}">
-                                        <input type="text" name="students[{{ $loop->index }}][full_name]" value="{{ old('students.' . $loop->index . '.full_name', $student->full_name) }}" class="mt-1 w-full border-gray-300 rounded-md" required placeholder="Nama lengkap murid" />
-                                        @error('students.' . $loop->index . '.full_name')
-                                            <p class="text-xs text-rose-600 mt-1">{{ $message }}</p>
-                                        @enderror
+                                    <div class="grid md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700">Sekolah <span class="text-rose-500">*</span></label>
+                                            <input type="text" name="students[{{ $loop->index }}][sekolah]" value="{{ old('students.' . $loop->index . '.sekolah', $student->sekolah) }}" class="mt-1 w-full border-gray-300 rounded-md" required placeholder="Nama sekolah" />
+                                            @error('students.' . $loop->index . '.sekolah')
+                                                <p class="text-xs text-rose-600 mt-1">{{ $message }}</p>
+                                            @enderror
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700">Kelas <span class="text-rose-500">*</span></label>
+                                            <select name="students[{{ $loop->index }}][kelas]" class="mt-1 w-full border-gray-300 rounded-md" required>
+                                                @foreach (\App\Helpers\StudentGrade::options() as $value => $label)
+                                                    <option value="{{ $value }}" @selected(old('students.' . $loop->index . '.kelas', $student->kelas) === $value)>{{ $label }}</option>
+                                                @endforeach
+                                            </select>
+                                            @error('students.' . $loop->index . '.kelas')
+                                                <p class="text-xs text-rose-600 mt-1">{{ $message }}</p>
+                                            @enderror
+                                        </div>
                                     </div>
                                 </div>
                             @endforeach

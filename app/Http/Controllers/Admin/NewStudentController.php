@@ -72,6 +72,8 @@ class NewStudentController extends Controller
             if ($nickname === '') continue;
 
             $fullName = trim((string) ($studentData['full_name'] ?? '')) ?: null;
+            $sekolah = trim((string) ($studentData['sekolah'] ?? '')) ?: null;
+            $kelas = $studentData['kelas'] ?? null;
 
             // Check existing student by nickname + parent
             $existingStudent = null;
@@ -85,6 +87,8 @@ class NewStudentController extends Controller
                 Student::create([
                     'nickname' => $nickname,
                     'full_name' => $fullName,
+                    'sekolah' => $sekolah,
+                    'kelas' => $kelas,
                     'parent_id' => $parentId,
                     'address' => $address ?? ($parent?->students()->first()?->address ?? null),
                     'status' => 'active',

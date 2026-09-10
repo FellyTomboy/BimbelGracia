@@ -26,8 +26,8 @@ class ExportController extends Controller
 {
     public function index(): Response
     {
-        $students = Student::orderBy('name')->get();
-        $teachers = Teacher::orderBy('name')->get();
+        $students = Student::orderByRaw('COALESCE(full_name, nickname) ASC')->get();
+        $teachers = Teacher::orderBy('full_name')->get();
 
         return response()->view('admin.export.index', [
             'students' => $students,
@@ -216,7 +216,14 @@ class ExportController extends Controller
             'rows' => $rows,
         ])->setPaper('a4', 'landscape');
 
-        return $pdf->download($this->filename($name, 'pdf'));
+        $filename = $this->filename($name, 'pdf');
+
+        return response($pdf->output(), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'X-Content-Type-Options' => 'nosniff',
+            'Cache-Control' => 'no-store, no-cache, must-revalidate',
+        ]);
     }
 
     private function filename(string $name, string $extension): string
@@ -249,11 +256,11 @@ class ExportController extends Controller
     private function teachersData(): array
     {
         $rows = Teacher::withTrashed()
-            ->orderBy('name')
+            ->orderBy('full_name')
             ->get()
             ->map(fn (Teacher $teacher) => [
                 $teacher->id,
-                $teacher->full_name,
+                $teacher->displayName,
                 $teacher->whatsapp_number,
                 $teacher->major,
                 $teacher->subjects,
@@ -282,7 +289,7 @@ class ExportController extends Controller
                 $enrollment->id,
                 $enrollment->program?->name,
                 $enrollment->program?->type,
-                $enrollment->teacher?->name,
+                $enrollment->teacher?->displayName,
                 $enrollment->students->map->display_name->implode(', '),
                 $enrollment->parent_rate,
                 $enrollment->teacher_rate,
@@ -320,7 +327,7 @@ class ExportController extends Controller
                 $attendance->lesson_date?->format('d M Y') ?? '-',
                 $attendance->enrollment_id,
                 $attendance->enrollment?->program?->name,
-                $attendance->enrollment?->teacher?->name,
+                $attendance->enrollment?->teacher?->displayName,
                 $attendance->students->map->display_name->implode(', '),
                 1,
                 $attendance->enrollment?->parent_rate ?? 0,
@@ -352,8 +359,8 @@ class ExportController extends Controller
                 $log->action,
                 $log->auditable_type,
                 $log->auditable_id,
-                json_encode($log->before),
-                json_encode($log->after),
+                $this->formatJsonColumn($log->before),
+                $this->formatJsonColumn($log->after),
                 optional($log->created_at)->toDateTimeString(),
             ])
             ->all();
@@ -387,7 +394,7 @@ class ExportController extends Controller
                 $attendance->lesson_date?->format('d M Y') ?? '-',
                 $attendance->enrollment_id,
                 $attendance->enrollment?->program?->name,
-                $attendance->sessionTeacher?->name ?? $attendance->enrollment?->teacher?->name ?? '-',
+                $attendance->sessionTeacher?->displayName ?? $attendance->enrollment?->teacher?->displayName ?? '-',
                 $attendance->students->map->display_name->implode(', '),
                 $attendance->status_validation,
                 $attendance->parent_payment_status,
@@ -414,7 +421,7 @@ class ExportController extends Controller
                 $attendance->lesson_date?->format('d M Y') ?? '-',
                 $attendance->enrollment_id,
                 $attendance->enrollment?->program?->name,
-                $attendance->enrollment?->teacher?->name,
+                $attendance->enrollment?->teacher?->displayName,
                 $attendance->students->map->display_name->implode(', '),
                 1,
                 $attendance->enrollment?->parent_rate ?? 0,
@@ -433,5 +440,24 @@ class ExportController extends Controller
             ['id', 'lesson_date', 'enrollment_id', 'program', 'teacher', 'students', 'total_lessons', 'parent_rate', 'parent_total', 'teacher_rate', 'teacher_total', 'status_validation', 'parent_payment', 'teacher_payment', 'created_at', 'validated_at'],
             $rows,
         ];
+    }
+
+    private function formatJsonColumn(mixed $data): string
+    {
+        if ($data === null) {
+            return '-';
+        }
+
+        $json = json_encode($data, JSON_UNESCAPED_UNICODE);
+
+        if ($json === false) {
+            return '-';
+        }
+
+        if (strlen($json) > 200) {
+            return substr($json, 0, 200) . '…';
+        }
+
+        return $json;
     }
 }

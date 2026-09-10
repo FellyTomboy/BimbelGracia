@@ -33,6 +33,7 @@ class ClassSession extends Model
     public function teachers(): BelongsToMany
     {
         return $this->belongsToMany(Teacher::class, 'class_session_teacher')
+            ->withPivot('rate')
             ->withTimestamps();
     }
 

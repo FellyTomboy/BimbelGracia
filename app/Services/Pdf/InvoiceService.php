@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Services\Pdf;
 
+use App\Models\BankAccount;
 use App\Models\MonthlyAttendance;
 use App\Models\Student;
 use App\Models\Teacher;
+use App\Services\AttendanceFineService;
 use App\Services\CalculationService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Collection;
@@ -15,13 +17,15 @@ use Illuminate\Support\Facades\Storage;
 class InvoiceService
 {
     public function __construct(
-        private CalculationService $calculationService
+        private CalculationService $calculationService,
+        private AttendanceFineService $fineService,
     ) {}
 
     /**
      * Generate and save invoice PDF for a student's monthly billing.
+     * Returns ['storage_path' => ..., 'token' => ...].
      */
-    public function generateStudentInvoice(Student $student, int $month, int $year, Collection $attendances): string
+    public function generateStudentInvoice(Student $student, int $month, int $year, Collection $attendances, ?string $existingFilename = null): array
     {
         $result = $this->calculationService->calculateStudentBilling($student, $month, $year, $attendances);
 
@@ -60,22 +64,25 @@ class InvoiceService
             'totalDiscount' => $result['total_discount'],
             'totalPenalty' => $result['total_penalty'],
             'penaltyInfo' => $penaltyInfo,
-        ]);
+            'attendancePenaltyDisplayLabel' => $this->fineService->getAttendancePenaltyDisplayLabel(),
+        ])->setPaper('a4', 'portrait');
 
-        $parentName = $student->parent?->name ?? 'unknown';
-        $parentId = $student->parent?->id ?? 'unknown';
+        $student->loadMissing('parent');
+        $parent = $student->parent;
+        $parentId = $parent?->id;
         $period = sprintf('%02d-%04d', $month, $year);
-        // Use parent ID for stable path — won't break when parent name changes
-        $filename = sprintf('pdf/invoice/parent_%s/%s.pdf', $parentId, $period);
+        $filename = $existingFilename
+            ?? sprintf('pdf/invoice/parent_%s/Tagihan_%s_%s.pdf', $parentId ?? 'unknown', $period, bin2hex(random_bytes(8)));
         Storage::disk('public')->put($filename, $pdf->output());
 
-        return $filename;
+        return ['storage_path' => $filename];
     }
 
     /**
      * Generate and save combined invoice PDF for a parent with multiple students.
+     * Returns ['storage_path' => ..., 'token' => ...].
      */
-    public function generateParentInvoice(Collection $students, int $month, int $year, Collection $attendances): string
+    public function generateParentInvoice(Collection $students, int $month, int $year, Collection $attendances, ?string $existingFilename = null): array
     {
         $monthName = $this->monthName($month);
         $allRows = collect();
@@ -91,7 +98,10 @@ class InvoiceService
             $result = $this->calculationService->calculateStudentBilling($student, $month, $year, $studentAttendances);
 
             // Tag each row with student name
-            $taggedRows = $result['rows']->map(fn ($r) => array_merge($r, ['student_name' => $student->display_name]));
+            $taggedRows = $result['rows']->map(function ($r) use ($student) {
+                $r['student_name'] = $student->display_name;
+                return $r;
+            });
             $allRows = $allRows->concat($taggedRows);
             $grandGross += $result['rows']->sum('subtotal');
             $grandDiscount += $result['total_discount'];
@@ -121,11 +131,12 @@ class InvoiceService
             }
         }
 
-        // grandTotal = billable amount after discount and penalties
-        $grandTotal = $grandGross - $grandDiscount + $grandPenalty;
+        // subtotal already includes attendance penalty baked into the rate (inflatedSubtotal).
+        // grandTotal = pre-discount subtotals minus discounts. Penalty is not added back.
+        $grandTotal = $grandGross - $grandDiscount;
 
         $parentName = $students->first()?->parent?->name ?? 'Orang Tua';
-        $parentId = $students->first()?->parent?->id ?? 'unknown';
+        $parentId = $students->first()?->parent?->id;
         $period = sprintf('%02d-%04d', $month, $year);
 
         $pdf = Pdf::loadView('pdf.parent-invoice', [
@@ -140,19 +151,23 @@ class InvoiceService
             'grandPenalty' => $grandPenalty,
             'grandTotal' => $grandTotal,
             'penalties' => $allPenalties,
-        ]);
+            'attendancePenaltyDisplayLabel' => $this->fineService->getAttendancePenaltyDisplayLabel(),
+            'bankAccounts' => BankAccount::where('status', 'active')->orderBy('id')->get(),
+        ])->setPaper('a4', 'portrait');
 
         // Use parent ID for stable path — won't break when parent name changes
-        $filename = sprintf('pdf/invoice/parent_%s/%s.pdf', $parentId, $period);
+        $filename = $existingFilename
+            ?? sprintf('pdf/invoice/parent_%s/Tagihan_%s_%s.pdf', $parentId ?? 'unknown', $period, bin2hex(random_bytes(8)));
         Storage::disk('public')->put($filename, $pdf->output());
 
-        return $filename;
+        return ['storage_path' => $filename];
     }
 
     /**
      * Generate and save salary slip PDF for a teacher.
+     * Returns ['storage_path' => ..., 'token' => ...].
      */
-    public function generateTeacherSalarySlip(Teacher $teacher, int $month, int $year, Collection $attendances): string
+    public function generateTeacherSalarySlip(Teacher $teacher, int $month, int $year, Collection $attendances, ?string $existingFilename = null): array
     {
         $result = $this->calculationService->calculateTeacherSalary($teacher->id, $month, $year, $attendances);
 
@@ -170,14 +185,16 @@ class InvoiceService
             'totalPenalty' => $result['total_penalty'],
             'totalLateCount' => $totalLateCount,
             'finalTotal' => $result['final_total'],
-        ]);
+            'latePenaltyDisplayLabel' => $this->fineService->getLatePenaltyDisplayLabel(),
+            'bankAccounts' => BankAccount::where('status', 'active')->orderBy('id')->get(),
+        ])->setPaper('a4', 'portrait');
 
-        $teacherSlug = str_replace(' ', '_', strtolower($teacher->full_name));
         $period = sprintf('%02d-%04d', $month, $year);
-        $filename = sprintf('pdf/salary/%s/%s.pdf', $teacherSlug, $period);
+        $filename = $existingFilename
+            ?? sprintf('pdf/salary/teacher_%s/Slip_Gaji_%s_%s.pdf', $teacher->id, $period, bin2hex(random_bytes(8)));
         Storage::disk('public')->put($filename, $pdf->output());
 
-        return $filename;
+        return ['storage_path' => $filename];
     }
 
     private function monthName(int $month): string

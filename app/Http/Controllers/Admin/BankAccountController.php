@@ -92,8 +92,9 @@ class BankAccountController extends Controller
             ->with('status', 'Rekening bimbel dihibernasi.');
     }
 
-    public function restore(int $bankAccountId): RedirectResponse
+    public function restore(Request $request): RedirectResponse
     {
+        $bankAccountId = $request->route('bankAccount');
         $bankAccount = BankAccount::withTrashed()->findOrFail($bankAccountId);
         $bankAccount->restore();
 

@@ -147,8 +147,9 @@ class LessonOfferController extends Controller
             ->with('status', 'Tawaran les dihibernasi.');
     }
 
-    public function restore(int $lessonOfferId): RedirectResponse
+    public function restore(Request $request): RedirectResponse
     {
+        $lessonOfferId = $request->route('lessonOffer');
         $lessonOffer = LessonOffer::withTrashed()->findOrFail($lessonOfferId);
         $lessonOffer->restore();
 

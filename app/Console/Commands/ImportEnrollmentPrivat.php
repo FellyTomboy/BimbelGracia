@@ -48,7 +48,7 @@ class ImportEnrollmentPrivat extends Command
 
         $existingTeachers = Teacher::withTrashed()
             ->get()
-            ->keyBy(fn($t) => strtolower(trim($t->name)));
+            ->keyBy(fn($t) => strtolower(trim($t->full_name ?: $t->nickname ?: '')));
 
         $existingStudents = Student::withTrashed()
             ->get()
@@ -121,7 +121,7 @@ class ImportEnrollmentPrivat extends Command
                 if ($debug) {
                     $candidates = collect($existingStudents)
                         ->filter(fn($s) => levenshtein($studentKey, strtolower(trim($s->nickname ?: $s->full_name ?: ''))) <= 5)
-                        ->map(fn($s) => "{$s->id}: nickname='{$s->nickname}', full_name='{$s->full_name}', name_attr='{$s->name}'")
+                        ->map(fn($s) => "{$s->id}: nickname='{$s->nickname}', full_name='{$s->full_name}', displayName='{$s->displayName}'")
                         ->values()
                         ->all();
                     $this->line("\n  [DEBUG] Student '{$studentName}' (key='{$studentKey}') NOT FOUND. Candidates: " . ($candidates ? implode(', ', $candidates) : 'none close'));
@@ -137,64 +137,72 @@ class ImportEnrollmentPrivat extends Command
             $student = $existingStudents[$studentKey];
 
             if ($debug) {
-                $this->line("\n  [DEBUG] Student '{$studentName}' (key='{$studentKey}') → DB id={$student->id}, nickname='{$student->nickname}', full_name='{$student->full_name}', name='{$student->name}'");
+                $this->line("\n  [DEBUG] Student '{$studentName}' (key='{$studentKey}') → DB id={$student->id}, nickname='{$student->nickname}', full_name='{$student->full_name}', displayName='{$student->displayName}'");
             }
 
             // ── Enrollment (no duplicates) ──
-            // First: find any enrollment with this key (active OR soft-deleted).
-            // - If active: update it in place — no new record, no duplicates.
-            // - If soft-deleted: restore + update.
-            // - If none: create new.
+            // Enrollment has NO student_id column — relationship is via pivot table enrollment_student.
+            // To prevent duplicates, we look for an enrollment with the same program+teacher that also
+            // has this specific student attached. If found (active or soft-deleted): update + restore.
+            // If not found: create new enrollment and attach student via pivot.
             $enrollment = Enrollment::withTrashed()
-                ->where('student_id', $student->id)
                 ->where('program_id', $program->id)
                 ->where('teacher_id', $teacher->id)
+                ->where('type', 'privat')
+                ->whereHas('students', fn($q) => $q->where('students.id', $student->id))
                 ->first();
 
             if ($debug) {
                 $existingCount = Enrollment::withTrashed()
-                    ->where('student_id', $student->id)
                     ->where('program_id', $program->id)
                     ->where('teacher_id', $teacher->id)
+                    ->where('type', 'privat')
+                    ->whereHas('students', fn($q) => $q->where('students.id', $student->id))
                     ->count();
                 $found = $enrollment ? "YES (id={$enrollment->id}, deleted_at={$enrollment->deleted_at})" : 'NO';
                 $this->line("  [DEBUG] Enrollment lookup: found={$found}, total_with_key={$existingCount}");
             }
 
             $enrollmentData = [
-                'student_id'               => $student->id,
                 'program_id'               => $program->id,
                 'teacher_id'              => $teacher->id,
-                'type'                     => 'privat',
-                'parent_rate'              => $parentRate,
-                'teacher_rate'             => $teacherRate,
+                'type'                    => 'privat',
+                'parent_rate'             => $parentRate,
+                'teacher_rate'            => $teacherRate,
                 'agreed_sessions_per_month'=> $frequency,
-                'status'                   => 'active',
-                'deleted_at'               => null, // restores if was soft-deleted
+                'status'                  => 'active',
             ];
 
             if ($enrollment) {
-                // Re-find any OTHER enrollment with the same key (excluding this one).
-                // Soft-delete any other matches to prevent duplicates.
-                Enrollment::where('student_id', $student->id)
-                    ->where('program_id', $program->id)
-                    ->where('teacher_id', $teacher->id)
-                    ->where('id', '!=', $enrollment->id)
-                    ->delete();
-
+                // Restore if soft-deleted (deleted_at is guarded, must call ->restore() explicitly)
+                $enrollment->restore();
                 $enrollment->update($enrollmentData);
                 $results['updated'][] = "{$studentName} | {$programRaw} | {$teacherName}";
 
-                // Attach student to pivot and skip to next row
+                // Ensure student is in pivot (idempotent — no duplicate in pivot)
                 $enrollment->students()->syncWithoutDetaching([$student->id]);
-                continue;
             } else {
-                $enrollment = Enrollment::create($enrollmentData);
-                $results['created'][] = "{$studentName} | {$programRaw} | {$teacherName}";
-            }
+                // Check if an enrollment exists for same program+teacher but WITHOUT this student.
+                // If so, attach this student to it instead of creating a new enrollment.
+                $existingWithoutStudent = Enrollment::withTrashed()
+                    ->where('program_id', $program->id)
+                    ->where('teacher_id', $teacher->id)
+                    ->where('type', 'privat')
+                    ->whereDoesntHave('students', fn($q) => $q->where('students.id', $student->id))
+                    ->orderBy('id')
+                    ->first();
 
-            // Attach student to pivot (only for new enrollments)
-            $enrollment->students()->syncWithoutDetaching([$student->id]);
+                if ($existingWithoutStudent) {
+                    $existingWithoutStudent->restore();
+                    $existingWithoutStudent->update($enrollmentData);
+                    $existingWithoutStudent->students()->syncWithoutDetaching([$student->id]);
+                    $results['updated'][] = "{$studentName} | {$programRaw} | {$teacherName} (student ditambahkan ke enrollment existing)";
+                } else {
+                    $enrollment = Enrollment::create($enrollmentData);
+                    $enrollment->students()->syncWithoutDetaching([$student->id]);
+                    $results['imported'][] = "{$studentName} | {$programRaw} | {$teacherName}";
+                }
+            }
         }
 
         $bar->finish();
@@ -206,15 +214,15 @@ class ImportEnrollmentPrivat extends Command
         $this->line('  Teachers in DB  : ' . $existingTeachers->count());
         $this->line('  Students in DB  : ' . $existingStudents->count());
         $this->newLine();
-        $this->info('  Imported  : ' . count($results['created']));
+        $this->info('  Imported  : ' . count($results['imported']));
         $this->info('  Updated   : ' . count($results['updated']));
         $this->info('  Skipped   : ' . count($results['skipped']));
 
         // ── Detail: Imported ──
-        if (!empty($results['created'])) {
+        if (!empty($results['imported'])) {
             $this->newLine();
             $this->info('=== Newly Imported ===');
-            foreach ($results['created'] as $line) {
+            foreach ($results['imported'] as $line) {
                 $this->line("  ✓ {$line}");
             }
         }

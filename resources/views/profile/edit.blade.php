@@ -9,15 +9,6 @@
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
 
-            {{-- ADMIN & GURU: Basic profile info (name, email) --}}
-            @if (auth()->user()?->role?->value === 'admin' || auth()->user()?->role?->value === 'guru')
-                <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                    <div class="max-w-xl">
-                        @include('profile.partials.update-profile-information-form')
-                    </div>
-                </div>
-            @endif
-
             {{-- PARENT: Profile info (name, address, students) --}}
             @if (auth()->user()?->role?->value === 'parent')
                 <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
@@ -43,6 +34,12 @@
                 <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
                     <div class="max-w-xl">
                         @include('profile.partials.update-fine-settings-form')
+                    </div>
+                </div>
+
+                <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
+                    <div class="max-w-xl">
+                        @include('profile.partials.update-billing-mode-form')
                     </div>
                 </div>
             @endif

@@ -65,9 +65,9 @@
                                         </td>
                                         <td class="py-3 px-3 sm:px-4 whitespace-nowrap">
                                             @if ($item['has_invoice'])
-                                                <a href="{{ $item['invoice_url'] }}" target="_blank" class="inline-flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-lg text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 transition-colors">
-                                                    <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                                                    <span class="hidden sm:inline">Lihat</span>
+                                                <a href="{{ $item['invoice_url'] }}" target="_blank" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors shadow-sm">
+                                                    <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                                    Unduh
                                                 </a>
                                             @else
                                                 <form method="POST" action="{{ route('parent.billing.download-invoice', ['year' => $item['year'], 'month' => $item['month']]) }}" class="inline">
@@ -83,11 +83,14 @@
                                             @if ($item['status'] === 'paid')
                                                 <span class="text-gray-400 text-xs">Lunas</span>
                                             @elseif ($item['status'] === 'pending')
-                                                <span class="text-gray-400 text-xs">Menunggu</span>
+                                                <span class="text-xs text-gray-500 truncate max-w-36 inline-block align-middle" title="{{ $item['proof']->proof_path ?? '' }}">{{ basename($item['proof']->proof_path ?? '') }}</span>
                                             @else
-                                                <form method="POST" action="{{ route('parent.billing.upload-proof', $item['attendance_ids'][0]) }}" enctype="multipart/form-data" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                                                <form method="POST" action="{{ route('parent.billing.upload-proof', ['parentId' => $parent->id, 'year' => $item['year'], 'month' => $item['month']]) }}" enctype="multipart/form-data" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                                                     @csrf
-                                                    <input type="file" name="payment_proof" accept="image/jpg,image/jpeg,image/png" class="text-xs w-full sm:w-28 rounded-xl border-gray-200 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-indigo-50 file:text-indigo-600" required />
+                                                    <label class="flex items-center gap-2 cursor-pointer">
+                                                        <input type="file" name="payment_proof" accept="image/jpg,image/jpeg,image/png" class="text-xs w-full sm:w-28 rounded-xl border-gray-200 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-indigo-50 file:text-indigo-600" required onchange="const f=this.files[0];document.getElementById('fn-{{ $item['year'] }}-{{ $item['month'] }}').textContent=f?f.name:'';document.getElementById('fn-{{ $item['year'] }}-{{ $item['month'] }}').classList.toggle('hidden',!f)" />
+                                                        <span id="fn-{{ $item['year'] }}-{{ $item['month'] }}" class="text-xs text-gray-600 truncate max-w-32 hidden"></span>
+                                                    </label>
                                                     <button type="submit" class="px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-medium hover:bg-indigo-700 transition-colors">Upload</button>
                                                 </form>
                                             @endif
@@ -107,4 +110,20 @@
             </div>
         </div>
     </div>
+
+    <script>
+    (function () {
+        var key = 'scroll_' + location.pathname + '?{{ http_build_query(request()->query()) }}';
+        window.addEventListener('load', function () {
+            var pos = sessionStorage.getItem(key);
+            if (pos !== null) { window.scrollTo(0, parseInt(pos, 10)); sessionStorage.removeItem(key); }
+        });
+        document.querySelectorAll('form[method=POST], a[href*="delete"], a[href*="destroy"]').forEach(function (el) {
+            el.addEventListener('click', function () { sessionStorage.setItem(key, window.scrollY); });
+        });
+        document.querySelectorAll('form[method=GET]').forEach(function (form) {
+            form.addEventListener('submit', function () { sessionStorage.setItem(key, 0); });
+        });
+    })();
+    </script>
 </x-app-layout>

@@ -41,7 +41,7 @@ class AttendanceReviewController extends Controller
             'validated_by' => $request->user()->id,
         ]);
 
-        return back()->with('status', 'Penolakan orangtua diterima. Status presensi sekarang ditolak.');
+        return $this->backWithQueryString('Penolakan orangtua diterima. Status presensi sekarang ditolak.');
     }
 
     public function dismiss(MonthlyAttendance $attendance): RedirectResponse
@@ -52,6 +52,6 @@ class AttendanceReviewController extends Controller
             'parent_review_status' => 'dismissed',
         ]);
 
-        return back()->with('status', 'Penolakan orangtua dibatalkan. Status presensi tidak diubah.');
+        return $this->backWithQueryString('Penolakan orangtua dibatalkan. Status presensi tidak diubah.');
     }
 }

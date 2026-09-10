@@ -41,8 +41,8 @@
                         <tbody class="divide-y">
                             @foreach ($attendances as $attendance)
                                 @php
-                                    $rateParent = $attendance->enrollment?->parent_rate ?? 0;
-                                    $totalParent = $attendance->students->sum(fn ($student) => (int) ($student->pivot?->total_present ?? 0) * $rateParent);
+                                    $calcService = app(\App\Services\CalculationService::class);
+                                    $billing = $calcService->calculateAttendanceBilling($attendance);
                                 @endphp
                                 <tr>
                                     <td class="py-2">{{ sprintf('%02d', $attendance->month) }}/{{ $attendance->year }}</td>
@@ -63,7 +63,7 @@
                                     </td>
                                     <td class="py-2">#{{ $attendance->enrollment_id }}</td>
                                     <td class="py-2">{{ $attendance->total_lessons }}</td>
-                                    <td class="py-2">Rp {{ number_format($totalParent) }}</td>
+                                    <td class="py-2">Rp {{ number_format($billing['total']) }}</td>
                                     <td class="py-2">{{ $attendance->parent_payment_status }}</td>
                                     <td class="py-2">{{ $attendance->teacher_payment_status }}</td>
                                 </tr>
@@ -72,10 +72,26 @@
                     </table>
 
                     <div class="mt-4">
-                        {{ $attendances->links() }}
+                        {{ $attendances->withQueryString()->links() }}
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <script>
+    (function () {
+        var key = 'scroll_' + location.pathname + '?{{ http_build_query(request()->query()) }}';
+        window.addEventListener('load', function () {
+            var pos = sessionStorage.getItem(key);
+            if (pos !== null) { window.scrollTo(0, parseInt(pos, 10)); sessionStorage.removeItem(key); }
+        });
+        document.querySelectorAll('form[method=POST], a[href*="delete"], a[href*="destroy"]').forEach(function (el) {
+            el.addEventListener('click', function () { sessionStorage.setItem(key, window.scrollY); });
+        });
+        document.querySelectorAll('form[method=GET]').forEach(function (form) {
+            form.addEventListener('submit', function () { sessionStorage.setItem(key, 0); });
+        });
+    })();
+    </script>
 </x-app-layout>

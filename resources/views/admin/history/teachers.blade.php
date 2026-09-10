@@ -1,7 +1,7 @@
 <x-app-layout>
-    <x-slot name="title">Riwayat Mengajar Guru</x-slot>
+    <x-slot name="title">Riwayat Les Guru</x-slot>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Riwayat Mengajar Guru</h2>
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Riwayat Les Guru</h2>
     </x-slot>
 
     <div class="py-12">
@@ -39,9 +39,8 @@
                             <tr class="text-left text-gray-500">
                                 <th class="py-2">Periode</th>
                                 <th class="py-2">Guru</th>
-                                <th class="py-2">Murid</th>
                                 <th class="py-2">Program</th>
-                                <th class="py-2">Tarif</th>
+                                <th class="py-2">Biaya</th>
                                 <th class="py-2">Jml</th>
                                 <th class="py-2">Subtotal</th>
                                 <th class="py-2">Denda</th>
@@ -52,73 +51,87 @@
                         <tbody class="divide-y">
                             @php
                                 $calcService = app(\App\Services\CalculationService::class);
-                                $fineService = app(\App\Services\AttendanceFineService::class);
                                 $grandTotal = 0;
                                 $grandPenalty = 0;
                             @endphp
-                            @foreach ($attendances->groupBy(fn($a) => $a->month . '-' . $a->year . '-' . ($teacherId ?: 'all')) as $periodKey => $periodAttendances)
+                            @foreach ($grouped as $periodKey => $periodAttendances)
                                 @php
                                     $first = $periodAttendances->first();
                                     $periodMonth = $first->month;
                                     $periodYear = $first->year;
+                                    $periodTotal = 0;
+                                    $periodPenalty = 0;
 
                                     if ($teacherId) {
                                         $teacher = $teachers->firstWhere('id', (int) $teacherId);
                                         if ($teacher) {
-                                            $result = $calcService->calculateTeacherSalary((int) $teacherId, $periodMonth, $periodYear, $periodAttendances);
-                                            $grandTotal += $result['grand_total'];
-                                            $grandPenalty += $result['total_penalty'];
+                                            $result = $calcService->calculateTeacherSalary($teacher->id, $periodMonth, $periodYear, $periodAttendances);
+                                            foreach ($result['rows'] as $row) {
+                                                $grandTotal += $row['total'];
+                                                $grandPenalty += $row['penalty'] ?? 0;
+                                                $periodTotal += $row['total'];
+                                                $periodPenalty += $row['penalty'] ?? 0;
+                                            }
                                             @endphp
                                             @foreach ($result['rows'] as $row)
                                                 <tr>
                                                     <td class="py-2">{{ sprintf('%02d', $periodMonth) }}/{{ $periodYear }}</td>
                                                     <td class="py-2">{{ $teacher->displayName }}</td>
-                                                    <td class="py-2">{{ $row['student'] }}</td>
-                                                    <td class="py-2">{{ $row['program'] }}<br><span class="text-xs text-gray-500">{{ $row['label_detail'] }}</span></td>
+                                                    <td class="py-2">
+                                                        @if ($row['type'] === 'privat')
+                                                            {{ $row['student_label'] ?? '-' }}
+                                                        @else
+                                                            {{ is_object($row['program']) ? $row['program']->name : ($row['program'] ?? '-') }}
+                                                        @endif
+                                                    </td>
                                                     <td class="py-2">Rp {{ number_format($row['rate']) }}</td>
                                                     <td class="py-2">{{ $row['count'] }}x</td>
-                                                    <td class="py-2">Rp {{ number_format($row['total']) }}</td>
-                                                    <td class="py-2">{{ $row['penalty'] > 0 ? '-Rp '.number_format($row['penalty']) : '-' }}</td>
-                                                    <td class="py-2 font-medium">Rp {{ number_format($row['total'] - $row['penalty']) }}</td>
-                                                    <td class="py-2">{{ $first->teacher_payment_status }}</td>
+                                                    <td class="py-2">Rp {{ number_format($row['total'] + ($row['penalty'] ?? 0)) }}</td>
+                                                    <td class="py-2">{{ ($row['penalty'] ?? 0) > 0 ? '+Rp '.number_format($row['penalty']) : '-' }}</td>
+                                                    <td class="py-2 font-medium">Rp {{ number_format($row['total']) }}</td>
+                                                    <td class="py-2">{{ $row['payment_status'] ?? $first->teacher_payment_status }}</td>
                                                 </tr>
                                             @endforeach
+                                            <tr class="bg-slate-50 text-gray-600">
+                                                <td colspan="7" class="py-1 text-right text-xs font-medium">Subtotal {{ sprintf('%02d', $periodMonth) }}/{{ $periodYear }}</td>
+                                                <td class="py-1 text-xs">Rp {{ number_format($periodTotal) }}</td>
+                                                <td class="py-1"></td>
+                                            </tr>
                                         @php
                                         }
                                     } else {
-                                        // Show per-attendance for "all teachers"
+                                        // Show per-attendance for all teachers
                                         foreach ($periodAttendances as $attendance) {
-                                            $rate = $attendance->teacher_rate ?? 0;
-                                            $present = $attendance->students->sum(fn ($s) => (int) ($s->pivot?->total_present ?? 0));
-                                            $total = $present * $rate;
-                                            $penalty = $fineService->isLatePenaltyEnabled() && $attendance->status_validation === 'terlambat'
-                                                ? (int) ($rate * 0.1)
-                                                : 0;
-                                            $grandTotal += $total;
-                                            $grandPenalty += $penalty;
+                                            $salary = $calcService->calculateAttendanceSalary($attendance);
+                                            $grandTotal += $salary['total'];
+                                            $grandPenalty += $salary['penalty'];
+                                            $periodTotal += $salary['total'];
+                                            $periodPenalty += $salary['penalty'];
                                             @endphp
                                             <tr>
                                                 <td class="py-2">{{ sprintf('%02d', $attendance->month) }}/{{ $attendance->year }}</td>
                                                 <td class="py-2">
-                                                    <x-hibernated-label :model="$attendance->enrollment?->teacher" :label="$attendance->enrollment?->teacher?->displayName ?? '-'" type="guru" />
-                                                </td>
-                                                <td class="py-2">
-                                                    @foreach ($attendance->students as $s)
-                                                        <x-hibernated-label :model="$s" :label="$s->display_name" type="murid privat" />{{ !$loop->last ? ', ' : '' }}
-                                                    @endforeach
+                                                    <x-hibernated-label :model="$attendance->sessionTeacher ?? $attendance->enrollment?->teacher" :label="($attendance->sessionTeacher ?? $attendance->enrollment?->teacher)?->displayName ?? '-'" type="guru" />
                                                 </td>
                                                 <td class="py-2">
                                                     <x-hibernated-label :model="$attendance->enrollment?->program" :label="$attendance->enrollment?->program?->name ?? '-'" type="program" />
                                                 </td>
-                                                <td class="py-2">Rp {{ number_format($rate) }}</td>
-                                                <td class="py-2">{{ $present }}</td>
-                                                <td class="py-2">Rp {{ number_format($total) }}</td>
-                                                <td class="py-2">{{ $penalty > 0 ? '-Rp '.number_format($penalty) : '-' }}</td>
-                                                <td class="py-2">Rp {{ number_format($total - $penalty) }}</td>
+                                                <td class="py-2">Rp {{ number_format($salary['teacher_rate']) }}</td>
+                                                <td class="py-2">{{ $salary['session_count'] }}x</td>
+                                                <td class="py-2">Rp {{ number_format($salary['total']) }}</td>
+                                                <td class="py-2">{{ $salary['penalty'] > 0 ? '+Rp '.number_format($salary['penalty']) : '-' }}</td>
+                                                <td class="py-2">Rp {{ number_format($salary['total'] - $salary['penalty']) }}</td>
                                                 <td class="py-2">{{ $attendance->teacher_payment_status }}</td>
                                             </tr>
                                         @php
                                         }
+                                        @endphp
+                                        <tr class="bg-slate-50 text-gray-600">
+                                            <td colspan="7" class="py-1 text-right text-xs font-medium">Subtotal {{ sprintf('%02d', $periodMonth) }}/{{ $periodYear }}</td>
+                                            <td class="py-1 text-xs">Rp {{ number_format($periodTotal - $periodPenalty) }}</td>
+                                            <td class="py-1"></td>
+                                        </tr>
+                                @php
                                     }
                                 @endphp
                             @endforeach
@@ -126,9 +139,7 @@
                         @if ($grandTotal > 0)
                             <tfoot>
                                 <tr class="font-bold bg-gray-50">
-                                    <td colspan="6" class="py-2 text-right">Grand Total</td>
-                                    <td class="py-2">Rp {{ number_format($grandTotal) }}</td>
-                                    <td class="py-2">{{ $grandPenalty > 0 ? '-Rp '.number_format($grandPenalty) : '-' }}</td>
+                                    <td colspan="7" class="py-2 text-right">Grand Total</td>
                                     <td class="py-2">Rp {{ number_format($grandTotal - $grandPenalty) }}</td>
                                     <td class="py-2"></td>
                                 </tr>
@@ -137,10 +148,26 @@
                     </table>
 
                     <div class="mt-4">
-                        {{ $attendances->links() }}
+                        {{ $periodPagination->withQueryString()->links() }}
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <script>
+    (function () {
+        var key = 'scroll_' + location.pathname + '?{{ http_build_query(request()->query()) }}';
+        window.addEventListener('load', function () {
+            var pos = sessionStorage.getItem(key);
+            if (pos !== null) { window.scrollTo(0, parseInt(pos, 10)); sessionStorage.removeItem(key); }
+        });
+        document.querySelectorAll('form[method=POST], a[href*="delete"], a[href*="destroy"]').forEach(function (el) {
+            el.addEventListener('click', function () { sessionStorage.setItem(key, window.scrollY); });
+        });
+        document.querySelectorAll('form[method=GET]').forEach(function (form) {
+            form.addEventListener('submit', function () { sessionStorage.setItem(key, 0); });
+        });
+    })();
+    </script>
 </x-app-layout>

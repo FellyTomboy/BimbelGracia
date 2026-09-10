@@ -41,11 +41,33 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
+        // Look up user with soft-deletes included — so hibernated accounts can show
+        // a friendly message instead of "credentials do not match"
+        $user = \App\Models\User::withoutGlobalScopes()
+            ->where('phone', $this->string('phone'))
+            ->first();
+
+        if (! $user) {
+            RateLimiter::hit($this->throttleKey());
+
+            throw ValidationException::withMessages([
+                'phone' => 'Nomor ini tidak terdaftar di database, hubungi admin untuk menambahkan nomor.',
+            ]);
+        }
+
+        if ($user->trashed()) {
+            RateLimiter::hit($this->throttleKey());
+
+            throw ValidationException::withMessages([
+                'phone' => 'Akun ini sedang dinonaktifkan. Hubungi admin untuk mengaktifkan kembali.',
+            ]);
+        }
+
         if (! Auth::attempt($this->only('phone', 'password'), $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
-                'phone' => trans('auth.failed'),
+                'password' => 'Password salah.',
             ]);
         }
 

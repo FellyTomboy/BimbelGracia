@@ -4,15 +4,18 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
+use App\Helpers\StudentGrade;
 use App\Http\Controllers\Controller;
 use App\Models\ParentModel;
 use App\Models\Student;
 use App\Models\User;
 use App\Enums\UserRole;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class ParentController extends Controller
@@ -59,19 +62,22 @@ class ParentController extends Controller
     public function inactive(): View
     {
         $parents = ParentModel::onlyTrashed()
-            ->with(['user', 'students'])
+            ->with([
+                'user' => fn($q) => $q->withTrashed(),
+                'students' => fn($q) => $q->withTrashed(),
+            ])
             ->latest('deleted_at')
             ->paginate(20);
 
         return view('admin.parents.inactive', compact('parents'));
     }
 
-    public function create(): View
+    public function create(): \Illuminate\Http\RedirectResponse
     {
-        return view('admin.parents.create');
+        return redirect()->route('admin.parents.index');
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): JsonResponse|RedirectResponse
     {
         $validated = $request->validate([
             'name' => ['nullable', 'string', 'max:255'],
@@ -80,6 +86,8 @@ class ParentController extends Controller
             'students' => ['nullable', 'array'],
             'students.*.nickname' => ['nullable', 'string', 'max:255'],
             'students.*.full_name' => ['nullable', 'string', 'max:255'],
+            'students.*.sekolah' => ['nullable', 'string', 'max:255'],
+            'students.*.kelas' => ['nullable', 'string', Rule::in(StudentGrade::LEVELS)],
         ]);
 
         $defaultPassword = config('bimbel.default_password', 'password');
@@ -115,10 +123,14 @@ class ParentController extends Controller
                     }
 
                     $fullName = trim((string) ($studentData['full_name'] ?? '')) ?: null;
+                    $sekolah = trim((string) ($studentData['sekolah'] ?? '')) ?: null;
+                    $kelas = $studentData['kelas'] ?? null;
                     Student::create([
                         'parent_id' => $parent->id,
                         'nickname' => $nickname,
                         'full_name' => $fullName,
+                        'sekolah' => $sekolah,
+                        'kelas' => $kelas,
                     ]);
                     $studentCount++;
                 }
@@ -130,8 +142,20 @@ class ParentController extends Controller
             $message .= " {$studentCount} murid berhasil ditambahkan.";
         }
 
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => $message]);
+        }
         return redirect()->route('admin.parents.index')
             ->with('status', $message);
+    }
+
+    public function createForm(Request $request): JsonResponse
+    {
+        $html = view('admin.parents._form', [
+            'parent' => null,
+        ])->render();
+
+        return response()->json(['html' => $html, 'title' => 'Tambah Orang Tua']);
     }
 
     public function edit(ParentModel $parent): View
@@ -141,45 +165,83 @@ class ParentController extends Controller
         return view('admin.parents.edit', compact('parent'));
     }
 
-    public function update(Request $request, ParentModel $parent): RedirectResponse
+    public function editForm(Request $request, ParentModel $parent): JsonResponse
     {
+        $parent->load(['user', 'students']);
+        $html = view('admin.parents._form', [
+            'parent' => $parent,
+        ])->render();
+
+        return response()->json(['html' => $html, 'title' => 'Edit Orang Tua']);
+    }
+
+    public function studentsJson(Request $request, ParentModel $parent): JsonResponse
+    {
+        $parent->load(['user', 'students']);
+
+        $students = $parent->students->map(fn($s) => [
+            'id' => $s->id,
+            'nickname' => $s->nickname,
+            'full_name' => $s->full_name,
+            'sekolah' => $s->sekolah,
+            'kelas' => $s->kelas,
+            'status' => $s->status,
+        ]);
+
+        return response()->json(['students' => $students]);
+    }
+
+    public function update(Request $request, ParentModel $parent): JsonResponse|RedirectResponse
+    {
+        $userId = $parent->user_id;
         $validated = $request->validate([
             'name' => ['nullable', 'string', 'max:255'],
-            'phone' => ['required', 'string', 'max:20', 'regex:/^08[0-9]{8,12}$/', 'unique:users,phone,' . $parent->user_id],
+            'phone' => ['required', 'string', 'max:20', 'regex:/^08[0-9]{8,12}$/', $userId ? Rule::unique('users', 'phone')->ignore($userId) : 'unique:users,phone'],
             'address' => ['nullable', 'string', 'max:500'],
         ]);
 
         $phone = $this->cleanPhone($validated['phone']);
         $parentName = trim((string) ($validated['name'] ?? '')) ?: null;
 
-        $parent->user->update([
-            'name' => $parentName ?: 'Orang Tua',
-            'phone' => $phone,
-        ]);
+        if ($parent->user) {
+            $parent->user->update([
+                'name' => $parentName ?: 'Orang Tua',
+                'phone' => $phone,
+            ]);
+        }
 
         $parent->update([
             'name' => $parentName,
             'address' => trim((string) ($validated['address'] ?? '')) ?: null,
         ]);
 
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Parent berhasil diperbarui.']);
+        }
         return redirect()->route('admin.parents.index')
             ->with('status', 'Parent berhasil diperbarui.');
     }
 
-    public function destroy(ParentModel $parent): RedirectResponse
+    public function destroy(ParentModel $parent): JsonResponse|RedirectResponse
     {
         if ($parent->students()->count() > 0) {
+            if (request()->wantsJson() || request()->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Tidak dapat menghapus parent yang masih memiliki murid. Hapus murid terlebih dahulu.'], 422);
+            }
             return back()->withErrors(['error' => 'Tidak dapat menghapus parent yang masih memiliki murid. Hapus murid terlebih dahulu.']);
         }
 
         $parent->user->delete();
         $parent->delete();
 
+        if (request()->wantsJson() || request()->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Parent berhasil dihapus.']);
+        }
         return redirect()->route('admin.parents.index')
             ->with('status', 'Parent berhasil dihapus.');
     }
 
-    public function hibernate(ParentModel $parent): RedirectResponse
+    public function hibernate(ParentModel $parent): JsonResponse|RedirectResponse
     {
         // Cascade: hibernasi parent + semua murid di bawahnya
         DB::transaction(function () use ($parent): void {
@@ -188,36 +250,88 @@ class ParentController extends Controller
                 $student->delete();
             }
 
-            $parent->user->delete();
+            if ($parent->user) {
+                $parent->user->delete();
+            }
             $parent->delete();
         });
 
+        if (request()->wantsJson() || request()->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Parent beserta semua murid berhasil dihibernasi.']);
+        }
         return redirect()->route('admin.parents.index')
             ->with('status', 'Parent beserta semua murid berhasil dihibernasi.');
     }
 
-    public function restore(int $parentId): RedirectResponse
+    public function bulkRestore(Request $request): JsonResponse|RedirectResponse
     {
-        $parent = ParentModel::withTrashed()->findOrFail($parentId);
+        $validated = $request->validate([
+            'ids' => ['required', 'array'],
+            'ids.*' => ['integer', 'exists:parents,id'],
+        ]);
 
-        $parent->restore();
+        $count = 0;
+        foreach ($validated['ids'] as $id) {
+            $parent = ParentModel::withTrashed()
+                ->with(['user' => fn($q) => $q->withTrashed()])
+                ->find($id);
+            if (! $parent) {
+                continue;
+            }
 
-        if ($parent->user) {
-            $parent->user->restore();
+            DB::transaction(function () use ($parent): void {
+                $parent->restore();
+                if ($parent->user) {
+                    $parent->user->restore();
+                }
+                foreach (Student::withTrashed()->where('parent_id', $parent->id)->get() as $student) {
+                    $student->restore();
+                    $student->status = 'active';
+                    $student->save();
+                }
+            });
+            $count++;
         }
 
-        // Cascade: restore semua murid
-        foreach (Student::withTrashed()->where('parent_id', $parent->id)->get() as $student) {
-            $student->restore();
-            $student->status = 'active';
-            $student->save();
-        }
+        $message = "{$count} parent beserta murid-muridnya berhasil dipulihkan.";
 
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => $message]);
+        }
+        return redirect()->route('admin.parents.index')
+            ->with('status', $message);
+    }
+
+    public function restore(Request $request): JsonResponse|RedirectResponse
+    {
+        $parentId = $request->route('parent');
+        $parent = ParentModel::withTrashed()
+            ->with(['user' => fn($q) => $q->withTrashed()])
+            ->findOrFail($parentId);
+
+        DB::transaction(function () use ($parent): void {
+            $parent->restore();
+
+            if ($parent->user) {
+                $parent->user->restore();
+            }
+
+            // Cascade: restore semua murid
+            foreach (Student::withTrashed()->where('parent_id', $parent->id)->get() as $student) {
+                $student->restore();
+                $student->status = 'active';
+                $student->save();
+            }
+        });
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Parent beserta semua murid berhasil dipulihkan.']);
+        }
         return redirect()->route('admin.parents.index')
             ->with('status', 'Parent beserta semua murid berhasil dipulihkan.');
     }
 
-    public function bulkDestroy(Request $request): RedirectResponse
+    public function bulkDestroy(Request $request): JsonResponse|RedirectResponse
     {
         $validated = $request->validate([
             'ids' => ['required', 'array'],
@@ -242,7 +356,9 @@ class ParentController extends Controller
                     $student->delete();
                 }
 
-                $parent->user->delete();
+                if ($parent->user) {
+                    $parent->user->delete();
+                }
                 $parent->delete();
             });
 
@@ -257,16 +373,21 @@ class ParentController extends Controller
             $message .= " {$skipped} di antaranya memiliki enrollment aktif yang tetap dipertahankan.";
         }
 
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => $message]);
+        }
         return redirect()
             ->route('admin.parents.index')
             ->with('status', $message);
     }
 
-    public function addStudent(Request $request, ParentModel $parent): RedirectResponse
+    public function addStudent(Request $request, ParentModel $parent): JsonResponse|RedirectResponse
     {
         $validated = $request->validate([
             'nickname' => ['required', 'string', 'max:255'],
             'full_name' => ['nullable', 'string', 'max:255'],
+            'sekolah' => ['nullable', 'string', 'max:255'],
+            'kelas' => ['nullable', 'string', Rule::in(StudentGrade::LEVELS)],
         ]);
 
         $nickname = trim($validated['nickname']);
@@ -274,6 +395,9 @@ class ParentController extends Controller
             ->whereRaw('LOWER(TRIM(nickname)) = ?', [strtolower($nickname)])
             ->first();
         if ($existing) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'errors' => ['nickname' => ["Murid \"{$nickname}\" sudah terdaftar di bawah parent ini."]]], 422);
+            }
             return back()->withErrors(['nickname' => "Murid \"{$nickname}\" sudah terdaftar di bawah parent ini."])->withInput();
         }
 
@@ -281,14 +405,43 @@ class ParentController extends Controller
             'parent_id' => $parent->id,
             'nickname' => $nickname,
             'full_name' => $validated['full_name'] ?? null,
+            'sekolah' => $validated['sekolah'] ?? null,
+            'kelas' => $validated['kelas'] ?? null,
         ]);
 
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => "Murid {$student->display_name} berhasil ditambahkan."]);
+        }
         return redirect()
             ->route('admin.parents.edit', $parent)
             ->with('status', "Murid {$student->display_name} berhasil ditambahkan.");
     }
 
-    public function removeStudent(ParentModel $parent, Student $student): RedirectResponse
+    public function updateStudent(Request $request, ParentModel $parent, Student $student): JsonResponse|RedirectResponse
+    {
+        if ($student->parent_id !== $parent->id) {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'sekolah' => ['nullable', 'string', 'max:255'],
+            'kelas' => ['nullable', 'string', Rule::in(StudentGrade::LEVELS)],
+        ]);
+
+        $student->update([
+            'sekolah' => trim((string) ($validated['sekolah'] ?? '')) ?: null,
+            'kelas' => $validated['kelas'] ?? null,
+        ]);
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => "Data murid {$student->display_name} berhasil diperbarui."]);
+        }
+        return redirect()
+            ->route('admin.parents.edit', $parent)
+            ->with('status', "Data murid {$student->display_name} berhasil diperbarui.");
+    }
+
+    public function removeStudent(ParentModel $parent, Student $student): JsonResponse|RedirectResponse
     {
         if ($student->parent_id !== $parent->id) {
             abort(404);
@@ -299,22 +452,35 @@ class ParentController extends Controller
             $student->delete();
         });
 
+        if (request()->wantsJson() || request()->ajax()) {
+            return response()->json(['success' => true, 'message' => "Murid {$student->display_name} berhasil dihibernasi."]);
+        }
         return redirect()
             ->route('admin.parents.edit', $parent)
             ->with('status', "Murid {$student->display_name} berhasil dihibernasi.");
     }
 
-    public function changePassword(Request $request, ParentModel $parent): RedirectResponse
+    public function changePassword(Request $request, ParentModel $parent): JsonResponse|RedirectResponse
     {
         $validated = $request->validate([
             'password' => ['required', 'string', 'min:6', 'confirmed'],
         ]);
+
+        if (! $parent->user) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'User tidak ditemukan.'], 422);
+            }
+            return back()->withErrors(['error' => 'User tidak ditemukan.']);
+        }
 
         $parent->user->update([
             'password' => Hash::make($validated['password']),
             'must_change_password' => false,
         ]);
 
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Password parent berhasil diubah.']);
+        }
         return redirect()->route('admin.parents.edit', $parent)
             ->with('status', 'Password parent berhasil diubah.');
     }

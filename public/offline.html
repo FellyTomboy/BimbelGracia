@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline — BimbelGracia</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: #f3f4f6;
+            padding: 1rem;
+        }
+        .container {
+            text-align: center;
+            max-width: 400px;
+        }
+        .icon {
+            font-size: 4rem;
+            margin-bottom: 1.5rem;
+        }
+        h1 {
+            color: #4F46E5;
+            font-size: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+        p {
+            color: #6b7280;
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+        button {
+            background: #4F46E5;
+            color: white;
+            border: none;
+            padding: 0.75rem 2rem;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #4338ca;
+        }
+        a {
+            display: inline-block;
+            margin-top: 1rem;
+            color: #4F46E5;
+            text-decoration: none;
+            font-size: 0.875rem;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">
+            <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="40" cy="40" r="36" fill="#EEF2FF" stroke="#4F46E5" stroke-width="3"/>
+                <path d="M28 36C28 34.8954 28.8954 34 30 34H50C51.1046 34 52 34.8954 52 36V50C52 51.1046 51.1046 52 50 52H30C28.8954 52 28 51.1046 28 50V36Z" fill="#4F46E5"/>
+                <path d="M34 40H46M34 45H42" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                <path d="M36 26L40 22L44 26" stroke="#4F46E5" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <line x1="40" y1="22" x2="40" y2="34" stroke="#4F46E5" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+        </div>
+        <h1>Anda Sedang Offline</h1>
+        <p>Koneksi internet terputus. Silakan periksa jaringan Anda, lalu coba lagi.</p>
+        <button onclick="window.location.reload()">Coba Lagi</button>
+        <br>
+        <a href="/dashboard">Kembali ke Dashboard</a>
+    </div>
+</body>
+</html>

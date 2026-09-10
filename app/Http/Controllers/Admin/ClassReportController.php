@@ -22,6 +22,7 @@ class ClassReportController extends Controller
         $attendances = MonthlyAttendance::with([
             'enrollment.program',
             'enrollment.teacher',
+            'sessionTeacher',
             'students',
         ])
             ->whereHas('enrollment.program', fn ($q) => $q->where('name', 'like', 'Kelas%'))
@@ -38,12 +39,36 @@ class ClassReportController extends Controller
                         'name' => $student->display_name,
                         'total' => 0,
                         'program' => $attendance->enrollment?->program?->name ?? '-',
-                        'teacher' => $attendance->enrollment?->teacher?->name ?? '-',
+                        'teacher' => $attendance->enrollment?->teacher?->displayName ?? '-',
                     ];
                 }
                 $studentTotals[$id]['total'] += (int) ($student->pivot?->total_present ?? 0);
             }
         }
+
+        $teacherSessionKeys = [];
+        foreach ($attendances as $attendance) {
+            $teacher = $attendance->sessionTeacher;
+            if (!$teacher) {
+                continue;
+            }
+            $key = $teacher->id.'|'.$attendance->enrollment?->program_id.'|'.$attendance->lesson_date->format('Y-m-d');
+            if (!isset($teacherSessionKeys[$key])) {
+                $teacherSessionKeys[$key] = $teacher->displayName;
+            }
+        }
+
+        $byTeacher = [];
+        foreach ($teacherSessionKeys as $key => $name) {
+            if (!isset($byTeacher[$name])) {
+                $byTeacher[$name] = 0;
+            }
+            $byTeacher[$name]++;
+        }
+        $teacherRows = collect($byTeacher)->map(fn ($total, $name) => [
+            'teacher' => $name,
+            'total' => $total,
+        ])->values();
 
         $rows = collect($studentTotals)->values();
 
@@ -51,6 +76,7 @@ class ClassReportController extends Controller
             'month' => $month,
             'year' => $year,
             'rows' => $rows,
+            'teacherRows' => $teacherRows,
         ]);
     }
 

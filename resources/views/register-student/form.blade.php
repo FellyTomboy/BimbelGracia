@@ -87,7 +87,7 @@
                                     <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold student-number">{{ $loop->iteration }}</span>
                                     <span class="text-sm font-medium text-gray-500">Anak {{ $loop->iteration }}</span>
                                 </div>
-                                <div class="grid md:grid-cols-2 gap-3">
+                                <div class="grid md:grid-cols-2 gap-3 mb-3">
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-1">Nama Panggilan <span class="text-red-500">*</span></label>
                                         <input type="text" name="students[{{ $index }}][nickname]" value="{{ old('students.' . $index . '.nickname', $student['nickname'] ?? '') }}" required
@@ -101,12 +101,30 @@
                                             placeholder="Nama lengkap anak (opsional)" />
                                     </div>
                                 </div>
+                                <div class="grid md:grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Sekolah</label>
+                                        <input type="text" name="students[{{ $index }}][sekolah]" value="{{ old('students.' . $index . '.sekolah', $student['sekolah'] ?? '') }}"
+                                            class="w-full rounded-xl border-gray-200 bg-white focus:bg-white focus:border-indigo-500 focus:ring-indigo-500 transition-colors"
+                                            placeholder="Nama sekolah (opsional)" />
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Kelas</label>
+                                        <select name="students[{{ $index }}][kelas]"
+                                            class="w-full rounded-xl border-gray-200 bg-white focus:bg-white focus:border-indigo-500 focus:ring-indigo-500 transition-colors">
+                                            @foreach (\App\Helpers\StudentGrade::options() as $value => $label)
+                                                <option value="{{ $value }}" @selected(old('students.' . $index . '.kelas', $student['kelas'] ?? '') === $value)>{{ $label }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
                             </div>
                         @endforeach
                     </div>
                     @error('students') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
                     @error('students.*.nickname') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
                     @error('students.*.full_name') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
+                    @error('students.*.kelas') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
 
                 {{-- Catatan --}}
@@ -139,6 +157,10 @@
             const container = document.getElementById('students-container');
             const template = document.createElement('div');
             template.className = 'student-item student-extra relative p-4 rounded-xl border border-gray-200 bg-gray-50/50';
+            let kelasOptions = '<option value="">— Pilih kelas —</option>';
+            @foreach (\App\Helpers\StudentGrade::LEVELS as $level)
+                kelasOptions += `<option value="{{ $level }}">{{ $level }}</option>`;
+            @endforeach
             template.innerHTML = `
                 <button type="button" onclick="removeStudent(this)" class="btn-remove absolute top-2 right-2 p-1 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -147,11 +169,32 @@
                     <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold student-number"></span>
                     <span class="text-sm font-medium text-gray-500">Anak <span class="student-label-text"></span></span>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap Anak <span class="text-red-500">*</span></label>
-                    <input type="text" name="students[\${studentIndex}][name]" required
-                        class="w-full rounded-xl border-gray-200 bg-white focus:bg-white focus:border-indigo-500 focus:ring-indigo-500 transition-colors"
-                        placeholder="Nama lengkap anak" />
+                <div class="grid md:grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Nama Panggilan <span class="text-red-500">*</span></label>
+                        <input type="text" name="students[\${studentIndex}][nickname]" required
+                            class="w-full rounded-xl border-gray-200 bg-white focus:bg-white focus:border-indigo-500 focus:ring-indigo-500 transition-colors"
+                            placeholder="Nama panggilan anak" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap</label>
+                        <input type="text" name="students[\${studentIndex}][full_name]"
+                            class="w-full rounded-xl border-gray-200 bg-white focus:bg-white focus:border-indigo-500 focus:ring-indigo-500 transition-colors"
+                            placeholder="Nama lengkap anak (opsional)" />
+                    </div>
+                </div>
+                <div class="grid md:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Sekolah</label>
+                        <input type="text" name="students[\${studentIndex}][sekolah]"
+                            class="w-full rounded-xl border-gray-200 bg-white focus:bg-white focus:border-indigo-500 focus:ring-indigo-500 transition-colors"
+                            placeholder="Nama sekolah (opsional)" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Kelas</label>
+                        <select name="students[\${studentIndex}][kelas]"
+                            class="w-full rounded-xl border-gray-200 bg-white focus:bg-white focus:border-indigo-500 focus:ring-indigo-500 transition-colors">${kelasOptions}</select>
+                    </div>
                 </div>
             `;
             container.appendChild(template);

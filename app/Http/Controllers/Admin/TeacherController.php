@@ -7,9 +7,12 @@ use App\Http\Controllers\Controller;
 use App\Models\Teacher;
 use App\Models\User;
 use App\Models\Enrollment;
+use App\Models\MonthlyAttendance;
 use App\Services\MonthlySnapshotSyncService;
+use Carbon\Carbon;
 use App\Traits\SearchAndSort;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -26,10 +29,20 @@ class TeacherController extends Controller
     {
         $params = $this->getSearchSortParams($request);
 
-        $teachers = Teacher::with('user');
+        $currentMonth = (int) Carbon::now()->month;
+        $currentYear = (int) Carbon::now()->year;
+
+        $teachers = Teacher::with('user')
+            ->withCount([
+                'enrollmentAttendances as attendance_count_this_month' => function ($query) use ($currentMonth, $currentYear) {
+                    $query->where('month', $currentMonth)
+                          ->where('year', $currentYear);
+                },
+            ]);
 
         $teachers = $this->applySearch($teachers, $params['search'], [
             'teachers.full_name',
+            'teachers.nickname',
             'user.phone',
             'teachers.whatsapp_number',
             'teachers.major',
@@ -79,32 +92,32 @@ class TeacherController extends Controller
         abort_unless($teacher, 403);
 
         $validated = $request->validate([
-            'nickname' => ['nullable', 'string', 'max:255'],
+            'nickname' => ['required', 'string', 'max:255'],
             'full_name' => ['nullable', 'string', 'max:255'],
-            'major' => ['nullable', 'string', 'max:255'],
-            'subjects' => ['nullable', 'string', 'max:255'],
-            'address' => ['nullable', 'string', 'max:1000'],
-            'bank_name' => ['nullable', 'string', 'max:255'],
-            'bank_account' => ['nullable', 'string', 'max:255'],
-            'bank_owner' => ['nullable', 'string', 'max:255'],
-            'class_rate' => ['nullable', 'integer', 'min:0'],
-            'status' => ['nullable', 'in:active,hibernasi'],
+            'major' => ['required', 'string', 'max:255'],
+            'subjects' => ['required', 'string', 'max:255'],
+            'address' => ['required', 'string', 'max:1000'],
+            'bank_name' => ['required', 'string', 'max:255'],
+            'bank_account' => ['required', 'string', 'max:255'],
+            'bank_owner' => ['required', 'string', 'max:255'],
+            'class_rate' => ['required', 'integer', 'min:0'],
+            'status' => ['required', 'in:active,hibernasi'],
         ]);
 
         $fullName = trim((string) ($validated['full_name'] ?? '')) ?: null;
-        $nickname = trim((string) ($validated['nickname'] ?? '')) ?: null;
+        $nickname = trim($validated['nickname']);
 
         $teacher->update([
-            'full_name' => $fullName ?: $nickname ?: $teacher->full_name ?: 'Guru',
+            'full_name' => $fullName,
             'nickname' => $nickname,
-            'major' => trim((string) ($validated['major'] ?? '')) ?: null,
-            'subjects' => trim((string) ($validated['subjects'] ?? '')) ?: null,
-            'address' => trim((string) ($validated['address'] ?? '')) ?: null,
-            'bank_name' => trim((string) ($validated['bank_name'] ?? '')) ?: null,
-            'bank_account' => trim((string) ($validated['bank_account'] ?? '')) ?: null,
-            'bank_owner' => trim((string) ($validated['bank_owner'] ?? '')) ?: null,
-            'class_rate' => $validated['class_rate'] ?? $teacher->class_rate,
-            'status' => $validated['status'] ?? $teacher->status,
+            'major' => trim($validated['major']),
+            'subjects' => trim($validated['subjects']),
+            'address' => trim($validated['address']),
+            'bank_name' => trim($validated['bank_name']),
+            'bank_account' => trim($validated['bank_account']),
+            'bank_owner' => trim($validated['bank_owner']),
+            'class_rate' => $validated['class_rate'],
+            'status' => $validated['status'],
         ]);
 
         if ($teacher->user) {
@@ -119,7 +132,58 @@ class TeacherController extends Controller
             ->with('status', 'Data guru berhasil diperbarui.');
     }
 
-    public function store(Request $request): RedirectResponse
+    public function completeDataPublic(Request $request, int $teacher): View
+    {
+        $teacherModel = Teacher::findOrFail($teacher);
+
+        return view('guru.complete-data-public', [
+            'teacher' => $teacherModel,
+            'redirect_to' => $request->query('redirect_to', route('guru.salary-projection.index')),
+        ]);
+    }
+
+    public function submitCompleteDataPublic(Request $request, int $teacher): RedirectResponse
+    {
+        $teacherModel = Teacher::findOrFail($teacher);
+
+        $validated = $request->validate([
+            'nickname' => ['required', 'string', 'max:255'],
+            'full_name' => ['nullable', 'string', 'max:255'],
+            'major' => ['required', 'string', 'max:255'],
+            'subjects' => ['required', 'string', 'max:255'],
+            'address' => ['required', 'string', 'max:1000'],
+            'bank_name' => ['required', 'string', 'max:255'],
+            'bank_account' => ['required', 'string', 'max:255'],
+            'bank_owner' => ['required', 'string', 'max:255'],
+            'class_rate' => ['required', 'integer', 'min:0'],
+            'status' => ['required', 'in:active,hibernasi'],
+        ]);
+
+        $fullName = trim((string) ($validated['full_name'] ?? '')) ?: null;
+        $teacherModel->update([
+            'full_name' => $fullName,
+            'nickname' => trim($validated['nickname']),
+            'major' => trim($validated['major']),
+            'subjects' => trim($validated['subjects']),
+            'address' => trim($validated['address']),
+            'bank_name' => trim($validated['bank_name']),
+            'bank_account' => trim($validated['bank_account']),
+            'bank_owner' => trim($validated['bank_owner']),
+            'class_rate' => $validated['class_rate'],
+            'status' => $validated['status'],
+        ]);
+
+        if ($teacherModel->user) {
+            $teacherModel->user->update(['name' => $teacherModel->full_name]);
+        }
+
+        $redirectTo = $request->input('redirect_to', route('guru.salary-projection.index'));
+
+        return redirect()->to($redirectTo)
+            ->with('status', 'Data guru berhasil diperbarui.');
+    }
+
+    public function store(Request $request): JsonResponse|RedirectResponse
     {
         $validated = $request->validate([
             'nickname' => ['nullable', 'string', 'max:255'],
@@ -165,9 +229,37 @@ class TeacherController extends Controller
             'status' => $validated['status'],
         ]);
 
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Guru berhasil dibuat.']);
+        }
+
         return redirect()
             ->route('admin.teachers.index')
             ->with('status', 'Guru berhasil dibuat.');
+    }
+
+    public function createForm(Request $request): JsonResponse
+    {
+        $html = view('admin.teachers._form', [
+            'teacher' => null,
+        ])->render();
+
+        return response()->json([
+            'html' => $html,
+            'title' => 'Tambah Guru',
+        ]);
+    }
+
+    public function editForm(Request $request, Teacher $teacher): JsonResponse
+    {
+        $html = view('admin.teachers._form', [
+            'teacher' => $teacher,
+        ])->render();
+
+        return response()->json([
+            'html' => $html,
+            'title' => 'Edit Guru',
+        ]);
     }
 
     public function edit(Teacher $teacher): View
@@ -175,7 +267,7 @@ class TeacherController extends Controller
         return view('admin.teachers.edit', compact('teacher'));
     }
 
-    public function update(Request $request, Teacher $teacher): RedirectResponse
+    public function update(Request $request, Teacher $teacher): JsonResponse|RedirectResponse
     {
         $validated = $request->validate([
             'nickname' => ['nullable', 'string', 'max:255'],
@@ -217,35 +309,48 @@ class TeacherController extends Controller
             ]);
         }
 
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Guru berhasil diperbarui.']);
+        }
+
         return redirect()
             ->route('admin.teachers.index')
             ->with('status', 'Guru berhasil diperbarui.');
     }
 
-    public function destroy(Teacher $teacher): RedirectResponse
+    public function destroy(Teacher $teacher): JsonResponse|RedirectResponse
     {
         $teacher->update([
             'status' => 'hibernasi',
         ]);
 
+        $teacher->user->delete();
         $teacher->delete();
 
         $this->snapshotSyncService->syncAll();
+
+        if (request()->wantsJson() || request()->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Guru dihibernasi.']);
+        }
 
         return redirect()
             ->route('admin.teachers.index')
             ->with('status', 'Guru dihibernasi.');
     }
 
-    public function approvePhoto(Request $request, Teacher $teacher): RedirectResponse
+    public function approvePhoto(Request $request, Teacher $teacher): JsonResponse|RedirectResponse
     {
         $teacher->update(['profile_photo_approved' => true]);
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Foto profil guru berhasil disetujui.']);
+        }
 
         return redirect()->route('admin.teachers.index')
             ->with('status', 'Foto profile guru berhasil disetujui.');
     }
 
-    public function changePassword(Request $request, Teacher $teacher): RedirectResponse
+    public function changePassword(Request $request, Teacher $teacher): JsonResponse|RedirectResponse
     {
         $validated = $request->validate([
             'password' => ['required', 'string', 'min:6', 'confirmed'],
@@ -255,6 +360,10 @@ class TeacherController extends Controller
             'password' => Hash::make($validated['password']),
             'must_change_password' => false,
         ]);
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Password guru berhasil diubah.']);
+        }
 
         return redirect()->route('admin.teachers.edit', $teacher)
             ->with('status', 'Password guru berhasil diubah.');
@@ -280,7 +389,7 @@ class TeacherController extends Controller
         return $phone;
     }
 
-    public function bulkDestroy(Request $request): RedirectResponse
+    public function bulkDestroy(Request $request): JsonResponse|RedirectResponse
     {
         $validated = $request->validate([
             'ids' => ['required', 'array'],
@@ -291,24 +400,41 @@ class TeacherController extends Controller
             ->where('status', 'active')
             ->count();
 
-        Teacher::whereIn('id', $validated['ids'])
+        $teacherIds = $validated['ids'];
+
+        Teacher::whereIn('id', $teacherIds)
             ->where('status', 'active')
             ->update(['status' => 'hibernasi']);
 
-        Teacher::whereIn('id', $validated['ids'])
+        $userIds = Teacher::whereIn('id', $teacherIds)
+            ->where('status', 'hibernasi')
+            ->pluck('user_id');
+
+        User::whereIn('id', $userIds)->delete();
+
+        Teacher::whereIn('id', $teacherIds)
             ->where('status', 'hibernasi')
             ->delete();
 
         $this->snapshotSyncService->syncAll();
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => "{$count} guru berhasil dihibernasi."]);
+        }
 
         return redirect()
             ->route('admin.teachers.index')
             ->with('status', "{$count} guru berhasil dihibernasi.");
     }
 
-    public function restore(int $teacherId): RedirectResponse
+    public function restore(Request $request, int $teacherId): JsonResponse|RedirectResponse
     {
         $teacher = Teacher::withTrashed()->findOrFail($teacherId);
+
+        $user = User::withTrashed()->find($teacher->user_id);
+        if ($user) {
+            $user->restore();
+        }
 
         $teacher->restore();
 
@@ -317,6 +443,10 @@ class TeacherController extends Controller
         ]);
 
         $this->snapshotSyncService->syncAll();
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Guru berhasil dipulihkan.']);
+        }
 
         return redirect()
             ->route('admin.teachers.index')

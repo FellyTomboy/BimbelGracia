@@ -21,6 +21,7 @@
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100">
                 <form method="POST" action="{{ route('admin.class-student-sessions.update', $session) }}"
                       x-data="classPresensiEdit()"
+                      @submit="syncHiddenInputs()"
                       class="p-6 space-y-6">
                     @csrf
                     @method('PUT')
@@ -58,23 +59,24 @@
                             <input type="text" placeholder="Ketik nama guru untuk mencari..."
                                    x-model="teacherSearch"
                                    @focusin="showTeacherDropdown = true"
-                                   @focusout="setTimeout(() => showTeacherDropdown = false, 150)"
+                                   @focusout="setTimeout(() => { if (!document.querySelector('.teacher-dropdown-item:hover')) showTeacherDropdown = false; }, 300)"
                                    class="w-full rounded-xl border-gray-200 text-sm" />
-                            <div x-show="showTeacherDropdown"
+                            <div x-show="showTeacherDropdown && teachers.length > 0"
                                  x-transition
                                  @click="showTeacherDropdown = false"
                                  class="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg max-h-56 overflow-y-auto">
                                 <template x-for="teacher in filteredTeachers()" :key="teacher.id">
                                     <button type="button"
                                             @click="toggleTeacher(teacher)"
-                                            class="w-full text-left px-4 py-2.5 text-sm hover:bg-indigo-50 flex items-center justify-between transition-colors"
+                                            class="teacher-dropdown-item w-full text-left px-4 py-2.5 text-sm hover:bg-indigo-50 flex items-center justify-between transition-colors"
                                             :class="selectedTeachers.find(t => t.id === teacher.id) ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700'">
                                         <span x-text="teacher.name"></span>
                                         <svg x-show="selectedTeachers.find(t => t.id === teacher.id)" class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                                     </button>
                                 </template>
                                 <div x-show="filteredTeachers().length === 0" class="px-4 py-3 text-sm text-gray-400 text-center">
-                                    Guru tidak ditemukan
+                                    <span x-show="teachers.length === 0">Belum ada guru di program ini.</span>
+                                    <span x-show="teachers.length > 0 && teacherSearch">Guru tidak ditemukan</span>
                                 </div>
                             </div>
                         </div>
@@ -82,6 +84,7 @@
                             <template x-for="teacher in selectedTeachers" :key="teacher.id">
                                 <span class="inline-flex items-center gap-1 pl-3 pr-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
                                     <span x-text="teacher.name"></span>
+                                    <span class="text-blue-500 font-normal" x-show="teacher.rate">&mdash; Rp <span x-text="teacher.rate.toLocaleString('id-ID')"></span>/sesi</span>
                                     <input type="hidden" name="teacher_ids[]" :value="teacher.id" />
                                     <button type="button" @click="toggleTeacher(teacher)" class="ml-1 hover:text-rose-600 transition-colors">
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -89,7 +92,11 @@
                                 </span>
                             </template>
                         </div>
-                        <p class="mt-1 text-xs text-gray-500">Klik nama guru untuk menambahkan. Tekan × untuk menghapus.</p>
+                        <p class="mt-1 text-xs text-gray-500">
+                            <span x-show="teachers.length === 0 && programId !== ''">Tidak ada guru yang terdaftar di program ini. <a :href="'/admin/programs/' + programId + '/edit'" class="text-indigo-600 hover:underline">Tambah guru di program</a>.</span>
+                            <span x-show="teachers.length > 0">Klik nama guru untuk menambahkan.</span>
+                            <span x-show="teachers.length === 0 && programId === ''">Pilih program kelas terlebih dahulu.</span>
+                        </p>
                     </div>
 
                     {{-- Murid Hadir --}}
@@ -128,20 +135,8 @@
                             </div>
                         </div>
 
-                        {{-- Hidden inputs managed via x-effect (outside template so they always submit with form) --}}
-                        <div id="edit-student-hidden-container"
-                             x-effect="
-                                const container = document.getElementById('edit-student-hidden-container');
-                                if (!container) return;
-                                container.innerHTML = '';
-                                selectedStudentIds.forEach(studentId => {
-                                    const input = document.createElement('input');
-                                    input.type = 'hidden';
-                                    input.name = 'student_enrollment_map[]';
-                                    input.value = studentEnrollmentMap[studentId] ?? '';
-                                    container.appendChild(input);
-                                });
-                             "></div>
+                        {{-- Hidden inputs for selected students --}}
+                        <div id="edit-student-hidden-container"></div>
 
                         @error('student_enrollment_map')
                             <p class="mt-1 text-sm text-rose-600">{{ $message }}</p>@enderror
@@ -174,6 +169,7 @@
             return {
                 programId: '{{ $session->program_id }}',
                 allStudentsByProgram: {},
+                teachersByProgram: {},
                 students: [],
                 teachers: @json($teachersList),
 
@@ -208,6 +204,7 @@
                         this.selectedStudentIds.push(studentId);
                         this.studentEnrollmentMap[studentId] = enrollmentId;
                     }
+                    this.syncHiddenInputs();
                 },
 
                 selectAll() {
@@ -217,12 +214,27 @@
                             this.studentEnrollmentMap[s.student_id] = s.enrollment_id;
                         }
                     });
+                    this.syncHiddenInputs();
                 },
 
                 onProgramChange() {
-                    this.students = this.allStudentsByProgram[this.programId] || [];
+                    this.students = (this.allStudentsByProgram[this.programId] || []);
+                    this.teachers = (this.teachersByProgram[this.programId] || this.teachersByProgram[String(this.programId)] || []);
                     this.selectedStudentIds = [];
                     this.studentEnrollmentMap = {};
+                },
+
+                syncHiddenInputs() {
+                    const container = document.getElementById('edit-student-hidden-container');
+                    if (!container) return;
+                    container.innerHTML = '';
+                    this.selectedStudentIds.forEach(studentId => {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = 'student_enrollment_map[]';
+                        input.value = this.studentEnrollmentMap[studentId] ?? '';
+                        container.appendChild(input);
+                    });
                 },
 
                 init() {
@@ -235,9 +247,15 @@
                     });
                     this.allStudentsByProgram = grouped;
 
-                    // Set current program's students
+                    // Build teachersByProgram
+                    this.teachersByProgram = @json($teachersByProgram);
+
+                    // Set current program's students and confirm teachers
                     if (this.programId) {
-                        this.students = this.allStudentsByProgram[this.programId] || [];
+                        this.students = (this.allStudentsByProgram[this.programId] || []);
+                        if (this.teachersByProgram[this.programId]) {
+                            this.teachers = this.teachersByProgram[this.programId];
+                        }
                     }
 
                     // Pre-fill selected students from existing session data
@@ -249,6 +267,7 @@
                             this.studentEnrollmentMap[id] = existingEnrollmentMap[id] ?? null;
                         }
                     });
+                    this.syncHiddenInputs();
                 }
             }
         }

@@ -7,6 +7,7 @@ use App\Models\ParentModel;
 use App\Models\Student;
 use App\Services\MonthlySnapshotSyncService;
 use App\Traits\SearchAndSort;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -53,7 +54,7 @@ class StudentController extends Controller
         return view('admin.students.inactive', compact('students', 'parents'));
     }
 
-    public function destroy(Student $student): RedirectResponse
+    public function destroy(Student $student): JsonResponse|RedirectResponse
     {
         $student->update([
             'status' => 'hibernasi',
@@ -63,12 +64,16 @@ class StudentController extends Controller
 
         $this->snapshotSyncService->syncAll();
 
+        if (request()->wantsJson() || request()->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Murid dihibernasi.']);
+        }
+
         return redirect()
             ->route('admin.students.inactive')
             ->with('status', 'Murid dihibernasi.');
     }
 
-    public function bulkDestroy(Request $request): RedirectResponse
+    public function bulkDestroy(Request $request): JsonResponse|RedirectResponse
     {
         $validated = $request->validate([
             'ids' => ['required', 'array'],
@@ -89,12 +94,16 @@ class StudentController extends Controller
 
         $this->snapshotSyncService->syncAll();
 
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => "{$count} murid berhasil dihibernasi."]);
+        }
+
         return redirect()
             ->route('admin.students.index')
             ->with('status', "{$count} murid berhasil dihibernasi.");
     }
 
-    public function restore(Request $request, int $studentId): RedirectResponse
+    public function restore(Request $request, int $studentId): JsonResponse|RedirectResponse
     {
         $student = Student::withTrashed()->findOrFail($studentId);
 
@@ -113,6 +122,9 @@ class StudentController extends Controller
             if ($originalParent) {
                 $parentId = $originalParent->id;
             } else {
+                if ($request->wantsJson() || $request->ajax()) {
+                    return response()->json(['errors' => ['parent_id' => ['Pilih parent atau buat parent baru untuk murid ini.']]], 422);
+                }
                 return back()->withErrors(['parent_id' => 'Pilih parent atau buat parent baru untuk murid ini.'])->withInput();
             }
         }
@@ -145,6 +157,10 @@ class StudentController extends Controller
         $message = 'Murid berhasil dipulihkan.';
         if ($enrollmentCount > 0) {
             $message .= " {$enrollmentCount} enrollment yang hibernasi juga dipulihkan.";
+        }
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => $message]);
         }
 
         return redirect()

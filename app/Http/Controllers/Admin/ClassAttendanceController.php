@@ -49,7 +49,7 @@ class ClassAttendanceController extends Controller
 
         $allStudents = Student::query()
             ->where('status', 'active')
-            ->orderBy('name')
+            ->orderByRaw('COALESCE(full_name, nickname)')
             ->get();
 
         $attendance->load('students');

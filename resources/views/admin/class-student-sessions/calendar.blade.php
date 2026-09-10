@@ -8,8 +8,8 @@
             </div>
             <div class="flex items-center gap-3">
                 <a href="{{ route('admin.class-student-sessions.table') }}" class="px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm text-gray-600 hover:bg-gray-50 transition-colors">Tabel</a>
-                <a href="{{ route('admin.class-student-sessions.create', ['month' => $month, 'year' => $year]) }}"
-                   class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition-all shadow-sm">
+                <a href="{{ route('admin.class-student-sessions.create', ['month' => $month, 'year' => $year, 'program_id' => $selectedProgramId]) }}"
+                   class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl {{ $selectedProgramId ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-gray-200 text-gray-400 cursor-not-allowed' }} text-sm font-medium transition-all shadow-sm">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                     Tambah Presensi
                 </a>
@@ -26,16 +26,21 @@
                 </div>
             @endif
 
-            {{-- Month / Year Filter --}}
+            {{-- Month / Year / Program Filter --}}
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-                <form method="GET" action="{{ route('admin.class-student-sessions.index') }}" class="flex items-center gap-3">
-                    <label class="text-sm font-medium text-gray-700">Periode:</label>
+                <form method="GET" action="{{ route('admin.class-student-sessions.index') }}" class="flex flex-wrap items-center gap-3">
                     <select name="month" class="border-gray-300 rounded-xl text-sm">
                         @foreach (['01'=>'Januari','02'=>'Februari','03'=>'Maret','04'=>'April','05'=>'Mei','06'=>'Juni','07'=>'Juli','08'=>'Agustus','09'=>'September','10'=>'Oktober','11'=>'November','12'=>'Desember'] as $num => $label)
                             <option value="{{ $num }}" @selected($month == $num)>{{ $label }}</option>
                         @endforeach
                     </select>
                     <input type="number" name="year" value="{{ $year }}" min="2020" max="2100" class="w-24 border-gray-300 rounded-xl text-sm" />
+                    <select name="program_id" class="border-gray-300 rounded-xl text-sm">
+                        <option value="">Semua Program</option>
+                        @foreach ($programs as $p)
+                            <option value="{{ $p->id }}" @selected($selectedProgramId == $p->id)>{{ $p->name }}</option>
+                        @endforeach
+                    </select>
                     <button type="submit" class="px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition-all">Terapkan</button>
                 </form>
             </div>
@@ -48,6 +53,22 @@
                         <div class="py-3 text-center text-sm font-semibold text-gray-500 border-r border-gray-100 last:border-r-0">{{ $dayName }}</div>
                     @endforeach
                 </div>
+
+                @php
+                    $paletteFallback = array_values($programPalette);
+
+                    function programColor($session, $palette, $fallback) {
+                        if (!$session || !$session->program) return $fallback[0];
+                        $id = (int) $session->program_id;
+                        return $palette[$id] ?? $fallback[($id - 1) % count($fallback)];
+                    }
+
+                    function programColorForProgram($program, $palette, $fallback) {
+                        if (!$program) return $fallback[0];
+                        $id = (int) $program->id;
+                        return $palette[$id] ?? $fallback[($id - 1) % count($fallback)];
+                    }
+                @endphp
 
                 {{-- Calendar Cells --}}
                 @php
@@ -80,32 +101,42 @@
                             @endphp
                             <div class="min-h-32 border-r border-gray-100 last:border-r-0 p-2 @if(!$inMonth) bg-gray-50 @endif">
                                 @if ($inMonth)
-                                    <div class="text-xs font-semibold text-gray-400 mb-2">{{ $day }}</div>
+                                    <div class="flex items-center justify-between mb-2">
+                                        <div class="text-xs font-semibold text-gray-400">{{ $day }}</div>
+                                        <a href="{{ route('admin.class-student-sessions.create', ['session_date' => $dateKey, 'month' => $month, 'year' => $year, 'program_id' => $selectedProgramId]) }}"
+                                           class="w-5 h-5 rounded-full bg-indigo-100 text-indigo-600 hover:bg-indigo-600 hover:text-white flex items-center justify-center text-xs font-bold transition-colors {{ $selectedProgramId ? '' : 'opacity-40 cursor-not-allowed' }}"
+                                           title="{{ $selectedProgramId ? 'Tambah presensi' : 'Pilih program dulu' }}">+</a>
+                                    </div>
                                     <div class="space-y-2">
                                         @foreach ($cellSessions as $session)
                                             @php
                                                 $teachers = $session->teachers;
                                                 $students = $session->attendances->flatMap(fn($a) => $a->students)->unique('id')->values();
+                                                $c = programColor($session, $programPalette, $paletteFallback);
                                             @endphp
-                                            <div class="rounded-lg border border-indigo-200 bg-indigo-50 p-2 text-xs">
-                                                <div class="font-semibold text-indigo-700 mb-1">{{ $session->program->name }}</div>
+                                            <div class="rounded-lg border p-2 text-xs" style="background-color: {{ $c['bg'] }}; border-color: {{ $c['border'] }};">
+                                                <div class="font-semibold text-gray-800 mb-1">{{ $session->program->name }}</div>
                                                 @if ($teachers->isNotEmpty())
                                                     <div class="flex flex-wrap gap-1 mb-1">
                                                         @foreach ($teachers as $t)
-                                                            <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-700">
+                                                            <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium border bg-white text-gray-700" style="border-color: {{ $c['chip_border'] }};">
                                                                 {{ $t->displayName }}
                                                             </span>
                                                         @endforeach
                                                     </div>
                                                 @endif
                                                 @if ($students->isNotEmpty())
-                                                    <div class="text-gray-600 leading-tight">
-                                                        {{ $students->take(3)->map->display_name->join(', ') }}{{ $students->count() > 3 ? ' +' . ($students->count() - 3) . ' lagi' : '' }}
+                                                    <div class="flex flex-wrap gap-1">
+                                                        @foreach ($students as $s)
+                                                            <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium border border-gray-300 bg-white text-gray-600">
+                                                                {{ $s->display_name }}
+                                                            </span>
+                                                        @endforeach
                                                     </div>
                                                 @endif
                                                 <div class="flex items-center gap-2 mt-1.5">
                                                     <a href="{{ route('admin.class-student-sessions.edit', $session) }}"
-                                                       class="text-[10px] text-indigo-600 hover:text-indigo-800 font-medium">Edit</a>
+                                                       class="text-[10px] text-purple-600 hover:text-purple-800 font-medium">Edit</a>
                                                     <button type="button"
                                                             onclick="if(confirm('Hapus sesi {{ $session->session_date->format('d M Y') }}?')) { document.getElementById('delete-form-{{ $session->id }}').submit(); }"
                                                             class="text-[10px] text-rose-500 hover:text-rose-700 font-medium">Hapus</button>
@@ -132,8 +163,9 @@
                 <div class="flex flex-wrap gap-3 text-xs">
                     @foreach ($programs as $program)
                         @if ($sessions->has($program->id))
+                            @php $c = programColorForProgram($program, $programPalette, $paletteFallback); @endphp
                             <span class="flex items-center gap-1.5">
-                                <span class="w-3 h-3 rounded bg-indigo-500 inline-block"></span>
+                                <span class="w-3 h-3 rounded inline-block" style="background-color: {{ $c['dot'] }};"></span>
                                 {{ $program->name }}
                             </span>
                         @endif

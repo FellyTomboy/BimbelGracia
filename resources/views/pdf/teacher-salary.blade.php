@@ -28,7 +28,9 @@
 </head>
 <body>
     <div class="header">
+        @if (file_exists(public_path('storage/website/logo_bimbel.jpg')))
         <img src="{{ public_path('storage/website/logo_bimbel.jpg') }}" alt="Bimbel Gracia" />
+        @endif
         <h1>SLIP GAJI</h1>
         <p>Bimbel Gracia</p>
     </div>
@@ -48,7 +50,7 @@
         <thead>
             <tr>
                 <th>Murid / Program</th>
-                <th>Tarif</th>
+                <th>Biaya</th>
                 <th>Jumlah</th>
                 <th>Gaji Kotor</th>
                 <th>Denda</th>
@@ -58,7 +60,7 @@
         <tbody>
             @foreach ($rows as $row)
                 <tr>
-                    <td>{{ $row['student'] }} ({{ $row['program'] }})<br><span style="font-size: 10px; color: #666;">{{ $row['label_detail'] }}</span></td>
+                    <td>{{ ($row['type'] ?? '') === 'privat' ? (($row['student_label'] ?? $row['student']) . ' - ' . ($row['program']?->name ?? '-')) : ($row['program']?->name ?? '-') }}<br><span style="font-size: 10px; color: #666;">{{ ($row['type'] ?? '') !== 'privat' ? ($row['label_detail'] ?? '') : '' }}</span></td>
                     <td>Rp {{ number_format($row['rate']) }}</td>
                     <td>{{ $row['count'] }}x</td>
                     <td>Rp {{ number_format($row['total']) }}</td>
@@ -83,7 +85,7 @@
         <div class="warning" style="margin-top: 15px; padding: 10px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 4px;">
             <p style="margin: 0; font-size: 11px; color: #991b1b;">
                 <strong>⚠️ Peringatan Keterlambatan Presensi</strong><br>
-                Terdapat {{ $totalLateCount ?? 0 }} pertemuan yang diisi terlambat. Denda keterlambatan sebesar <strong>10% dari tarif</strong> per pertemuan.<br>
+                Terdapat {{ $totalLateCount ?? 0 }} pertemuan yang diisi terlambat. Denda keterlambatan sebesar <strong>{{ $latePenaltyDisplayLabel }} dari tarif</strong> per pertemuan.<br>
                 <em>Semua presensi wajib diisi maksimal 3 hari setelah hari pelaksanaan les. Keterlambatan pengisian presensi akan dikenakan denda.</em>
             </p>
         </div>

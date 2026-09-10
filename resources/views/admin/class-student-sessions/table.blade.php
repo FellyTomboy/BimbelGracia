@@ -9,55 +9,86 @@
         </div>
     </x-slot>
 
-    <div class="py-12">
+    <div class="py-8">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-4">
             @if (session('status'))
-                <div class="bg-emerald-50 text-emerald-700 px-4 py-3 rounded-md">
+                <div class="bg-emerald-50 text-emerald-700 px-4 py-3 rounded-xl text-sm flex items-center gap-2">
+                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     {{ session('status') }}
                 </div>
             @endif
+
             <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden">
                 <div class="p-6 text-gray-900 overflow-x-auto">
-                    <table class="min-w-full text-sm">
-                        <thead>
-                            <tr class="text-left text-gray-500">
-                                <th class="py-2">Tanggal</th>
-                                <th class="py-2">Program</th>
-                                <th class="py-2">Guru</th>
-                                <th class="py-2">Murid</th>
-                                <th class="py-2">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y">
-                            @foreach ($attendances as $attendance)
-                                <tr>
-                                    <td class="py-2">{{ $attendance->lesson_date?->format('d M Y') ?? '-' }}</td>
-                                    <td class="py-2">
-                                        <x-hibernated-label :model="$attendance->enrollment?->program" :label="$attendance->enrollment?->program?->name ?? '-'" type="program" />
-                                    </td>
-                                    <td class="py-2">
-                                        <x-hibernated-label :model="$attendance->enrollment?->teacher" :label="$attendance->enrollment?->teacher?->displayName ?? '-'" type="guru" />
-                                    </td>
-                                    <td class="py-2">
-                                        @foreach ($attendance->students as $student)
-                                            <x-hibernated-label :model="$student" :label="$student->display_name" type="murid privat" /><br>
-                                        @endforeach
-                                    </td>
-                                    <td class="py-2">
-                                        @if ($attendance->status_validation === 'terima')
-                                            <span class="text-emerald-600 font-semibold">Diterima</span>
-                                        @elseif ($attendance->status_validation === 'terlambat')
-                                            <span class="text-amber-600 font-semibold">Terlambat</span>
-                                        @elseif ($attendance->status_validation === 'ditolak')
-                                            <span class="text-rose-600 font-semibold">Ditolak</span>
-                                        @else
-                                            <span class="text-gray-500 font-semibold">Pending</span>
-                                        @endif
-                                    </td>
+                    @if (empty($grouped))
+                        <div class="text-center py-12 text-gray-400">
+                            <svg class="w-8 h-8 mx-auto mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                            <p>Belum ada presensi kelas</p>
+                        </div>
+                    @else
+                        <table class="min-w-full text-sm">
+                            <thead>
+                                <tr class="text-left text-gray-500 text-xs uppercase tracking-wide border-b">
+                                    <th class="py-2 pr-4">Tanggal</th>
+                                    <th class="py-2 pr-4">Program</th>
+                                    <th class="py-2 pr-4">Guru</th>
+                                    <th class="py-2 pr-4">Murid</th>
+                                    <th class="py-2 pr-4">Aksi</th>
                                 </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody class="divide-y divide-gray-50">
+                                @foreach ($grouped as $row)
+                                    <tr class="hover:bg-gray-50/50">
+                                        <td class="py-3 pr-4 align-top text-gray-900 whitespace-nowrap">
+                                            {{ $row['date']->format('d M Y') }}
+                                        </td>
+                                        <td class="py-3 pr-4 align-top">
+                                            <x-hibernated-label :model="$row['program']" :label="$row['program']?->name ?? '-'" type="program" />
+                                        </td>
+                                        <td class="py-3 pr-4 align-top">
+                                            @if ($row['teachers']->isNotEmpty())
+                                                @foreach ($row['teachers'] as $t)
+                                                    <x-hibernated-label :model="$t" :label="$t->displayName" type="guru" />{{ !$loop->last ? ', ' : '' }}
+                                                @endforeach
+                                            @else
+                                                <span class="text-gray-400">-</span>
+                                            @endif
+                                        </td>
+                                        <td class="py-3 pr-4 align-top">
+                                            @if ($row['students']->isNotEmpty())
+                                                <div class="flex flex-wrap gap-1">
+                                                    @foreach ($row['students'] as $s)
+                                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
+                                                            {{ $s->display_name }}
+                                                        </span>
+                                                    @endforeach
+                                                </div>
+                                            @else
+                                                <span class="text-gray-400">-</span>
+                                            @endif
+                                        </td>
+                                        <td class="py-3 align-top">
+                                            <div class="flex items-center gap-1">
+                                                <a href="{{ route('admin.class-student-sessions.edit', $row['class_session']) }}"
+                                                   class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors">
+                                                    Edit
+                                                </a>
+                                                <form action="{{ route('admin.class-student-sessions.destroy', $row['class_session']) }}" method="POST"
+                                                      onsubmit="return confirm('Hapus sesi {{ $row['date']->format('d M Y') }}?')">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit"
+                                                            class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">
+                                                        Hapus
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    @endif
                 </div>
             </div>
         </div>

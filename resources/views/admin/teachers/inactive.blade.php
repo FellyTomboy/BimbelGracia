@@ -7,7 +7,25 @@
         </div>
     </x-slot>
 
-    <div class="py-12">
+    <div class="py-12"
+         x-data="{
+             restoreLoading: null,
+
+             async restoreRow(teacherId) {
+                 if (!confirm('Pulihkan guru ini?')) return;
+                 this.restoreLoading = teacherId;
+                 try {
+                     await window.Ajax.post(`/admin/teachers/${teacherId}/restore`);
+                     window.Toast?.success('Guru berhasil dipulihkan.');
+                     window.location.reload();
+                 } catch (e) {
+                     window.Toast?.error('Gagal memulihkan guru.');
+                 } finally {
+                     this.restoreLoading = null;
+                 }
+             }
+         }">
+
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-4">
             @if (session('status'))
                 <div class="bg-emerald-50 text-emerald-700 px-4 py-3 rounded-md">
@@ -15,15 +33,18 @@
                 </div>
             @endif
             <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden">
+                <div class="p-4 border-b border-gray-100 flex items-center justify-between gap-4 flex-wrap">
+                    <div class="text-sm text-gray-400">{{ $teachers->count() }} guru</div>
+                </div>
                 <div class="p-6 text-gray-900 overflow-x-auto">
                     <table class="min-w-full text-sm">
                         <thead>
                             <tr class="text-left text-gray-500">
-                                <th class="py-2">Nama Lengkap</th>
+                                <th class="py-2">Nama</th>
                                 <th class="py-2">Nama Panggilan</th>
                                 <th class="py-2">Email</th>
                                 <th class="py-2">WhatsApp</th>
-                                <th class="py-2">Tarif Kelas</th>
+                                <th class="py-2">Biaya Kelas</th>
                                 <th class="py-2">Status</th>
                                 <th class="py-2">Aksi</th>
                             </tr>
@@ -31,23 +52,20 @@
                         <tbody class="divide-y">
                             @foreach ($teachers as $teacher)
                                 <tr>
-                                    <td class="py-2">
-                                        <span class="font-medium text-gray-900 @empty($teacher->full_name) text-amber-600 font-semibold @endempty">{{ $teacher->full_name ?: '—' }}</span>
-                                        @empty($teacher->full_name)<span class="text-xs text-amber-500 ml-1">(kosong)</span>@endempty
-                                    </td>
-                                    <td class="py-2">
-                                        <span class="text-gray-700 @empty($teacher->nickname) text-gray-400 @endempty">{{ $teacher->nickname ?: '—' }}</span>
-                                        @empty($teacher->nickname)<span class="text-xs text-gray-400 ml-1">(kosong)</span>@endempty
-                                    </td>
+                                    <td class="py-2">{{ $teacher->displayName }}</td>
+                                    <td class="py-2">{{ $teacher->nickname ?: '—' }}</td>
                                     <td class="py-2">{{ $teacher->user?->email ?? '-' }}</td>
                                     <td class="py-2">{{ $teacher->whatsapp_number ?? '-' }}</td>
                                     <td class="py-2">Rp {{ number_format($teacher->class_rate ?? 0) }}</td>
                                     <td class="py-2">hibernasi</td>
                                     <td class="py-2">
-                                        <form method="POST" action="{{ route('admin.teachers.restore', $teacher->id) }}">
-                                            @csrf
-                                            <button type="submit" class="text-emerald-600">Restore</button>
-                                        </form>
+                                        <button type="button"
+                                                @click="restoreRow({{ $teacher->id }})"
+                                                :disabled="restoreLoading === {{ $teacher->id }}"
+                                                class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 transition-colors disabled:opacity-50">
+                                            <svg x-show="restoreLoading === {{ $teacher->id }}" class="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                                            Pulihkan
+                                        </button>
                                     </td>
                                 </tr>
                             @endforeach

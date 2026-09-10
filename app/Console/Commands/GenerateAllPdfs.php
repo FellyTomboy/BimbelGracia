@@ -2,8 +2,10 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Invoice;
 use App\Models\MonthlyAttendance;
 use App\Models\ParentModel;
+use App\Models\Salary;
 use App\Models\Student;
 use App\Models\Teacher;
 use App\Services\Pdf\InvoiceService;
@@ -56,8 +58,21 @@ class GenerateAllPdfs extends Command
             }
 
             try {
-                $filename = $invoiceService->generateParentInvoice($students, $month, $year, $attendances);
-                $this->info("  ✓ {$parent->name} -> storage/app/public/{$filename}");
+                $invoice = Invoice::firstOrCreate(
+                    ['parent_id' => $parent->id, 'month' => $month, 'year' => $year],
+                    ['filename' => '']
+                );
+                $result = $invoiceService->generateParentInvoice(
+                    $students, $month, $year, $attendances,
+                    $invoice->filename ?: null
+                );
+                // Use full storage path (not just basename) so subsequent runs reuse same file
+                if ($invoice->filename !== $result['storage_path']) {
+                    $invoice->filename = $result['storage_path'];
+                    $invoice->regenerated_at = now();
+                    $invoice->save();
+                }
+                $this->info("  ✓ {$parent->name} -> storage/app/public/{$result['storage_path']}");
                 $parentCount++;
             } catch (\Exception $e) {
                 $this->error("  ✗ {$parent->name}: {$e->getMessage()}");
@@ -91,8 +106,21 @@ class GenerateAllPdfs extends Command
             }
 
             try {
-                $filename = $invoiceService->generateTeacherSalarySlip($teacher, $month, $year, $attendances);
-                $this->info("  ✓ {$teacher->full_name} -> storage/app/public/{$filename}");
+                $salary = Salary::firstOrCreate(
+                    ['teacher_id' => $teacher->id, 'month' => $month, 'year' => $year],
+                    ['filename' => '']
+                );
+                $result = $invoiceService->generateTeacherSalarySlip(
+                    $teacher, $month, $year, $attendances,
+                    $salary->filename ?: null
+                );
+                // Use full storage path (not just basename) so subsequent runs reuse same file
+                if ($salary->filename !== $result['storage_path']) {
+                    $salary->filename = $result['storage_path'];
+                    $salary->regenerated_at = now();
+                    $salary->save();
+                }
+                $this->info("  ✓ {$teacher->full_name} -> storage/app/public/{$result['storage_path']}");
                 $teacherCount++;
             } catch (\Exception $e) {
                 $this->error("  ✗ {$teacher->full_name}: {$e->getMessage()}");

@@ -56,6 +56,16 @@
 
                     <div class="flex items-center gap-4">
                         <x-primary-button>{{ __('Simpan') }}</x-primary-button>
+
+                        @if (session('status') === 'founder-updated')
+                            <p
+                                x-data="{ show: true }"
+                                x-show="show"
+                                x-transition
+                                x-init="setTimeout(() => show = false, 2000)"
+                                class="text-sm text-gray-600"
+                            >{{ __('Tersimpan.') }}</p>
+                        @endif
                     </div>
                 </form>
 
@@ -66,21 +76,17 @@
                         <input type="file" name="profile_photo" accept="image/jpeg,image/png,image/jpg" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" required />
                         <x-input-error class="mt-2" :messages="$errors->get('profile_photo')" />
                     </div>
-                    <div class="mt-3">
+                    <div class="flex items-center gap-4 mt-3">
                         <x-primary-button>{{ __('Upload Foto') }}</x-primary-button>
+
+                        @if (session('status') === 'photo-uploaded')
+                            <p x-data="{ show: true }" x-show="show" x-transition x-init="setTimeout(() => show = false, 2000)" class="text-sm text-gray-600">
+                                {{ __('Tersimpan.') }}
+                            </p>
+                        @endif
                     </div>
                 </form>
             </div>
         @endforeach
-
-        @if (session('status') === 'founder-updated')
-            <p
-                x-data="{ show: true }"
-                x-show="show"
-                x-transition
-                x-init="setTimeout(() => show = false, 2000)"
-                class="mt-4 text-sm text-gray-600"
-            >{{ __('Tersimpan.') }}</p>
-        @endif
     @endif
 </section>

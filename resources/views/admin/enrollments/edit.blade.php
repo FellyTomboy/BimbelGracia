@@ -127,7 +127,7 @@
                                             <tr>
                                                 <td class="py-1 pr-2 text-gray-600 whitespace-nowrap" x-text="i + ' murid:'"></td>
                                                 <td class="py-1">
-                                                    <input type="number" name="pricing_tiers_parent[i]" x-bind:name="'pricing_tiers_parent[' + i + ']'" min="0" step="5000" class="w-full border-gray-300 rounded-md text-sm"
+                                                    <input type="number" name="pricing_tiers_parent[i]" x-bind:name="'pricing_tiers_parent[' + i + ']'" min="0" step="1000" class="w-full border-gray-300 rounded-md text-sm"
                                                         x-bind:value="parentTiers[i] ?? ''"
                                                         x-bind:placeholder="'Rp ' + (i * 100000)" />
                                                 </td>
@@ -142,7 +142,7 @@
                                             <tr>
                                                 <td class="py-1 pr-2 text-gray-600 whitespace-nowrap" x-text="i + ' murid:'"></td>
                                                 <td class="py-1">
-                                                    <input type="number" name="pricing_tiers_teacher[i]" x-bind:name="'pricing_tiers_teacher[' + i + ']'" min="0" step="5000" class="w-full border-gray-300 rounded-md text-sm"
+                                                    <input type="number" name="pricing_tiers_teacher[i]" x-bind:name="'pricing_tiers_teacher[' + i + ']'" min="0" step="1000" class="w-full border-gray-300 rounded-md text-sm"
                                                         x-bind:value="teacherTiers[i] ?? ''"
                                                         x-bind:placeholder="'Rp ' + (i * 50000)" />
                                                 </td>
@@ -158,7 +158,7 @@
                     <div class="grid md:grid-cols-2 gap-4" id="rate-fields">
                         <div>
                             <label class="block text-sm font-medium text-gray-700" id="parent-rate-label">Harga Ortu Default (1 murid)</label>
-                            <input type="number" name="parent_rate" id="parent-rate" value="{{ old('parent_rate', $enrollment->parent_rate) }}" step="5000" class="mt-1 w-full border-gray-300 rounded-md" required />
+                            <input type="number" name="parent_rate" id="parent-rate" value="{{ old('parent_rate', $enrollment->parent_rate) }}" step="1000" class="mt-1 w-full border-gray-300 rounded-md" required />
                             @error('parent_rate')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
                         </div>
                         <div id="teacher-rate-field">

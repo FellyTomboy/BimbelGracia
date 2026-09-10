@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Murid;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SendAttendanceRejectionEmail;
 use App\Models\MonthlyAttendance;
 use App\Models\Student;
 use Illuminate\Http\RedirectResponse;
@@ -44,7 +45,7 @@ class HistoryController extends Controller
         abort_unless($student && $attendance->students()->whereKey($student->id)->exists(), 403);
 
         if ($attendance->parent_review_status === 'pending') {
-            return back()->with('status', 'Penolakan presensi sudah dikirim dan menunggu konfirmasi admin.');
+            return back()->withInput()->with('status', 'Penolakan presensi sudah dikirim dan menunggu konfirmasi admin.');
         }
 
         $validated = $request->validate([
@@ -57,7 +58,15 @@ class HistoryController extends Controller
             'parent_rejection_reason' => $validated['rejection_reason'],
         ]);
 
-        return back()->with('status', 'Penolakan presensi terkirim. Silakan hubungi admin untuk konfirmasi penolakan.');
+        $attendance->load('enrollment.program', 'enrollment.teacher', 'students');
+
+        SendAttendanceRejectionEmail::dispatch(
+            $attendance,
+            $validated['rejection_reason'],
+            $student?->display_name,
+        );
+
+        return back()->withInput()->with('status', 'Penolakan presensi terkirim. Silakan hubungi admin untuk konfirmasi penolakan.');
     }
 
     public function cancelReject(Request $request, MonthlyAttendance $attendance): RedirectResponse
@@ -75,7 +84,7 @@ class HistoryController extends Controller
             'parent_rejection_reason' => null,
         ]);
 
-        return back()->with('status', 'Penolakan presensi dibatalkan. Antrian konfirmasi admin telah dihapus.');
+        return back()->withInput()->with('status', 'Penolakan presensi dibatalkan. Antrian konfirmasi admin telah dihapus.');
     }
 
     private function resolvePeriod(Request $request): array

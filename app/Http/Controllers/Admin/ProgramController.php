@@ -7,8 +7,11 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Enrollment;
 use App\Models\Program;
+use App\Models\Teacher;
+use App\Models\TeacherProgramRate;
 use App\Services\MonthlySnapshotSyncService;
 use App\Traits\SearchAndSort;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -52,28 +55,79 @@ class ProgramController extends Controller
 
     public function create(): View
     {
-        return view('admin.programs.create');
+        $teachers = Teacher::orderBy('full_name')->get();
+        return view('admin.programs.create', compact('teachers'));
     }
 
-    public function store(Request $request): RedirectResponse
+    public function createForm(Request $request): JsonResponse
+    {
+        $teachers = Teacher::orderBy('full_name')->get();
+        $html = view('admin.programs._form', [
+            'program' => null,
+            'teachers' => $teachers,
+        ])->render();
+
+        return response()->json([
+            'html' => $html,
+            'title' => 'Tambah Program Les',
+        ]);
+    }
+
+    public function editForm(Request $request, Program $program): JsonResponse
+    {
+        $program->load('teachers');
+        $teachers = Teacher::orderBy('full_name')->get();
+        $html = view('admin.programs._form', [
+            'program' => $program,
+            'teachers' => $teachers,
+        ])->render();
+
+        return response()->json([
+            'html' => $html,
+            'title' => 'Edit Program Les — ' . $program->name,
+        ]);
+    }
+
+    public function store(Request $request): JsonResponse|RedirectResponse
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'type' => ['required', 'in:privat,kelas'],
+            'division' => ['nullable', 'string', 'in:TK,SD,SMP,SMA,mengaji,mix'],
             'subject' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'default_parent_rate' => ['required', 'integer', 'min:1'],
-            'default_teacher_rate' => ['nullable', 'integer', 'min:0'],
+            'parent_rate_privat' => ['nullable', 'integer', 'min:0'],
+            'teacher_rate_privat' => ['nullable', 'integer', 'min:0'],
+            'parent_rate_kelas' => ['nullable', 'integer', 'min:0'],
+            'teacher_rate_kelas' => ['nullable', 'integer', 'min:0'],
             'status' => ['required', 'in:active,hibernasi'],
         ]);
 
-        if ($validated['type'] === 'kelas') {
-            $validated['default_teacher_rate'] = null;
-        } else {
-            $validated['default_teacher_rate'] = max(1, (int) ($validated['default_teacher_rate'] ?? 0));
+        $type = $validated['type'];
+        $validated['default_parent_rate'] = (int) ($type === 'privat'
+            ? ($validated['parent_rate_privat'] ?? 0)
+            : ($validated['parent_rate_kelas'] ?? 0));
+        $validated['default_teacher_rate'] = (int) ($type === 'privat'
+            ? ($validated['teacher_rate_privat'] ?? 0)
+            : ($validated['teacher_rate_kelas'] ?? 0));
+
+        if ($type === 'privat') {
+            $validated['default_teacher_rate'] = max(1, $validated['default_teacher_rate']);
         }
 
-        Program::create($validated);
+        $program = Program::create($validated);
+
+        if ($type === 'kelas') {
+            $this->syncTeacherRates($program, $request->input('teacher_rates', []));
+        }
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Program berhasil dibuat.',
+                'program' => $program,
+            ]);
+        }
 
         return redirect()
             ->route('admin.programs.index')
@@ -82,35 +136,60 @@ class ProgramController extends Controller
 
     public function edit(Program $program): View
     {
-        return view('admin.programs.edit', compact('program'));
+        $program->load('teachers');
+        $teachers = Teacher::orderBy('full_name')->get();
+        return view('admin.programs.edit', compact('program', 'teachers'));
     }
 
-    public function update(Request $request, Program $program): RedirectResponse
+    public function update(Request $request, Program $program): JsonResponse|RedirectResponse
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'type' => ['required', 'in:privat,kelas'],
+            'division' => ['nullable', 'string', 'in:TK,SD,SMP,SMA,mengaji,mix'],
             'subject' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'default_parent_rate' => ['required', 'integer', 'min:1'],
-            'default_teacher_rate' => ['nullable', 'integer', 'min:0'],
+            'parent_rate_privat' => ['nullable', 'integer', 'min:0'],
+            'teacher_rate_privat' => ['nullable', 'integer', 'min:0'],
+            'parent_rate_kelas' => ['nullable', 'integer', 'min:0'],
+            'teacher_rate_kelas' => ['nullable', 'integer', 'min:0'],
             'status' => ['required', 'in:active,hibernasi'],
         ]);
 
-        if ($validated['type'] === 'kelas') {
-            $validated['default_teacher_rate'] = null;
-        } else {
-            $validated['default_teacher_rate'] = max(1, (int) ($validated['default_teacher_rate'] ?? 0));
+        $type = $validated['type'];
+        $validated['default_parent_rate'] = (int) ($type === 'privat'
+            ? ($validated['parent_rate_privat'] ?? 0)
+            : ($validated['parent_rate_kelas'] ?? 0));
+        $validated['default_teacher_rate'] = (int) ($type === 'privat'
+            ? ($validated['teacher_rate_privat'] ?? 0)
+            : ($validated['teacher_rate_kelas'] ?? 0));
+
+        if ($type === 'privat') {
+            $validated['default_teacher_rate'] = max(1, $validated['default_teacher_rate']);
         }
 
         $program->update($validated);
+
+        if ($type === 'kelas') {
+            $this->syncTeacherRates($program, $request->input('teacher_rates', []));
+        } else {
+            $program->teacherRates()->delete();
+        }
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Program berhasil diperbarui.',
+                'program' => $program,
+            ]);
+        }
 
         return redirect()
             ->route('admin.programs.index')
             ->with('status', 'Program berhasil diperbarui.');
     }
 
-    public function destroy(Program $program): RedirectResponse
+    public function destroy(Request $request, Program $program): JsonResponse|RedirectResponse
     {
         $program->update([
             'status' => 'hibernasi',
@@ -120,12 +199,19 @@ class ProgramController extends Controller
 
         $this->snapshotSyncService->syncAll();
 
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Program dihibernasi.',
+            ]);
+        }
+
         return redirect()
             ->route('admin.programs.index')
             ->with('status', 'Program dihibernasi.');
     }
 
-    public function bulkDestroy(Request $request): RedirectResponse
+    public function bulkDestroy(Request $request): JsonResponse|RedirectResponse
     {
         $validated = $request->validate([
             'ids' => ['required', 'array'],
@@ -144,13 +230,22 @@ class ProgramController extends Controller
             ->where('status', 'hibernasi')
             ->delete();
 
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => "{$count} program berhasil dihibernasi.",
+                'count' => $count,
+            ]);
+        }
+
         return redirect()
             ->route('admin.programs.index')
             ->with('status', "{$count} program berhasil dihibernasi.");
     }
 
-    public function restore(int $programId): RedirectResponse
+    public function restore(Request $request): JsonResponse|RedirectResponse
     {
+        $programId = $request->route('program');
         $program = Program::withTrashed()->findOrFail($programId);
 
         $program->restore();
@@ -161,8 +256,32 @@ class ProgramController extends Controller
 
         $this->snapshotSyncService->syncAll();
 
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Program berhasil dipulihkan.',
+            ]);
+        }
+
         return redirect()
             ->route('admin.programs.index')
             ->with('status', 'Program berhasil dipulihkan.');
+    }
+
+    private function syncTeacherRates(Program $program, array $teacherRates): void
+    {
+        $program->teacherRates()->delete();
+
+        foreach ($teacherRates as $teacherId => $rate) {
+            $rateInt = (int) ($rate ?? 0);
+            if ($rateInt <= 0) {
+                continue;
+            }
+            TeacherProgramRate::create([
+                'teacher_id' => (int) $teacherId,
+                'program_id' => $program->id,
+                'rate' => $rateInt,
+            ]);
+        }
     }
 }

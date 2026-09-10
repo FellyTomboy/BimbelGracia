@@ -20,6 +20,8 @@ class Student extends Model
         'nickname',
         'full_name',
         'address',
+        'sekolah',
+        'kelas',
         'status',
     ];
 
@@ -36,7 +38,12 @@ class Student extends Model
 
     public function getDisplayNameAttribute(): string
     {
-        return trim((string) ($this->full_name ?: $this->nickname ?: '')) ?: 'Tanpa nama';
+        $fn = trim((string) ($this->full_name ?? ''));
+        $nn = trim((string) ($this->nickname ?? ''));
+        if ($fn) {
+            return $nn ? "{$fn} ({$nn})" : $fn;
+        }
+        return $nn ?: 'Tanpa nama';
     }
 
     public function parent(): BelongsTo

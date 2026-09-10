@@ -26,43 +26,65 @@
                         <input type="month" name="range_end" value="{{ $rangeEnd ?? now()->format('Y-m') }}" class="mt-1 w-full border-gray-300 rounded-md" />
                     </div>
 
-
                     <div>
                         <button type="submit" class="w-full px-4 py-2 rounded-md bg-slate-900 text-white">Terapkan</button>
                     </div>
                 </form>
             </div>
 
+            <div class="bg-slate-50 shadow-sm sm:rounded-lg p-3 text-center text-sm text-slate-600">
+                Metrik Keuangan untuk periode: <strong>{{ $periodLabel }}</strong>
+            </div>
 
-            <div class="grid md:grid-cols-3 gap-6">
-                <div class="bg-white shadow-sm sm:rounded-lg p-6">
-                    <p class="text-sm text-gray-500">Pendapatan Kotor</p>
-                    <p class="text-2xl font-semibold">Rp {{ number_format($gross) }}</p>
+            <div class="grid md:grid-cols-6 gap-4">
+                <div class="bg-blue-50 shadow-sm sm:rounded-lg p-4">
+                    <p class="text-xs text-blue-600 font-medium uppercase tracking-wide">Privat Kotor</p>
+                    <p class="text-lg font-semibold text-blue-900">Rp {{ number_format($privatGross) }}</p>
                 </div>
-                <div class="bg-white shadow-sm sm:rounded-lg p-6">
-                    <p class="text-sm text-gray-500">Biaya Guru</p>
-                    <p class="text-2xl font-semibold">Rp {{ number_format($teacherCost) }}</p>
+                <div class="bg-blue-50 shadow-sm sm:rounded-lg p-4">
+                    <p class="text-xs text-blue-600 font-medium uppercase tracking-wide">Biaya Guru Privat</p>
+                    <p class="text-lg font-semibold text-blue-900">Rp {{ number_format($privatTeacherCost) }}</p>
                 </div>
-                <div class="bg-white shadow-sm sm:rounded-lg p-6">
-                    <p class="text-sm text-gray-500">Pendapatan Bersih</p>
-                    <p class="text-2xl font-semibold">Rp {{ number_format($net) }}</p>
+                <div class="bg-blue-100 shadow-sm sm:rounded-lg p-4">
+                    <p class="text-xs text-blue-700 font-medium uppercase tracking-wide">Privat Bersih</p>
+                    <p class="text-lg font-semibold text-blue-900">Rp {{ number_format($privatNet) }}</p>
+                </div>
+                <div class="bg-teal-50 shadow-sm sm:rounded-lg p-4">
+                    <p class="text-xs text-teal-600 font-medium uppercase tracking-wide">Kelas Kotor</p>
+                    <p class="text-lg font-semibold text-teal-900">Rp {{ number_format($kelasGross) }}</p>
+                </div>
+                <div class="bg-teal-50 shadow-sm sm:rounded-lg p-4">
+                    <p class="text-xs text-teal-600 font-medium uppercase tracking-wide">Biaya Guru Kelas</p>
+                    <p class="text-lg font-semibold text-teal-900">Rp {{ number_format($kelasTeacherCost) }}</p>
+                </div>
+                <div class="bg-teal-100 shadow-sm sm:rounded-lg p-4">
+                    <p class="text-xs text-teal-700 font-medium uppercase tracking-wide">Kelas Bersih</p>
+                    <p class="text-lg font-semibold text-teal-900">Rp {{ number_format($kelasNet) }}</p>
                 </div>
             </div>
 
-            <div class="grid md:grid-cols-4 gap-6">
-                <div class="bg-white shadow-sm sm:rounded-lg p-6">
-                    <p class="text-sm text-gray-500">Murid Aktif</p>
+            <div class="grid md:grid-cols-6 gap-4">
+                <div class="bg-white shadow-sm sm:rounded-lg p-4">
+                    <p class="text-sm text-gray-500">Murid Aktif (Total)</p>
                     <p class="text-2xl font-semibold">{{ $activeStudents }}</p>
                 </div>
-                <div class="bg-white shadow-sm sm:rounded-lg p-6">
+                <div class="bg-white shadow-sm sm:rounded-lg p-4">
+                    <p class="text-sm text-gray-500">Murid Privat Aktif</p>
+                    <p class="text-2xl font-semibold">{{ $activePrivateStudents }}</p>
+                </div>
+                <div class="bg-white shadow-sm sm:rounded-lg p-4">
                     <p class="text-sm text-gray-500">Murid Kelas Aktif</p>
                     <p class="text-2xl font-semibold">{{ $activeClassStudents }}</p>
                 </div>
-                <div class="bg-white shadow-sm sm:rounded-lg p-6">
-                    <p class="text-sm text-gray-500">Guru Aktif</p>
+                <div class="bg-white shadow-sm sm:rounded-lg p-4">
+                    <p class="text-sm text-gray-500">Guru Aktif (Total)</p>
                     <p class="text-2xl font-semibold">{{ $activeTeachers }}</p>
                 </div>
-                <div class="bg-white shadow-sm sm:rounded-lg p-6">
+                <div class="bg-white shadow-sm sm:rounded-lg p-4">
+                    <p class="text-sm text-gray-500">Guru (Rata-rata)</p>
+                    <p class="text-2xl font-semibold">{{ $activeTeachersPeriod }}</p>
+                </div>
+                <div class="bg-white shadow-sm sm:rounded-lg p-4">
                     <p class="text-sm text-gray-500">Validasi Error</p>
                     <p class="text-2xl font-semibold">{{ $needsFix }}</p>
                 </div>
@@ -72,17 +94,28 @@
                 <h3 class="text-lg font-semibold">Grafik Pertumbuhan Bimbel</h3>
 
                 <div class="grid md:grid-cols-3 gap-6">
-                    <div class="md:col-span-1 bg-white shadow-sm sm:rounded-lg p-6">
-                        <h4 class="text-sm font-semibold text-gray-700 mb-3">Laba Kotor vs Laba Bersih</h4>
-                        <canvas id="financeChart" height="120"></canvas>
+                    <div class="bg-white shadow-sm sm:rounded-lg p-6">
+                        <h4 class="text-sm font-semibold text-gray-700 mb-3">Laba Privat (Kotor & Bersih)</h4>
+                        <canvas id="privatChart" height="120"></canvas>
                     </div>
-                    <div class="md:col-span-1 bg-white shadow-sm sm:rounded-lg p-6">
+                    <div class="bg-white shadow-sm sm:rounded-lg p-6">
+                        <h4 class="text-sm font-semibold text-gray-700 mb-3">Laba Kelas (Kotor & Bersih)</h4>
+                        <canvas id="kelasChart" height="120"></canvas>
+                    </div>
+                    <div class="bg-white shadow-sm sm:rounded-lg p-6">
+                        <h4 class="text-sm font-semibold text-gray-700 mb-3">Laba Total (Kotor & Bersih)</h4>
+                        <canvas id="totalChart" height="120"></canvas>
+                    </div>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-6 mt-4">
+                    <div class="bg-white shadow-sm sm:rounded-lg p-6">
                         <h4 class="text-sm font-semibold text-gray-700 mb-3">Murid Privat vs Kelas</h4>
-                        <canvas id="studentsChart" height="120"></canvas>
+                        <canvas id="studentsChart" height="100"></canvas>
                     </div>
-                    <div class="md:col-span-1 bg-white shadow-sm sm:rounded-lg p-6">
+                    <div class="bg-white shadow-sm sm:rounded-lg p-6">
                         <h4 class="text-sm font-semibold text-gray-700 mb-3">Jumlah Guru</h4>
-                        <canvas id="teachersChart" height="120"></canvas>
+                        <canvas id="teachersChart" height="100"></canvas>
                     </div>
                 </div>
             </div>
@@ -93,8 +126,12 @@
 
     <script>
         const financeLabels = @json($chartFinance['labels']);
-        const grossSeries = @json($chartFinance['gross']);
-        const netSeries = @json($chartFinance['net']);
+        const privatGross = @json($chartFinance['privatGross']);
+        const privatNet = @json($chartFinance['privatNet']);
+        const kelasGross = @json($chartFinance['kelasGross']);
+        const kelasNet = @json($chartFinance['kelasNet']);
+        const totalGross = privatGross.map((v, i) => v + kelasGross[i]);
+        const totalNet = privatNet.map((v, i) => v + kelasNet[i]);
 
         const studentsLabels = @json($chartStudents['labels']);
         const privateSeries = @json($chartStudents['private']);
@@ -117,29 +154,36 @@
             }
         };
 
-        new Chart(document.getElementById('financeChart'), {
-            type: 'line',
-            data: {
-                labels: financeLabels,
-                datasets: [
-                    {
-                        label: 'Laba Kotor',
-                        data: grossSeries,
-                        borderColor: '#0f766e',
-                        backgroundColor: 'rgba(15, 118, 110, 0.15)',
-                        tension: 0.3,
-                    },
-                    {
-                        label: 'Laba Bersih',
-                        data: netSeries,
-                        borderColor: '#1d4ed8',
-                        backgroundColor: 'rgba(29, 78, 216, 0.15)',
-                        tension: 0.3,
-                    }
-                ]
-            },
-            options: currencyOptions
-        });
+        function makeGrossNetChart(canvasId, grossData, netData, grossLabel, netLabel, grossColor, netColor) {
+            new Chart(document.getElementById(canvasId), {
+                type: 'line',
+                data: {
+                    labels: financeLabels,
+                    datasets: [
+                        {
+                            label: grossLabel,
+                            data: grossData,
+                            borderColor: grossColor,
+                            backgroundColor: grossColor + '22',
+                            tension: 0.3,
+                        },
+                        {
+                            label: netLabel,
+                            data: netData,
+                            borderColor: netColor,
+                            backgroundColor: netColor + '22',
+                            borderDash: [5, 5],
+                            tension: 0.3,
+                        }
+                    ]
+                },
+                options: currencyOptions
+            });
+        }
+
+        makeGrossNetChart('privatChart', privatGross, privatNet, 'Kotor', 'Bersih', '#1d4ed8', '#60a5fa');
+        makeGrossNetChart('kelasChart', kelasGross, kelasNet, 'Kotor', 'Bersih', '#0f766e', '#5eead4');
+        makeGrossNetChart('totalChart', totalGross, totalNet, 'Kotor', 'Bersih', '#7c3aed', '#a78bfa');
 
         new Chart(document.getElementById('studentsChart'), {
             type: 'line',
@@ -191,4 +235,3 @@
         });
     </script>
 </x-app-layout>
-

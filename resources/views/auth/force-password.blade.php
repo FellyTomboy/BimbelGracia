@@ -5,20 +5,23 @@
         @method('put')
 
         <div>
-            <x-input-label for="current_password" :value="__('Password Saat Ini')" />
-            <x-text-input id="current_password" class="block mt-1 w-full" type="password" name="current_password" required autofocus />
+            <x-password-input name="current_password" id="current_password" required>
+                {{ __('Password Saat Ini') }}
+            </x-password-input>
             <x-input-error :messages="$errors->get('current_password')" class="mt-2" />
         </div>
 
         <div class="mt-4">
-            <x-input-label for="password" :value="__('Password Baru')" />
-            <x-text-input id="password" class="block mt-1 w-full" type="password" name="password" required />
+            <x-password-input name="password" id="password" required>
+                {{ __('Password Baru') }}
+            </x-password-input>
             <x-input-error :messages="$errors->get('password')" class="mt-2" />
         </div>
 
         <div class="mt-4">
-            <x-input-label for="password_confirmation" :value="__('Konfirmasi Password Baru')" />
-            <x-text-input id="password_confirmation" class="block mt-1 w-full" type="password" name="password_confirmation" required />
+            <x-password-input name="password_confirmation" id="password_confirmation" required>
+                {{ __('Konfirmasi Password Baru') }}
+            </x-password-input>
         </div>
 
         <div class="flex items-center justify-end mt-4">

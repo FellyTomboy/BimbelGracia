@@ -4,14 +4,19 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Parent;
 
+use App\Helpers\StudentGrade;
 use App\Http\Controllers\Controller;
+use App\Models\Invoice;
 use App\Models\MonthlyAttendance;
+use App\Models\ParentModel;
+use App\Models\PaymentProof;
 use App\Models\Student;
 use App\Services\CalculationService;
 use App\Services\Pdf\InvoiceService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class BillingController extends Controller
@@ -43,8 +48,7 @@ class BillingController extends Controller
                 [$year, $month] = explode('-', $period);
                 $total = 0;
                 $status = 'unpaid';
-                $hasProof = false;
-                $proofStatus = 'none';
+                $proof = null;
 
                 // Calculate total using CalculationService per student
                 foreach ($students as $student) {
@@ -55,26 +59,32 @@ class BillingController extends Controller
                     }
                 }
 
-                foreach ($items as $attendance) {
-                    if ($attendance->parent_payment_status === 'paid') {
-                        $status = 'paid';
-                    } elseif ($attendance->payment_proof_status === 'pending') {
-                        $status = 'pending';
-                        $hasProof = true;
-                        $proofStatus = 'pending';
-                    } elseif ($attendance->payment_proof) {
-                        $hasProof = true;
-                        $proofStatus = $attendance->payment_proof_status;
-                    } elseif ($status === 'unpaid') {
-                        $status = $attendance->parent_payment_status ?? 'unpaid';
+                $proof = PaymentProof::where('parent_id', $parent?->id)
+                    ->where('month', (int) $month)
+                    ->where('year', (int) $year)
+                    ->first();
+
+                if ($proof) {
+                    $status = $proof->status === 'approved' ? 'paid' : ($proof->status === 'pending' ? 'pending' : 'unpaid');
+                } else {
+                    // Fallback: check old per-attendance proof for backwards compat
+                    foreach ($items as $attendance) {
+                        if ($attendance->parent_payment_status === 'paid') {
+                            $status = 'paid';
+                            break;
+                        }
                     }
                 }
 
-                // Check if parent invoice PDF exists
-                $parentId = $parent?->id ?? 'unknown';
-                $parentInvoicePath = sprintf('pdf/invoice/parent_%s/%02d-%04d.pdf', $parentId, (int) $month, (int) $year);
-                $hasInvoice = Storage::disk('public')->exists($parentInvoicePath);
-                $invoiceUrl = $hasInvoice ? asset('storage/' . $parentInvoicePath) : null;
+                // Check if parent invoice PDF exists from database
+                $invoice = Invoice::where('parent_id', $parent?->id)
+                    ->where('month', (int) $month)
+                    ->where('year', (int) $year)
+                    ->first();
+                $hasInvoice = $invoice !== null;
+                $invoiceUrl = $hasInvoice
+                    ? route('pdf.parent', [$parent?->id, $invoice->filename])
+                    : null;
 
                 return [
                     'period' => sprintf('%s %s', $this->monthName((int) $month), $year),
@@ -82,8 +92,9 @@ class BillingController extends Controller
                     'month' => (int) $month,
                     'total' => $total,
                     'status' => $status,
-                    'has_proof' => $hasProof,
-                    'proof_status' => $proofStatus,
+                    'has_proof' => $proof !== null,
+                    'proof' => $proof,
+                    'proof_status' => $proof?->status ?? 'none',
                     'attendance_ids' => $items->pluck('id')->toArray(),
                     'has_invoice' => $hasInvoice,
                     'invoice_url' => $invoiceUrl,
@@ -95,16 +106,15 @@ class BillingController extends Controller
             'students' => $students,
             'totals' => $totals,
             'monthlyList' => $monthlyList,
+            'parent' => $parent,
         ]);
     }
 
-    public function uploadProof(Request $request, MonthlyAttendance $attendance): RedirectResponse
+    public function uploadProof(Request $request, int $parentId, int $year, int $month): RedirectResponse
     {
         $parent = $request->user()?->parent;
-        $studentIds = $parent?->students->pluck('id')->toArray() ?? [];
 
-        $hasAccess = $attendance->students()->whereIn('students.id', $studentIds)->exists();
-        if (! $hasAccess) {
+        if (! $parent || $parent->id !== $parentId) {
             abort(403, 'Anda tidak berhak mengupload bukti untuk tagihan ini.');
         }
 
@@ -112,19 +122,18 @@ class BillingController extends Controller
             'payment_proof' => ['required', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
         ]);
 
-        $parentId = $parent?->id ?? 'unknown';
         $file = $validated['payment_proof'];
         $extension = $file->getClientOriginalExtension();
-        $period = sprintf('%02d-%04d', $attendance->month, $attendance->year);
-        $path = sprintf('photo/transfer-proof/parent_%s/%s.%s', $parentId, $period, $extension);
+        $filename = sprintf('%s_%02d_%04d_%s.%s', $parentId, $month, $year, time(), $extension);
+        $path = sprintf('photo/transfer-proof/parent_%s/%s', $parentId, $filename);
         $file->storeAs(dirname($path), basename($path), 'public');
 
-        $attendance->update([
-            'payment_proof' => $path,
-            'payment_proof_status' => 'pending',
-        ]);
+        PaymentProof::updateOrCreate(
+            ['parent_id' => $parentId, 'month' => $month, 'year' => $year],
+            ['proof_path' => $path, 'status' => 'pending']
+        );
 
-        return back()->with('status', 'Bukti pembayaran berhasil diupload, menunggu konfirmasi admin.');
+        return back()->withInput()->with('status', 'Bukti pembayaran berhasil diupload, menunggu konfirmasi admin.');
     }
 
     public function completeData(Request $request): View
@@ -147,15 +156,18 @@ class BillingController extends Controller
         abort_unless($parent, 403);
 
         $validated = $request->validate([
-            'name' => ['nullable', 'string', 'max:255'],
-            'address' => ['nullable', 'string', 'max:1000'],
-            'students' => ['nullable', 'array'],
+            'name' => ['required', 'string', 'max:255'],
+            'address' => ['required', 'string', 'max:1000'],
+            'students' => ['required', 'array'],
             'students.*.id' => ['required', 'integer', 'exists:students,id'],
-            'students.*.full_name' => ['nullable', 'string', 'max:255'],
+            'students.*.nickname' => ['required', 'string', 'max:255'],
+            'students.*.full_name' => ['required', 'string', 'max:255'],
+            'students.*.sekolah' => ['required', 'string', 'max:255'],
+            'students.*.kelas' => ['required', 'string', Rule::in(StudentGrade::LEVELS)],
         ]);
 
-        $parentName = trim((string) ($validated['name'] ?? '')) ?: null;
-        $parentAddress = trim((string) ($validated['address'] ?? '')) ?: null;
+        $parentName = trim($validated['name']);
+        $parentAddress = trim($validated['address']);
 
         $parent->update([
             'name' => $parentName,
@@ -164,7 +176,7 @@ class BillingController extends Controller
 
         if ($parent->user) {
             $parent->user->update([
-                'name' => $parentName ?: 'Orang Tua',
+                'name' => $parentName,
             ]);
         }
 
@@ -172,7 +184,64 @@ class BillingController extends Controller
             $student = $parent->students()->find($studentPayload['id'] ?? null);
             if ($student) {
                 $student->update([
-                    'full_name' => trim((string) ($studentPayload['full_name'] ?? '')) ?: null,
+                    'nickname' => trim($studentPayload['nickname'] ?? ''),
+                    'full_name' => trim($studentPayload['full_name'] ?? ''),
+                    'sekolah' => trim($studentPayload['sekolah'] ?? ''),
+                    'kelas' => $studentPayload['kelas'] ?? null,
+                ]);
+            }
+        }
+
+        $redirectTo = $request->input('redirect_to', route('parent.billing.index'));
+
+        return redirect()->to($redirectTo)
+            ->with('status', 'Data orang tua dan murid berhasil diperbarui.');
+    }
+
+    public function completeDataPublic(Request $request, int $parent): View
+    {
+        $parentModel = ParentModel::findOrFail($parent);
+
+        return view('parent.complete-data-public', [
+            'parent' => $parentModel,
+            'students' => $parentModel->students()->orderBy('nickname')->get(),
+            'redirect_to' => $request->query('redirect_to', route('parent.billing.index')),
+        ]);
+    }
+
+    public function submitCompleteDataPublic(Request $request, int $parent): RedirectResponse
+    {
+        $parentModel = ParentModel::findOrFail($parent);
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'address' => ['required', 'string', 'max:1000'],
+            'students' => ['required', 'array'],
+            'students.*.id' => ['required', 'integer', 'exists:students,id'],
+            'students.*.nickname' => ['required', 'string', 'max:255'],
+            'students.*.full_name' => ['required', 'string', 'max:255'],
+            'students.*.sekolah' => ['required', 'string', 'max:255'],
+            'students.*.kelas' => ['required', 'string', Rule::in(StudentGrade::LEVELS)],
+        ]);
+
+        $parentName = trim($validated['name']);
+        $parentModel->update([
+            'name' => $parentName,
+            'address' => trim($validated['address']),
+        ]);
+
+        if ($parentModel->user) {
+            $parentModel->user->update(['name' => $parentName]);
+        }
+
+        foreach ($validated['students'] ?? [] as $studentPayload) {
+            $student = $parentModel->students()->find($studentPayload['id'] ?? null);
+            if ($student) {
+                $student->update([
+                    'nickname' => trim($studentPayload['nickname'] ?? ''),
+                    'full_name' => trim($studentPayload['full_name'] ?? ''),
+                    'sekolah' => trim($studentPayload['sekolah'] ?? ''),
+                    'kelas' => $studentPayload['kelas'] ?? null,
                 ]);
             }
         }
@@ -212,9 +281,20 @@ class BillingController extends Controller
         }
 
         $students = $parent?->students ?? collect();
-        $filename = $invoiceService->generateParentInvoice($students, $month, $year, $attendances);
-
-        return redirect(asset('storage/' . $filename));
+        $invoice = Invoice::firstOrCreate(
+            ['parent_id' => $parent->id, 'month' => $month, 'year' => $year],
+            ['filename' => '']
+        );
+        $result = $invoiceService->generateParentInvoice(
+            $students, $month, $year, $attendances,
+            $invoice->filename ?: null
+        );
+        if (!$invoice->filename) {
+            $invoice->filename = basename($result['storage_path']);
+            $invoice->regenerated_at = now();
+            $invoice->save();
+        }
+        return redirect(route('pdf.parent', [$parent->id, $invoice->filename]));
     }
 
     private function redirectIfInvoiceDataMissing($parent, string $redirectRoute): ?RedirectResponse
@@ -224,7 +304,12 @@ class BillingController extends Controller
         }
 
         $missingParentData = blank($parent->name) || blank($parent->address);
-        $missingStudentData = $parent->students()->where(fn ($query) => $query->whereNull('full_name')->orWhereRaw('TRIM(COALESCE(full_name, "")) = ""'))->exists();
+        $missingStudentData = $parent->students()->where(fn ($query) => $query
+            ->where(fn ($q) => $q->whereNull('nickname')->orWhereRaw('TRIM(COALESCE(nickname, "")) = ""'))
+            ->orWhere(fn ($q) => $q->whereNull('full_name')->orWhereRaw('TRIM(COALESCE(full_name, "")) = ""'))
+            ->orWhere(fn ($q) => $q->whereNull('sekolah')->orWhereRaw('TRIM(COALESCE(sekolah, "")) = ""'))
+            ->orWhere(fn ($q) => $q->whereNull('kelas')->orWhereRaw('TRIM(COALESCE(kelas, "")) = ""'))
+        )->exists();
 
         if ($missingParentData || $missingStudentData) {
             return redirect()->route('parent.billing.complete-data', ['redirect_to' => $redirectRoute]);

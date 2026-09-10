@@ -4,6 +4,12 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
+        <meta name="theme-color" content="#4F46E5">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="default">
+        <meta name="apple-mobile-web-app-title" content="BimbelGracia">
+        <link rel="apple-touch-icon" href="/icons/icon-192.png">
+        <link rel="manifest" href="/build/manifest.webmanifest">
 
         <title>{{ config('app.name') }}@isset($title) - {{ $title }}@endisset</title>
         <link rel="icon" type="image/jpeg" href="{{ asset('storage/website/logo_bimbel.jpg') }}" />
@@ -27,5 +33,7 @@
                 {{ $slot }}
             </div>
         </div>
+        @stack('scripts')
+        <x-floating-report-button />
     </body>
 </html>

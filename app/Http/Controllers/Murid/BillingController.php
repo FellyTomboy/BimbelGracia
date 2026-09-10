@@ -5,13 +5,14 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Murid;
 
 use App\Http\Controllers\Controller;
+use App\Models\Invoice;
 use App\Models\MonthlyAttendance;
 use App\Models\Student;
 use App\Services\CalculationService;
 use App\Services\Pdf\InvoiceService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
+
 use Illuminate\View\View;
 
 class BillingController extends Controller
@@ -69,10 +70,15 @@ class BillingController extends Controller
                     }
                 }
 
-                // Check if invoice PDF exists
-                $parentId = $parent?->id ?? 'unknown';
-                $invoicePath = sprintf('pdf/invoice/parent_%s/%02d-%04d.pdf', $parentId, (int) $month, (int) $year);
-                $hasInvoice = $student && Storage::disk('public')->exists($invoicePath);
+                // Check if invoice PDF exists from database
+                $invoice = Invoice::where('parent_id', $parent?->id)
+                    ->where('month', (int) $month)
+                    ->where('year', (int) $year)
+                    ->first();
+                $hasInvoice = $invoice !== null;
+                $invoiceUrl = $hasInvoice
+                    ? route('pdf.parent', [$parent?->id, $invoice->filename])
+                    : null;
 
                 return [
                     'period' => sprintf('%s %s', $this->monthName((int) $month), $year),
@@ -84,7 +90,7 @@ class BillingController extends Controller
                     'proof_status' => $proofStatus,
                     'attendance_ids' => $items->pluck('id')->toArray(),
                     'has_invoice' => $hasInvoice,
-                    'invoice_url' => $hasInvoice ? asset('storage/' . $invoicePath) : null,
+                    'invoice_url' => $invoiceUrl,
                 ];
             })
             ->values();
@@ -122,7 +128,7 @@ class BillingController extends Controller
             'payment_proof_status' => 'pending',
         ]);
 
-        return back()->with('status', 'Bukti pembayaran berhasil diupload, menunggu konfirmasi admin.');
+        return back()->withInput()->with('status', 'Bukti pembayaran berhasil diupload, menunggu konfirmasi admin.');
     }
 
     public function downloadInvoice(Request $request, int $year, int $month): RedirectResponse
@@ -149,9 +155,27 @@ class BillingController extends Controller
             abort(404, 'Tidak ada data tagihan untuk periode ini.');
         }
 
-        $filename = $invoiceService->generateStudentInvoice($student, $month, $year, $attendances);
+        $invoice = Invoice::firstOrCreate(
+            ['parent_id' => $parent->id, 'month' => $month, 'year' => $year],
+            ['filename' => '']
+        );
 
-        return redirect(asset('storage/' . $filename));
+        $result = $invoiceService->generateStudentInvoice(
+            $student,
+            $month,
+            $year,
+            $attendances,
+            $invoice->filename ?: null
+        );
+
+        $newBasename = basename($result['storage_path']);
+        if ($invoice->filename !== $newBasename) {
+            $invoice->filename = $newBasename;
+            $invoice->regenerated_at = now();
+            $invoice->save();
+        }
+
+        return redirect(route('pdf.parent', [$parent->id, $invoice->filename]));
     }
 
     private function buildTotals($attendances, ?int $studentId): array

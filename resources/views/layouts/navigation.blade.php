@@ -74,8 +74,9 @@
                                         <svg class="h-4 w-4 sub-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                                     </span>
                                     <div class="pl-4 hidden" data-submenu-content="laporan">
-                                        <a href="{{ route('admin.class-reports.index') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><img src="{{ asset('storage/icons/icon-laporan-kelas.png') }}" alt="" class="w-4 h-4 object-contain shrink-0">Laporan Kelas</a>
-                                        <a href="{{ route('admin.history.students') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><img src="{{ asset('storage/icons/icon-riwayat-admin-line.png') }}" alt="" class="w-4 h-4 object-contain shrink-0">Riwayat</a>
+                                        <a href="{{ route('admin.class-reports.index') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><img src="{{ asset('storage/icons/icon-laporan-kelas.png') }}" alt="" class="w-4 h-4 object-contain shrink-0">Riwayat Kelas</a>
+                                        <a href="{{ route('admin.history.students') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><img src="{{ asset('storage/icons/icon-murid.png') }}" alt="" class="w-4 h-4 object-contain shrink-0">Riwayat Murid</a>
+                                        <a href="{{ route('admin.history.teachers') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><img src="{{ asset('storage/icons/icon-guru.png') }}" alt="" class="w-4 h-4 object-contain shrink-0">Riwayat Guru</a>
                                         <a href="{{ route('admin.finance.index') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><img src="{{ asset('storage/icons/icon-keuangan.png') }}" alt="" class="w-4 h-4 object-contain shrink-0">Keuangan</a>
                                         <a href="{{ route('admin.export.index') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><img src="{{ asset('storage/icons/icon-export.png') }}" alt="" class="w-4 h-4 object-contain shrink-0">Export & Backup</a>
                                     </div>
@@ -403,10 +404,13 @@
                             </button>
                             <div x-show="sub" x-collapse>
                                 <x-responsive-nav-link :href="route('admin.class-reports.index')" :active="request()->routeIs('admin.class-reports.*')" class="ps-8">
-                                    {{ __('Laporan Kelas') }}
+                                    {{ __('Riwayat Kelas') }}
                                 </x-responsive-nav-link>
-                                <x-responsive-nav-link :href="route('admin.history.students')" :active="request()->routeIs('admin.history.*')" class="ps-8">
-                                    {{ __('Riwayat') }}
+                                <x-responsive-nav-link :href="route('admin.history.students')" :active="request()->routeIs('admin.history.students')" class="ps-8">
+                                    {{ __('Riwayat Murid') }}
+                                </x-responsive-nav-link>
+                                <x-responsive-nav-link :href="route('admin.history.teachers')" :active="request()->routeIs('admin.history.teachers')" class="ps-8">
+                                    {{ __('Riwayat Guru') }}
                                 </x-responsive-nav-link>
                                 <x-responsive-nav-link :href="route('admin.finance.index')" :active="request()->routeIs('admin.finance.*')" class="ps-8">
                                     {{ __('Keuangan') }}

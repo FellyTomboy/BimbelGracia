@@ -75,7 +75,7 @@ class DiscountController extends Controller
             }
         }
 
-        return back()->with('status', 'Diskon massal berhasil diterapkan.');
+        return $this->backWithQueryString('Diskon massal berhasil diterapkan.');
     }
 
     private function resolvePeriod(Request $request): array

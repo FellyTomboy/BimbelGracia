@@ -22,17 +22,30 @@
                 </div>
             @endif
 
+            @if (($mismatchKelasCount ?? 0) > 0 || ($mismatchPrivatCount ?? 0) > 0)
+                <div class="mb-4 bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded-xl text-sm flex items-center gap-3">
+                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <span>
+                        Ada <strong>{{ ($mismatchKelasCount ?? 0) + ($mismatchPrivatCount ?? 0) }}</strong> enrollment yang program-nya tidak sesuai dengan jenjang kelas siswa
+                        ({{ $mismatchKelasCount ?? 0 }} kelas, {{ $mismatchPrivatCount ?? 0 }} privat).
+                    </span>
+                    <a href="{{ route('admin.enrollments.mismatches') }}" class="ml-auto inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-800 text-xs font-medium transition-colors">
+                        Lihat & Review →
+                    </a>
+                </div>
+            @endif
+
             {{-- Tab Buttons --}}
             <div class="flex items-center gap-1 mb-4 bg-white rounded-2xl p-1 shadow-sm border border-gray-100 w-fit">
-                <a href="{{ route('admin.enrollments.index', ['type' => 'kelas']) }}"
-                   class="px-5 py-2 rounded-xl text-sm font-medium transition-all"
-                   :class="tab === 'kelas' ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'">
-                    Enrollment Kelas
-                </a>
                 <a href="{{ route('admin.enrollments.index', ['type' => 'privat']) }}"
                    class="px-5 py-2 rounded-xl text-sm font-medium transition-all"
                    :class="tab === 'privat' ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'">
                     Enrollment Privat
+                </a>
+                <a href="{{ route('admin.enrollments.index', ['type' => 'kelas']) }}"
+                   class="px-5 py-2 rounded-xl text-sm font-medium transition-all"
+                   :class="tab === 'kelas' ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'">
+                    Enrollment Kelas
                 </a>
             </div>
 
@@ -72,7 +85,7 @@
                                         </th>
                                         <x-sortable-header label="Murid" column="students.name" />
                                         <x-sortable-header label="Program" column="programs.name" />
-                                        <x-sortable-header label="Tarif Ortu" column="enrollments.parent_rate" />
+                                        <x-sortable-header label="Biaya Ortu" column="enrollments.parent_rate" />
                                         <th class="py-3 px-4 font-medium">Sesi/Bulan</th>
                                         <th class="py-3 px-4 font-medium">Status</th>
                                         <x-sortable-header label="Validasi" column="enrollments.validation_status" />
@@ -94,11 +107,20 @@
                                             <td class="py-3 px-4 text-gray-600">Rp {{ number_format($enrollment->parent_rate) }}</td>
                                             <td class="py-3 px-4 text-gray-600">{{ $enrollment->agreed_sessions_per_month }}x</td>
                                             <td class="py-3 px-4">
-                                                @if ($enrollment->status === 'active')
-                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">Aktif</span>
-                                                @else
-                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-50 text-gray-600 border border-gray-200">{{ $enrollment->status }}</span>
-                                                @endif
+                                                <div class="flex flex-col gap-1 items-start">
+                                                    @if ($enrollment->status === 'active')
+                                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">Aktif</span>
+                                                    @else
+                                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-50 text-gray-600 border border-gray-200">{{ $enrollment->status }}</span>
+                                                    @endif
+                                                    @if (\App\Helpers\JenjangMatcher::isMismatch($enrollment))
+                                                        <a href="{{ route('admin.enrollments.mismatches') }}" title="Program tidak sesuai jenjang siswa"
+                                                           class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100">
+                                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                                            Mismatch
+                                                        </a>
+                                                    @endif
+                                                </div>
                                             </td>
                                             <td class="py-3 px-4">
                                                 @if ($enrollment->validation_status == 0)
@@ -171,8 +193,9 @@
                                         <x-sortable-header label="Murid" column="students.name" />
                                         <x-sortable-header label="Guru" column="teachers.full_name" />
                                         <x-sortable-header label="Program" column="programs.name" />
-                                        <x-sortable-header label="Tarif Ortu" column="enrollments.parent_rate" />
-                                        <x-sortable-header label="Tarif Guru" column="enrollments.teacher_rate" />
+                                        <x-sortable-header label="Biaya Ortu" column="enrollments.parent_rate" />
+                                        <x-sortable-header label="Biaya Guru" column="enrollments.teacher_rate" />
+                                        <th class="py-3 px-4 font-medium">Sesi/Bulan</th>
                                         <th class="py-3 px-4 font-medium">Status</th>
                                         <x-sortable-header label="Validasi" column="enrollments.validation_status" />
                                         <th class="py-3 px-4 font-medium">Aksi</th>
@@ -193,12 +216,22 @@
                                             <td class="py-3 px-4 text-gray-600">{{ $enrollment->program?->name ?? '-' }}</td>
                                             <td class="py-3 px-4 text-gray-600">Rp {{ number_format($enrollment->parent_rate) }}</td>
                                             <td class="py-3 px-4 text-gray-600">Rp {{ number_format($enrollment->teacher_rate) }}</td>
+                                            <td class="py-3 px-4 text-gray-600">{{ $enrollment->agreed_sessions_per_month }}x</td>
                                             <td class="py-3 px-4">
-                                                @if ($enrollment->status === 'active')
-                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">Aktif</span>
-                                                @else
-                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-50 text-gray-600 border border-gray-200">{{ $enrollment->status }}</span>
-                                                @endif
+                                                <div class="flex flex-col gap-1 items-start">
+                                                    @if ($enrollment->status === 'active')
+                                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">Aktif</span>
+                                                    @else
+                                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-50 text-gray-600 border border-gray-200">{{ $enrollment->status }}</span>
+                                                    @endif
+                                                    @if (\App\Helpers\JenjangMatcher::isMismatch($enrollment))
+                                                        <a href="{{ route('admin.enrollments.mismatches') }}" title="Program tidak sesuai jenjang siswa"
+                                                           class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100">
+                                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                                            Mismatch
+                                                        </a>
+                                                    @endif
+                                                </div>
                                             </td>
                                             <td class="py-3 px-4">
                                                 @if ($enrollment->validation_status == 0)
@@ -219,7 +252,7 @@
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="9" class="text-center py-12">
+                                            <td colspan="10" class="text-center py-12">
                                                 <x-empty-state icon="📝" title="Belum ada enrollment privat" description="Daftarkan murid ke program privat." action="Tambah Enrollment Privat" actionUrl="{{ route('admin.enrollments.create', ['type' => 'privat']) }}" />
                                             </td>
                                         </tr>
@@ -276,6 +309,21 @@
             document.body.appendChild(form);
             form.submit();
         }
+
+        // Scroll preservation
+        (function () {
+            var key = 'scroll_' + location.pathname + '?{{ http_build_query(request()->query()) }}';
+            window.addEventListener('load', function () {
+                var pos = sessionStorage.getItem(key);
+                if (pos !== null) { window.scrollTo(0, parseInt(pos, 10)); sessionStorage.removeItem(key); }
+            });
+            document.querySelectorAll('form[method=POST], a[href*="delete"], a[href*="destroy"]').forEach(function (el) {
+                el.addEventListener('click', function () { sessionStorage.setItem(key, window.scrollY); });
+            });
+            document.querySelectorAll('form[method=GET]').forEach(function (form) {
+                form.addEventListener('submit', function () { sessionStorage.setItem(key, 0); });
+            });
+        })();
     </script>
 
     <style>[x-cloak] { display: none !important; }</style>

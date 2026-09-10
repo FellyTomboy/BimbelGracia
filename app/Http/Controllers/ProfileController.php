@@ -30,7 +30,7 @@ class ProfileController extends Controller
                 $defaultNames = ['Founder 1', 'Founder 2'];
                 foreach ($defaultNames as $name) {
                     $founder = \App\Models\Teacher::create([
-                        'name' => $name,
+                        'full_name' => $name,
                         'status' => 'active',
                         'is_founder' => true,
                         'profile_photo_approved' => true,
@@ -46,41 +46,53 @@ class ProfileController extends Controller
             'fineSettings' => [
                 'attendance_penalty_enabled' => $this->fineService->isAttendancePenaltyEnabled(),
                 'late_penalty_enabled' => $this->fineService->isLatePenaltyEnabled(),
+                'late_penalty_type' => $this->fineService->getLatePenaltyType(),
+                'late_penalty_value' => $this->fineService->getLatePenaltyValue(),
+                'attendance_penalty_type' => $this->fineService->getAttendancePenaltyType(),
+                'attendance_penalty_value' => $this->fineService->getAttendancePenaltyValue(),
             ],
+            'billingMode' => $this->fineService->getBillingMode(),
         ]);
     }
 
     /**
      * Update the user's profile information.
      */
+    public function updateTeacher(Request $request): RedirectResponse
+    {
+        $teacher = $request->user()?->teacher;
+        abort_unless((bool) $teacher, 403);
+
+        $validated = $request->validate([
+            'full_name' => ['required', 'string', 'max:255'],
+            'nickname'  => ['nullable', 'string', 'max:100'],
+            'subjects'  => ['nullable', 'string', 'max:500'],
+            'major'     => ['nullable', 'string', 'max:255'],
+            'address'   => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $teacher->update($validated);
+
+        return Redirect::route('profile.edit')->with('status', 'profile-updated');
+    }
+
+    /**
+     * Update the user's profile information (parent only).
+     */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
         $user = $request->user();
         $role = $user->role?->value;
 
+        // Parent: update name (user) + address (parent)
         if ($role === 'parent' && $user->parent) {
             $validated = $request->validate([
-                'name' => ['required', 'string', 'max:255'],
+                'name'    => ['required', 'string', 'max:255'],
                 'address' => ['nullable', 'string', 'max:500'],
             ]);
             $user->fill(['name' => $validated['name']]);
             $user->save();
             $user->parent->update(['address' => $validated['address'] ?? null]);
-        } elseif ($role === 'guru' && $user->teacher) {
-            $validated = $request->validate([
-                'full_name' => ['required', 'string', 'max:255'],
-                'nickname' => ['nullable', 'string', 'max:100'],
-                'subjects' => ['nullable', 'string', 'max:500'],
-                'major' => ['nullable', 'string', 'max:255'],
-                'address' => ['nullable', 'string', 'max:500'],
-            ]);
-            $user->teacher->update($validated);
-        } else {
-            $user->fill($request->validated());
-            if ($user->isDirty('email')) {
-                $user->email_verified_at = null;
-            }
-            $user->save();
         }
 
         return Redirect::route('profile.edit')->with('status', 'profile-updated');
@@ -105,8 +117,10 @@ class ProfileController extends Controller
 
         $file = $validated['profile_photo'];
         $extension = $file->getClientOriginalExtension();
-        $teacherSlug = str_replace(' ', '_', strtolower($teacher->full_name));
-        $path = sprintf('photo/profile/%s.%s', $teacherSlug, $extension);
+        $slug = $teacher->full_name
+            ? str_replace(' ', '_', strtolower($teacher->full_name))
+            : 'teacher_' . $teacher->id;
+        $path = sprintf('photo/profile/%s.%s', $slug, $extension);
         $file->storeAs(dirname($path), basename($path), 'public');
 
         $teacher->update([
@@ -154,8 +168,10 @@ class ProfileController extends Controller
 
         $file = $validated['profile_photo'];
         $extension = $file->getClientOriginalExtension();
-        $teacherSlug = str_replace(' ', '_', strtolower($teacher->full_name));
-        $path = sprintf('photo/profile/%s.%s', $teacherSlug, $extension);
+        $slug = $teacher->full_name
+            ? str_replace(' ', '_', strtolower($teacher->full_name))
+            : 'founder_' . $teacher->id;
+        $path = sprintf('photo/profile/%s.%s', $slug, $extension);
         $file->storeAs(dirname($path), basename($path), 'public');
 
         $teacher->update([

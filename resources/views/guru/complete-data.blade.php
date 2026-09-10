@@ -24,7 +24,7 @@
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Nama Panggilan</label>
-                            <input type="text" name="nickname" value="{{ old('nickname', $teacher->nickname) }}" class="mt-1 w-full border-gray-300 rounded-md" placeholder="Nama panggilan" />
+                            <input type="text" name="nickname" value="{{ old('nickname', $teacher->nickname) }}" class="mt-1 w-full border-gray-300 rounded-md" required placeholder="Nama panggilan" />
                             @error('nickname') <p class="text-xs text-rose-600 mt-1">{{ $message }}</p> @enderror
                         </div>
                     </div>
@@ -51,17 +51,17 @@
                     <div class="grid md:grid-cols-3 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Nama Bank</label>
-                            <input type="text" name="bank_name" value="{{ old('bank_name', $teacher->bank_name) }}" class="mt-1 w-full border-gray-300 rounded-md" placeholder="Bank" />
+                            <input type="text" name="bank_name" value="{{ old('bank_name', $teacher->bank_name) }}" class="mt-1 w-full border-gray-300 rounded-md" required placeholder="Bank" />
                             @error('bank_name') <p class="text-xs text-rose-600 mt-1">{{ $message }}</p> @enderror
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">No. Rekening</label>
-                            <input type="text" name="bank_account" value="{{ old('bank_account', $teacher->bank_account) }}" class="mt-1 w-full border-gray-300 rounded-md" placeholder="Nomor rekening" />
+                            <input type="text" name="bank_account" value="{{ old('bank_account', $teacher->bank_account) }}" class="mt-1 w-full border-gray-300 rounded-md" required placeholder="Nomor rekening" />
                             @error('bank_account') <p class="text-xs text-rose-600 mt-1">{{ $message }}</p> @enderror
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Pemilik Rekening</label>
-                            <input type="text" name="bank_owner" value="{{ old('bank_owner', $teacher->bank_owner) }}" class="mt-1 w-full border-gray-300 rounded-md" placeholder="Pemilik rekening" />
+                            <input type="text" name="bank_owner" value="{{ old('bank_owner', $teacher->bank_owner) }}" class="mt-1 w-full border-gray-300 rounded-md" required placeholder="Pemilik rekening" />
                             @error('bank_owner') <p class="text-xs text-rose-600 mt-1">{{ $message }}</p> @enderror
                         </div>
                     </div>

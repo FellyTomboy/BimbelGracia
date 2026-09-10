@@ -4,112 +4,57 @@
             {{ __('Informasi Profil') }}
         </h2>
         <p class="mt-1 text-sm text-gray-600">
-            Perbarui informasi profil dan alamat email akun Anda.
+            Perbarui informasi profil akun Anda.
         </p>
     </header>
 
-    <form id="send-verification" method="post" action="{{ route('verification.send') }}">
-        @csrf
-    </form>
-
     @php
-        $role = auth()->user()?->role?->value;
         $parent = auth()->user()?->parent;
         $students = $parent?->students ?? collect();
-        $teacher = auth()->user()?->teacher;
     @endphp
 
     <form method="post" action="{{ route('profile.update') }}" class="mt-6 space-y-6">
         @csrf
         @method('patch')
 
-        {{-- ADMIN: Name + Email --}}
-        @if ($role === 'admin')
-            <div>
-                <x-input-label for="name" :value="__('Nama')" />
-                <x-text-input id="name" name="name" type="text" class="mt-1 block w-full" :value="old('name', $user->name)" required autofocus autocomplete="name" />
-                <x-input-error class="mt-2" :messages="$errors->get('name')" />
-            </div>
+        <div>
+            <x-input-label for="name" :value="__('Nama Orang Tua / Wali')" />
+            <x-text-input id="name" name="name" type="text" class="mt-1 block w-full" :value="old('name', auth()->user()?->name)" required autofocus autocomplete="name" />
+            <x-input-error class="mt-2" :messages="$errors->get('name')" />
+        </div>
 
-            <div>
-                <x-input-label for="email" :value="__('Email')" />
-                <x-text-input id="email" name="email" type="email" class="mt-1 block w-full" :value="old('email', $user->email)" required autocomplete="username" />
-                <x-input-error class="mt-2" :messages="$errors->get('email')" />
-            </div>
+        <div>
+            <x-input-label for="phone" :value="__('Nomor Telepon')" />
+            <x-text-input id="phone" type="text" class="mt-1 block w-full bg-gray-50 text-gray-500 cursor-not-allowed" :value="auth()->user()?->phone ?? '-'" disabled />
+            <p class="mt-1 text-xs text-amber-600">
+                <svg class="inline w-3 h-3 mr-1 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Hubungi admin untuk mengubah nomor telepon.
+            </p>
+        </div>
 
-        {{-- PARENT: Name + No. Telepon (disabled) + Address + Murid --}}
-        @elseif ($role === 'parent')
-            <div>
-                <x-input-label for="name" :value="__('Nama Orang Tua / Wali')" />
-                <x-text-input id="name" name="name" type="text" class="mt-1 block w-full" :value="old('name', $user->name)" required autofocus autocomplete="name" />
-                <x-input-error class="mt-2" :messages="$errors->get('name')" />
-            </div>
+        <div>
+            <x-input-label for="address" :value="__('Alamat')" />
+            <textarea id="address" name="address" rows="3" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">{{ old('address', $parent?->address) }}</textarea>
+            <x-input-error class="mt-2" :messages="$errors->get('address')" />
+        </div>
 
+        {{-- Daftar Murid --}}
+        @if ($students->isNotEmpty())
             <div>
-                <x-input-label for="phone" :value="__('Nomor Telepon')" />
-                <x-text-input id="phone" type="text" class="mt-1 block w-full bg-gray-50 text-gray-500 cursor-not-allowed" :value="$user->phone ?? '-'" disabled />
-                <p class="mt-1 text-xs text-amber-600">
-                    <svg class="inline w-3 h-3 mr-1 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    Hubungi admin untuk mengubah nomor telepon.
-                </p>
-            </div>
-
-            <div>
-                <x-input-label for="address" :value="__('Alamat')" />
-                <textarea id="address" name="address" rows="3" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">{{ old('address', $parent?->address) }}</textarea>
-                <x-input-error class="mt-2" :messages="$errors->get('address')" />
-            </div>
-
-            {{-- Daftar Murid --}}
-            @if ($students->isNotEmpty())
-                <div>
-                    <x-input-label :value="__('Murid Terdaftar')" />
-                    <div class="mt-2 space-y-2">
-                        @foreach ($students as $student)
-                            <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
-                                <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-sm font-bold text-indigo-600 shrink-0">
-                                    {{ strtoupper(substr($student->display_name, 0, 1)) }}
-                                </div>
-                                <div class="min-w-0">
-                                    <p class="text-sm font-medium text-gray-800 truncate">{{ $student->full_name ?? $student->nickname ?? '-' }}</p>
-                                    <p class="text-xs text-gray-500">{{ $student->nickname ? 'Panggilan: ' . $student->nickname : '' }}</p>
-                                </div>
+                <x-input-label :value="__('Murid Terdaftar')" />
+                <div class="mt-2 space-y-2">
+                    @foreach ($students as $student)
+                        <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
+                            <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-sm font-bold text-indigo-600 shrink-0">
+                                {{ strtoupper(substr($student->display_name, 0, 1)) }}
                             </div>
-                        @endforeach
-                    </div>
+                            <div class="min-w-0">
+                                <p class="text-sm font-medium text-gray-800 truncate">{{ $student->full_name ?? $student->nickname ?? '-' }}</p>
+                                <p class="text-xs text-gray-500">{{ $student->nickname ? 'Panggilan: ' . $student->nickname : '' }}</p>
+                            </div>
+                        </div>
+                    @endforeach
                 </div>
-            @endif
-
-        {{-- GURU: Name + Email (taken from teacher profile, not user) --}}
-        @elseif ($role === 'guru')
-            <div>
-                <x-input-label for="name" :value="__('Nama Lengkap')" />
-                <x-text-input id="name" name="name" type="text" class="mt-1 block w-full" :value="old('name', $user->name)" required autofocus autocomplete="name" />
-                <x-input-error class="mt-2" :messages="$errors->get('name')" />
-            </div>
-
-            <div>
-                <x-input-label for="email" :value="__('Email')" />
-                <x-text-input id="email" name="email" type="email" class="mt-1 block w-full" :value="old('email', $user->email)" required autocomplete="username" />
-                <x-input-error class="mt-2" :messages="$errors->get('email')" />
-            </div>
-
-        @endif
-
-        {{-- Email verification notice (admin only) --}}
-        @if ($role === 'admin' && $user instanceof \Illuminate\Contracts\Auth\MustVerifyEmail && ! $user->hasVerifiedEmail())
-            <div>
-                <p class="text-sm mt-2 text-gray-800">
-                    {{ __('Your email address is unverified.') }}
-                    <button form="send-verification" class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                        {{ __('Click here to re-send the verification email.') }}
-                    </button>
-                </p>
-                @if (session('status') === 'verification-link-sent')
-                    <p class="mt-2 font-medium text-sm text-green-600">
-                        {{ __('A new verification link has been sent to your email address.') }}
-                    </p>
-                @endif
             </div>
         @endif
 

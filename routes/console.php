@@ -19,3 +19,18 @@ Schedule::command('snapshot:teachers-monthly')
 Schedule::command('cleanup:old-files')
     ->daily()
     ->withoutOverlapping();
+
+Schedule::command('app:regenerate-monthly-pdfs')
+    ->dailyAt('00:00')
+    ->withoutOverlapping()
+    ->runInBackground();
+
+Schedule::command('students:promote-grades')
+    ->cron('0 0 1 7 *')
+    ->withoutOverlapping()
+    ->onOneServer();
+
+Schedule::command('enrollments:sync-programs')
+    ->cron('30 0 1 7 *')
+    ->withoutOverlapping()
+    ->onOneServer();

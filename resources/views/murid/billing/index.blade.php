@@ -107,4 +107,20 @@
             </div>
         </div>
     </div>
+
+    <script>
+    (function () {
+        var key = 'scroll_' + location.pathname + '?{{ http_build_query(request()->query()) }}';
+        window.addEventListener('load', function () {
+            var pos = sessionStorage.getItem(key);
+            if (pos !== null) { window.scrollTo(0, parseInt(pos, 10)); sessionStorage.removeItem(key); }
+        });
+        document.querySelectorAll('form[method=POST], a[href*="delete"], a[href*="destroy"]').forEach(function (el) {
+            el.addEventListener('click', function () { sessionStorage.setItem(key, window.scrollY); });
+        });
+        document.querySelectorAll('form[method=GET]').forEach(function (form) {
+            form.addEventListener('submit', function () { sessionStorage.setItem(key, 0); });
+        });
+    })();
+    </script>
 </x-app-layout>

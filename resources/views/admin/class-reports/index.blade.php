@@ -59,7 +59,7 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y">
-                            @forelse ($rows as $row)
+                            @forelse ($teacherRows as $row)
                                 <tr>
                                     <td class="py-2">{{ $row['teacher'] }}</td>
                                     <td class="py-2">{{ $row['total'] }}</td>
