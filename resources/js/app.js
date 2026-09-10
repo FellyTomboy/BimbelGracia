@@ -3,6 +3,7 @@ import './bootstrap';
 import Alpine from 'alpinejs';
 import collapse from '@alpinejs/collapse';
 import { crudModal } from './alpine/crud-modal';
+import { EnrollmentForm } from './alpine/enrollment-form';
 
 import './utils/toast';
 import './utils/ajax';
@@ -10,6 +11,7 @@ import './utils/ajax';
 window.Alpine = Alpine;
 Alpine.plugin(collapse);
 Alpine.data('crudModal', crudModal);
+window.EnrollmentForm = EnrollmentForm;
 
 Alpine.start();
 

@@ -4,39 +4,41 @@
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">Edit Enrollment</h2>
     </x-slot>
 
-    <div class="py-12">
+    <div class="py-12"
+         x-data="EnrollmentForm({
+             formUrl: '{{ route('admin.enrollments.update', $enrollment) }}',
+             enrollmentId: {{ $enrollment->id }},
+             initialType: '{{ $enrollment->type }}',
+             initialStudentCount: {{ $enrollment->students->count() > 0 ? $enrollment->students->count() : 3 }},
+             initialParentTiers: {{ json_encode($enrollment->pricing_tiers['parent_rate'] ?? []) }},
+             initialTeacherTiers: {{ json_encode($enrollment->pricing_tiers['teacher_rate'] ?? []) }},
+         })"
+         x-init="init()">
         <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white shadow-sm sm:rounded-lg">
-                <form method="POST" action="{{ route('admin.enrollments.update', $enrollment) }}" class="p-6 space-y-4">
-                    @csrf
-                    @method('PUT')
+                <form id="enrollment-form" class="p-6 space-y-4" @submit.prevent="submit">
 
-                    @if ($errors->any())
-                        <div id="form-error-alert" class="mb-4 rounded-md border border-rose-300 bg-rose-50 p-4" role="alert">
-                            <h4 class="text-sm font-semibold text-rose-800">
-                                Enrollment tidak dapat disimpan. Silakan perbaiki hal berikut:
-                            </h4>
-                            <ul class="mt-2 list-disc space-y-1 pl-5 text-sm text-rose-700">
-                                @foreach ($errors->all() as $error)
-                                    <li>{{ $error }}</li>
-                                @endforeach
-                            </ul>
-                        </div>
-                    @endif
+                    {{-- Top-level error banner (shown when Alpine errors exist) --}}
+                    <div id="form-error-alert" class="mb-4 rounded-md border border-rose-300 bg-rose-50 p-4" role="alert" style="display:none">
+                        <h4 class="text-sm font-semibold text-rose-800">
+                            Enrollment tidak dapat disimpan. Silakan perbaiki hal berikut:
+                        </h4>
+                        <ul class="mt-2 list-disc space-y-1 pl-5 text-sm text-rose-700"></ul>
+                    </div>
 
                     <div class="grid md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Tipe Enrollment</label>
-                            <select name="type" id="type-select" class="mt-1 w-full border-gray-300 rounded-md" required>
+                            <select name="type" id="type-select" class="mt-1 w-full border-gray-300 rounded-md" required @change="onTypeChange">
                                 <option value="privat" @selected(old('type', $enrollment->type) === 'privat')>Privat (Per Sesi)</option>
                                 <option value="kelas" @selected(old('type', $enrollment->type) === 'kelas')>Kelas (Paket Bulanan)</option>
                             </select>
                             <p class="text-xs text-gray-500 mt-1">Privat: tagihan per sesi. Kelas: paket bulanan dengan guru bisa berganti per sesi.</p>
-                            @error('type')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                            <p class="crud-error-type text-sm text-rose-600" style="display:none"></p>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Program</label>
-                            <select name="program_id" id="program-select" class="mt-1 w-full border-gray-300 rounded-md" required>
+                            <select name="program_id" id="program-select" class="mt-1 w-full border-gray-300 rounded-md" required @change="onProgramChange">
                                 @foreach ($programs as $program)
                                     <option
                                         value="{{ $program->id }}"
@@ -49,7 +51,7 @@
                                     </option>
                                 @endforeach
                             </select>
-                            @error('program_id')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                            <p class="crud-error-program_id text-sm text-rose-600" style="display:none"></p>
                         </div>
                     </div>
 
@@ -62,7 +64,7 @@
                             @endforeach
                         </select>
                         <p class="text-xs text-gray-500 mt-1">Guru utama untuk privat. Untuk kelas, guru bisa berubah per sesi saat pencatatan kehadiran.</p>
-                        @error('teacher_id')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                        <p class="crud-error-teacher_id text-sm text-rose-600" style="display:none"></p>
                     </div>
 
                     {{-- Student Selection --}}
@@ -70,17 +72,19 @@
                         {{-- Checkbox mode (privat) --}}
                         <div id="student-checkbox-section">
                             <label class="block text-sm font-medium text-gray-700">Daftar Murid</label>
-                            <input type="text" id="student-search" placeholder="Cari nama murid..." class="mt-2 mb-2 w-full border-gray-300 rounded-md text-sm" />
+                            <input type="text" id="student-search" placeholder="Cari nama murid..." class="mt-2 mb-2 w-full border-gray-300 rounded-md text-sm"
+                                   @input="onStudentSearch" />
                             <div class="mt-1 grid md:grid-cols-2 gap-2 max-h-64 overflow-y-auto border rounded-md p-3">
                                 @foreach ($students as $student)
                                     <label class="flex items-center gap-2 text-sm student-label">
                                         <input type="checkbox" name="student_ids[]" value="{{ $student->id }}" class="student-checkbox"
-                                            @checked(in_array($student->id, old('student_ids', $enrollment->students->pluck('id')->all()))) />
+                                            @checked(in_array($student->id, old('student_ids', $enrollment->students->pluck('id')->all())))
+                                            @change="onStudentChange" />
                                         <span>{{ $student->display_name }}</span>
                                     </label>
                                 @endforeach
                             </div>
-                            @error('student_ids')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                            <p class="crud-error-student_ids text-sm text-rose-600" style="display:none"></p>
                         </div>
 
                         {{-- Dropdown mode (kelas) --}}
@@ -96,75 +100,71 @@
                                 @endforeach
                             </select>
                             <p class="text-xs text-gray-500 mt-1">Pilih satu murid untuk enrollment kelas.</p>
-                            @error('student_ids')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                            <p class="crud-error-student_ids text-sm text-rose-600" style="display:none"></p>
                         </div>
                     </div>
 
-                    {{-- Pricing Tiers (shown for privat with >1 student, hidden for kelas & privat with 1 student) --}}
-                    @php
-                        $tiers = $enrollment->pricing_tiers;
-                        $studentCount = $enrollment->students->count();
-                    @endphp
+                    {{-- Pricing Tiers (managed by EnrollmentForm Alpine component) --}}
                     <div id="pricing-tiers-section" class="border rounded-lg p-4 bg-gray-50 space-y-4">
                         <h3 class="font-semibold text-gray-800">Harga Bertingkat (Pricing Tiers)</h3>
                         <p class="text-xs text-gray-500">Atur harga berbeda berdasarkan jumlah murid yang hadir.</p>
 
-                        <div x-data="{
-                            count: {{ old('student_count', $studentCount > 0 ? $studentCount : 3) }},
-                            parentTiers: {{ json_encode($tiers['parent_rate'] ?? []) }},
-                            teacherTiers: {{ json_encode($tiers['teacher_rate'] ?? []) }}
-                        }">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Jumlah Murid di Enrollment Ini</label>
-                                <input type="number" name="student_count" x-model="count" min="1" max="10" class="mt-1 w-full sm:w-24 border-gray-300 rounded-md" required />
-                            </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Jumlah Murid di Enrollment Ini</label>
+                            <input type="number" name="student_count" x-model.number="tierCount" min="1" max="10" class="mt-1 w-full sm:w-24 border-gray-300 rounded-md" />
+                        </div>
 
-                            <div class="mt-4 grid md:grid-cols-2 gap-4">
-                                <div>
-                                    <h4 class="text-sm font-medium text-gray-700 mb-2">Harga Ortu / Pertemuan</h4>
-                                    <table class="w-full text-sm">
-                                        <template x-for="i in parseInt(count)" :key="i">
-                                            <tr>
-                                                <td class="py-1 pr-2 text-gray-600 whitespace-nowrap" x-text="i + ' murid:'"></td>
-                                                <td class="py-1">
-                                                    <input type="number" name="pricing_tiers_parent[i]" x-bind:name="'pricing_tiers_parent[' + i + ']'" min="0" step="1000" class="w-full border-gray-300 rounded-md text-sm"
-                                                        x-bind:value="parentTiers[i] ?? ''"
-                                                        x-bind:placeholder="'Rp ' + (i * 100000)" />
-                                                </td>
-                                            </tr>
-                                        </template>
-                                    </table>
-                                </div>
-                                <div>
-                                    <h4 class="text-sm font-medium text-gray-700 mb-2">Gaji Guru / Pertemuan</h4>
-                                    <table class="w-full text-sm">
-                                        <template x-for="i in parseInt(count)" :key="i">
-                                            <tr>
-                                                <td class="py-1 pr-2 text-gray-600 whitespace-nowrap" x-text="i + ' murid:'"></td>
-                                                <td class="py-1">
-                                                    <input type="number" name="pricing_tiers_teacher[i]" x-bind:name="'pricing_tiers_teacher[' + i + ']'" min="0" step="1000" class="w-full border-gray-300 rounded-md text-sm"
-                                                        x-bind:value="teacherTiers[i] ?? ''"
-                                                        x-bind:placeholder="'Rp ' + (i * 50000)" />
-                                                </td>
-                                            </tr>
-                                        </template>
-                                    </table>
-                                </div>
+                        <div class="mt-4 grid md:grid-cols-2 gap-4">
+                            <div>
+                                <h4 class="text-sm font-medium text-gray-700 mb-2">Harga Ortu / Pertemuan</h4>
+                                <table class="w-full text-sm">
+                                    <template x-for="i in tierCount" :key="i">
+                                        <tr>
+                                            <td class="py-1 pr-2 text-gray-600 whitespace-nowrap" x-text="i + ' murid:'"></td>
+                                            <td class="py-1">
+                                                <input type="number" min="0" step="1000" class="w-full border-gray-300 rounded-md text-sm"
+                                                       :name="'pricing_tiers_parent[' + i + ']'"
+                                                       :value="getParentTier(i)"
+                                                       @input="setParentTier(i, $event.target.value)"
+                                                       :placeholder="'Rp ' + (i * 100000)" />
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </table>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-medium text-gray-700 mb-2">Gaji Guru / Pertemuan</h4>
+                                <table class="w-full text-sm">
+                                    <template x-for="i in tierCount" :key="i">
+                                        <tr>
+                                            <td class="py-1 pr-2 text-gray-600 whitespace-nowrap" x-text="i + ' murid:'"></td>
+                                            <td class="py-1">
+                                                <input type="number" min="0" step="1000" class="w-full border-gray-300 rounded-md text-sm"
+                                                       :name="'pricing_tiers_teacher[' + i + ']'"
+                                                       :value="getTeacherTier(i)"
+                                                       @input="setTeacherTier(i, $event.target.value)"
+                                                       :placeholder="'Rp ' + (i * 50000)" />
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </table>
                             </div>
                         </div>
                     </div>
 
-                    {{-- Default Rate Fields (shown for privat with 1 student & kelas) --}}
+                    {{-- Default Rate Fields --}}
                     <div class="grid md:grid-cols-2 gap-4" id="rate-fields">
                         <div>
                             <label class="block text-sm font-medium text-gray-700" id="parent-rate-label">Harga Ortu Default (1 murid)</label>
-                            <input type="number" name="parent_rate" id="parent-rate" value="{{ old('parent_rate', $enrollment->parent_rate) }}" step="1000" class="mt-1 w-full border-gray-300 rounded-md" required />
-                            @error('parent_rate')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                            <input type="number" name="parent_rate" id="parent-rate" value="{{ old('parent_rate', $enrollment->parent_rate) }}" step="1000" class="mt-1 w-full border-gray-300 rounded-md"
+                                   @input="markTouched" />
+                            <p class="crud-error-parent_rate text-sm text-rose-600" style="display:none"></p>
                         </div>
                         <div id="teacher-rate-field">
                             <label class="block text-sm font-medium text-gray-700">Gaji Guru Default (1 murid)</label>
-                            <input type="number" name="teacher_rate" id="teacher-rate" value="{{ old('teacher_rate', $enrollment->teacher_rate) }}" step="1000" class="mt-1 w-full border-gray-300 rounded-md" required />
-                            @error('teacher_rate')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                            <input type="number" name="teacher_rate" id="teacher-rate" value="{{ old('teacher_rate', $enrollment->teacher_rate) }}" step="1000" class="mt-1 w-full border-gray-300 rounded-md"
+                                   @input="markTouched" />
+                            <p class="crud-error-teacher_rate text-sm text-rose-600" style="display:none"></p>
                         </div>
                     </div>
 
@@ -193,9 +193,8 @@
                             </select>
                             <p class="text-xs text-gray-500 mt-1">Jumlah sesi paket dalam sebulan. Digunakan untuk perhitungan biaya paket les setengah/penuh.</p>
                         </div>
-                        @error('agreed_sessions_per_month')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                        <p class="crud-error-agreed_sessions_per_month text-sm text-rose-600" style="display:none"></p>
                     </div>
-
 
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Status</label>
@@ -203,222 +202,23 @@
                             <option value="active" @selected(old('status', $enrollment->status) === 'active')>active</option>
                             <option value="hibernasi" @selected(old('status', $enrollment->status) === 'hibernasi')>hibernasi</option>
                         </select>
-                        @error('status')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+                        <p class="crud-error-status text-sm text-rose-600" style="display:none"></p>
                     </div>
 
                     <div class="flex justify-end gap-3">
                         <a href="{{ route('admin.enrollments.index') }}" class="px-4 py-2 rounded-md border">Batal</a>
-                        <button type="submit" class="px-4 py-2 rounded-md bg-slate-900 text-white">Simpan</button>
+                        <button type="submit" class="px-4 py-2 rounded-md bg-slate-900 text-white flex items-center gap-2" :disabled="submitting">
+                            <template x-if="submitting">
+                                <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                                </svg>
+                            </template>
+                            Simpan
+                        </button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
-
-    <script>
-        const typeSelect = document.getElementById('type-select');
-        const teacherSelect = document.getElementById('teacher-select');
-        const programSelect = document.getElementById('program-select');
-        const parentRateInput = document.getElementById('parent-rate');
-        const teacherRateInput = document.getElementById('teacher-rate');
-
-        // Kelas/privat mode sections
-        const teacherField = document.getElementById('teacher-field');
-        const pricingTiersSection = document.getElementById('pricing-tiers-section');
-        const rateFields = document.getElementById('rate-fields');
-        const teacherRateField = document.getElementById('teacher-rate-field');
-        const sessionsPrivat = document.getElementById('sessions-privat');
-        const sessionsKelas = document.getElementById('sessions-kelas');
-        const studentCheckboxSection = document.getElementById('student-checkbox-section');
-        const studentDropdownSection = document.getElementById('student-dropdown-section');
-        const parentRateLabel = document.getElementById('parent-rate-label');
-
-        const updateTeacherRequired = () => {
-            const isPrivat = typeSelect.value === 'privat';
-            teacherSelect.required = isPrivat;
-            if (!isPrivat) {
-                teacherSelect.value = '';
-            }
-        };
-
-        const markTouched = (event) => {
-            event.target.dataset.touched = 'true';
-        };
-
-        const applyDefaults = () => {
-            const selected = programSelect.options[programSelect.selectedIndex];
-            if (!selected || !selected.value) {
-                return;
-            }
-
-            const defaultParent = selected.dataset.defaultParent ?? '';
-            const defaultTeacher = selected.dataset.defaultTeacher ?? '';
-
-            if (!parentRateInput.dataset.touched && parentRateInput.value === '') {
-                parentRateInput.value = defaultParent;
-            }
-
-            if (!teacherRateInput.dataset.touched && teacherRateInput.value === '') {
-                teacherRateInput.value = defaultTeacher;
-            }
-        };
-
-        const isKelasMode = () => {
-            const enrollmentType = typeSelect.value;
-            const selected = programSelect.options[programSelect.selectedIndex];
-            const programType = selected ? selected.dataset.type : '';
-            return enrollmentType === 'kelas' && programType === 'kelas';
-        };
-
-        const getCheckedStudentCount = () => {
-            return document.querySelectorAll('#student-checkbox-section .student-checkbox:checked').length;
-        };
-
-        const updatePricingAndRateVisibility = () => {
-            const kelasMode = isKelasMode();
-
-            if (kelasMode) {
-                // Kelas mode: hide pricing tiers & teacher rate, show parent rate as "Harga Paket Sebulan"
-                pricingTiersSection.classList.add('hidden');
-                document.querySelectorAll('#pricing-tiers-section input[name^="pricing_tiers"]').forEach(el => el.disabled = true);
-                teacherRateField.classList.add('hidden');
-                teacherRateInput.required = false;
-                rateFields.classList.remove('hidden');
-                parentRateLabel.textContent = 'Harga Paket Sebulan';
-                parentRateInput.required = true;
-                return;
-            }
-
-            // Privat mode: visibility depends on checked student count
-            const checkedCount = getCheckedStudentCount();
-
-            if (checkedCount <= 1) {
-                // 1 student: hide pricing tiers, show default rates
-                pricingTiersSection.classList.add('hidden');
-                rateFields.classList.remove('hidden');
-                teacherRateField.classList.remove('hidden');
-                teacherRateInput.required = true;
-                parentRateLabel.textContent = 'Harga Ortu Default (1 murid)';
-                parentRateInput.required = true;
-            } else {
-                // >1 student: show pricing tiers, hide default rates
-                pricingTiersSection.classList.remove('hidden');
-                document.querySelectorAll('#pricing-tiers-section input[name^="pricing_tiers"]').forEach(el => el.disabled = false);
-                rateFields.classList.add('hidden');
-                teacherRateField.classList.add('hidden');
-                teacherRateInput.required = false;
-                parentRateLabel.textContent = 'Harga Ortu Default (1 murid)';
-                parentRateInput.required = true;
-            }
-        };
-
-        const toggleKelasMode = () => {
-            const kelasMode = isKelasMode();
-
-            // Teacher field: hide in kelas mode
-            if (kelasMode) {
-                teacherField.classList.add('hidden');
-                teacherSelect.required = false;
-                teacherSelect.value = '';
-            } else {
-                teacherField.classList.remove('hidden');
-                updateTeacherRequired();
-            }
-
-            // Agreed sessions: dropdown in both modes (kelas uses separate select)
-            if (kelasMode) {
-                sessionsPrivat.classList.add('hidden');
-                sessionsKelas.classList.remove('hidden');
-                document.getElementById('agreed-sessions-select').disabled = true;
-                document.getElementById('agreed-sessions-select').required = false;
-                document.getElementById('agreed-sessions-select-kelas').disabled = false;
-                document.getElementById('agreed-sessions-select-kelas').required = true;
-            } else {
-                sessionsPrivat.classList.remove('hidden');
-                sessionsKelas.classList.add('hidden');
-                document.getElementById('agreed-sessions-select').disabled = false;
-                document.getElementById('agreed-sessions-select').required = true;
-                document.getElementById('agreed-sessions-select-kelas').disabled = true;
-                document.getElementById('agreed-sessions-select-kelas').required = false;
-            }
-
-            // Student selection: dropdown in kelas mode, checkboxes in privat mode
-            if (kelasMode) {
-                studentCheckboxSection.classList.add('hidden');
-                studentDropdownSection.classList.remove('hidden');
-                document.querySelectorAll('#student-checkbox-section .student-checkbox').forEach(cb => {
-                    cb.disabled = true;
-                });
-                document.getElementById('student-dropdown').disabled = false;
-                document.querySelectorAll('#pricing-tiers-section input[name^="pricing_tiers"]').forEach(el => el.disabled = true);
-            } else {
-                studentCheckboxSection.classList.remove('hidden');
-                studentDropdownSection.classList.add('hidden');
-                document.querySelectorAll('#student-checkbox-section .student-checkbox').forEach(cb => {
-                    cb.disabled = false;
-                });
-                document.getElementById('student-dropdown').disabled = true;
-                document.querySelectorAll('#pricing-tiers-section input[name^="pricing_tiers"]').forEach(el => el.disabled = false);
-            }
-
-            updatePricingAndRateVisibility();
-        };
-
-        const filterPrograms = () => {
-            const selectedType = typeSelect.value;
-            let hasSelected = false;
-            Array.from(programSelect.options).forEach(option => {
-                if (!option.value) {
-                    option.style.display = '';
-                    return;
-                }
-                const programType = option.dataset.type;
-                const show = programType === selectedType;
-                option.style.display = show ? '' : 'none';
-                if (show && option.selected) hasSelected = true;
-            });
-            if (!hasSelected) programSelect.value = '';
-        };
-
-        typeSelect.addEventListener('change', () => {
-            updateTeacherRequired();
-            toggleKelasMode();
-            applyDefaults();
-            filterPrograms();
-        });
-
-        // Student search filter
-        const studentSearchInput = document.getElementById('student-search');
-        if (studentSearchInput) {
-            studentSearchInput.addEventListener('input', (e) => {
-                const query = e.target.value.toLowerCase();
-                document.querySelectorAll('#student-checkbox-section .student-label').forEach(label => {
-                    const name = label.querySelector('span').textContent.toLowerCase();
-                    label.style.display = name.includes(query) ? '' : 'none';
-                });
-            });
-        }
-
-        // Listen for checkbox changes to update pricing/rate visibility
-        document.addEventListener('change', (e) => {
-            if (e.target.matches('#student-checkbox-section .student-checkbox')) {
-                if (!isKelasMode()) {
-                    updatePricingAndRateVisibility();
-                }
-            }
-        });
-
-        parentRateInput.addEventListener('input', markTouched);
-        teacherRateInput.addEventListener('input', markTouched);
-        programSelect.addEventListener('change', () => {
-            applyDefaults();
-            toggleKelasMode();
-        });
-        updateTeacherRequired();
-        applyDefaults();
-        toggleKelasMode();
-        filterPrograms();
-    </script>
-
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </x-app-layout>

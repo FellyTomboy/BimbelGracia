@@ -129,10 +129,99 @@ class EnrollmentController extends Controller
         return $program && $program->type === 'kelas';
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): RedirectResponse|JsonResponse
     {
         $isKelas = $this->isKelasMode($request);
         $studentIds = $request->input('student_ids', []);
+
+        $rules = [
+            'program_id' => ['required', 'exists:programs,id'],
+            'type' => ['required', 'in:privat,kelas'],
+            'teacher_id' => [
+                $isKelas ? 'nullable' : 'required',
+                'exists:teachers,id',
+            ],
+            'parent_rate' => [
+                (count($studentIds) > 1) ? 'nullable' : 'required',
+                'integer',
+                'min:0',
+            ],
+            'teacher_rate' => [
+                ($isKelas || count($studentIds) > 1) ? 'nullable' : 'required',
+                'integer',
+                'min:0',
+            ],
+            'pricing_tiers_parent' => ['nullable', 'array'],
+            'pricing_tiers_parent.*' => ['nullable', 'numeric', 'min:0'],
+            'pricing_tiers_teacher' => ['nullable', 'array'],
+            'pricing_tiers_teacher.*' => ['nullable', 'numeric', 'min:0'],
+            'agreed_sessions_per_month' => ['required', 'integer', 'min:1', 'max:31'],
+            'status' => ['required', 'in:active,hibernasi'],
+            'student_ids' => ['required', 'array', 'min:1'],
+            'student_ids.*' => ['integer', 'exists:students,id'],
+        ];
+
+        // For kelas mode, only allow 1 student
+        if ($isKelas) {
+            $rules['student_ids'] = ['required', 'array', 'min:1', 'max:1'];
+        }
+
+        $validated = $request->validate($rules, [], $this->validationAttributes());
+
+        // Ensure default values when fields are hidden
+        if ($isKelas) {
+            $validated['teacher_rate'] = $validated['teacher_rate'] ?? 0;
+        } elseif (count($studentIds) > 1) {
+            $validated['teacher_rate'] = $validated['teacher_rate'] ?? 0;
+            $validated['parent_rate'] = $validated['parent_rate'] ?? 0;
+        }
+
+        // Build pricing_tiers from request or fallback to single-tier
+        $pricingTiers = null;
+        if ($request->has('pricing_tiers_parent')) {
+            $pricingTiers = [
+                'parent_rate' => $validated['pricing_tiers_parent'] ?? ['1' => $validated['parent_rate']],
+                'teacher_rate' => $validated['pricing_tiers_teacher'] ?? ['1' => $validated['teacher_rate']],
+            ];
+            if (isset($pricingTiers['parent_rate'])) {
+                $pricingTiers['parent_rate'] = array_combine(
+                    array_map('strval', array_keys($pricingTiers['parent_rate'])),
+                    array_values($pricingTiers['parent_rate'])
+                );
+            }
+            if (isset($pricingTiers['teacher_rate'])) {
+                $pricingTiers['teacher_rate'] = array_combine(
+                    array_map('strval', array_keys($pricingTiers['teacher_rate'])),
+                    array_values($pricingTiers['teacher_rate'])
+                );
+            }
+        }
+
+        $enrollment = Enrollment::create([
+            'program_id' => $validated['program_id'],
+            'type' => $validated['type'],
+            'teacher_id' => $validated['teacher_id'] ?? null,
+            'parent_rate' => $validated['parent_rate'],
+            'teacher_rate' => $validated['teacher_rate'],
+            'pricing_tiers' => $pricingTiers,
+            'agreed_sessions_per_month' => $validated['agreed_sessions_per_month'],
+            'validation_status' => 0,
+            'status' => $validated['status'],
+        ]);
+
+        $enrollment->students()->sync($validated['student_ids']);
+
+        $this->snapshotSyncService->syncAll();
+
+        $message = 'Enrollment berhasil dibuat.';
+        $redirect = route('admin.enrollments.index', ['type' => $validated['type']]);
+
+        if ($request->expectsJson()) {
+            return response()->json(['message' => $message, 'redirect' => $redirect]);
+        }
+
+        return redirect($redirect)->with('status', $message);
+    }
 
         $rules = [
             'program_id' => ['required', 'exists:programs,id'],
@@ -229,7 +318,7 @@ class EnrollmentController extends Controller
         return view('admin.enrollments.edit', compact('enrollment', 'programs', 'teachers', 'students'));
     }
 
-    public function update(Request $request, Enrollment $enrollment): RedirectResponse
+    public function update(Request $request, Enrollment $enrollment): RedirectResponse|JsonResponse
     {
         $isKelas = $this->isKelasMode($request);
         $studentIds = $request->input('student_ids', []);
@@ -312,9 +401,18 @@ class EnrollmentController extends Controller
 
         $this->snapshotSyncService->syncAll();
 
+        $message = 'Enrollment berhasil diperbarui.';
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => $message,
+                'redirect' => route('admin.enrollments.index'),
+            ]);
+        }
+
         return redirect()
             ->route('admin.enrollments.index')
-            ->with('status', 'Enrollment berhasil diperbarui.');
+            ->with('status', $message);
     }
 
     public function destroy(Request $request, Enrollment $enrollment): RedirectResponse|JsonResponse
