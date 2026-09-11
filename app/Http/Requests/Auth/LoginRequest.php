@@ -55,7 +55,7 @@ class LoginRequest extends FormRequest
             ]);
         }
 
-        if ($user->trashed()) {
+        if (in_array(\Illuminate\Database\Eloquent\SoftDeletes::class, class_uses_recursive($user), true) && $user->trashed()) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
