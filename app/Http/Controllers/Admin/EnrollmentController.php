@@ -102,6 +102,8 @@ class EnrollmentController extends Controller
 
         return view('admin.enrollments.mismatches', [
             'mismatches' => $mismatches,
+            'allKelas' => $allKelas,
+            'allPrivat' => $allPrivat,
             'allKelasCount' => $allKelas->count(),
             'allPrivatCount' => $allPrivat->count(),
             'activeTab' => $activeTab,
