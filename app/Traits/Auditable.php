@@ -24,11 +24,11 @@ trait Auditable
             $model->writeAudit('deleted', $model->getOriginal(), []);
         });
 
-        static::forceDeleted(function (Model $model): void {
-            $model->writeAudit('force_deleted', $model->getOriginal(), []);
-        });
-
         if (in_array(SoftDeletes::class, class_uses_recursive(static::class), true)) {
+            static::forceDeleted(function (Model $model): void {
+                $model->writeAudit('force_deleted', $model->getOriginal(), []);
+            });
+
             static::restored(function (Model $model): void {
                 $model->writeAudit('restored', $model->getOriginal(), $model->getAttributes());
             });
