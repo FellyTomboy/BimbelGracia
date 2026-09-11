@@ -15,60 +15,16 @@
 
     <div class="py-8"
          x-data="{
-             ...window.forceDeleteActions({
+             // ── Force Delete State (from factory) ──────────────────────────────
+             fd: window.forceDeleteActions({
                  resource: 'parents',
                  label: 'parent',
                  itemName: 'Parent',
+                 modalPrefix: 'fd-modal-parents',
                  bulkForceUrl: '{{ route('admin.parents.bulk-force-destroy') }}',
-                 forceDestroyUrl: (id) => `/admin/parents/${id}/force-destroy`,
+                 forceDestroyUrl: (id) => '/admin/parents/' + id + '/force-destroy',
                  listSelector: 'table',
              }),
-
-             // ── Override openPerRowModal — set cascade data then dispatch event ───
-             openPerRowModal(id, name, cascadeCount, cascadeList) {
-                 this.pendingId = id;
-                 this.pendingName = name;
-                 this.pendingCascadeCount = cascadeCount;
-                 this.cascadeList = cascadeList || [];
-                 this.acknowledged = false;
-                 window.dispatchEvent(new CustomEvent('force-delete-open', {
-                     bubbles: true,
-                     detail: {
-                         modalId: 'fd-modal-parents-single',
-                         id, name,
-                         cascadeCount: cascadeCount || 0,
-                         cascadeList: cascadeList || [],
-                         _alpineParent: this,
-                     }
-                 }));
-             },
-
-             // ── Override openBulkModal — collect all student names then dispatch ──
-             openBulkModal() {
-                 const checked = document.querySelectorAll('.row-checkbox:checked');
-                 if (checked.length === 0) return;
-                 this.selectedIds = Array.from(checked).map(cb => parseInt(cb.value));
-                 this.pendingName = checked.length + ' parent';
-                 this.pendingCascadeCount = 0;
-                 const allStudentNames = [];
-                 checked.forEach(cb => {
-                     try {
-                         allStudentNames.push(...JSON.parse(cb.dataset.cascadeList || '[]'));
-                     } catch(e) {}
-                 });
-                 this.cascadeList = [...new Set(allStudentNames)];
-                 this.acknowledged = false;
-                 window.dispatchEvent(new CustomEvent('force-delete-open', {
-                     bubbles: true,
-                     detail: {
-                         modalId: 'fd-modal-parents-bulk',
-                         bulkCount: checked.length,
-                         totalCascadeCount: 0,
-                         allCascadeLists: this.selectedCascadeLists,
-                         _alpineParent: this,
-                     }
-                 }));
-             },
 
              // ── Restore ─────────────────────────────────────────────────────────
              restoreLoading: null,
@@ -78,7 +34,7 @@
                  if (!confirm('Pulihkan parent ini?')) return;
                  this.restoreLoading = parentId;
                  try {
-                     await window.Ajax.post(`/admin/parents/${parentId}/restore`);
+                     await window.Ajax.post('/admin/parents/' + parentId + '/restore');
                      window.Toast?.success('Parent berhasil dipulihkan.');
                      window.location.reload();
                  } catch (e) {
@@ -127,12 +83,12 @@
                             Pulihkan Massal
                         </button>
                         <button type="button"
-                                @click="openBulkModal()"
-                                x-show="selectedIds.length > 0"
+                                @click="fd.openBulkModal()"
+                                x-show="fd.selectedIds.length > 0"
                                 x-cloak
                                 class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-rose-600 hover:bg-rose-700 transition-colors shadow-sm">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                            Hapus Permanen (<span x-text="selectedIds.length"></span>)
+                            Hapus Permanen (<span x-text="fd.selectedIds.length"></span>)
                         </button>
                     </div>
                 </div>
@@ -142,7 +98,7 @@
                         <thead>
                             <tr class="text-left text-gray-500 bg-gray-50/50">
                                 <th class="py-3 px-4 w-10">
-                                    <input type="checkbox" @change="toggleAll($event)" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                                    <input type="checkbox" @change="fd.toggleAll($event)" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
                                 </th>
                                 <th class="py-3 px-4 font-medium">Nama</th>
                                 <th class="py-3 px-4 font-medium">No. Telepon</th>
@@ -161,7 +117,7 @@
                                                data-name="{{ $parent->name ?? 'Parent' }}"
                                                data-cascade-count="{{ $parent->students_count ?? 0 }}"
                                                data-cascade-list="{{ json_encode($parent->students->map(fn($s) => $s->full_name)->toArray()) }}"
-                                               @change="toggleOne($event)" />
+                                               @change="fd.toggleOne($event)" />
                                     </td>
                                     <td class="py-3 px-4 font-medium text-gray-900">{{ $parent->name ?? '-' }}</td>
                                     <td class="py-3 px-4 text-gray-600">{{ $parent->user?->phone ?? '-' }}</td>
@@ -192,7 +148,7 @@
                                                 Pulihkan
                                             </button>
                                             <button type="button"
-                                                    @click="openPerRowModal({{ $parent->id }}, '{{ addslashes($parent->name ?? 'Parent') }}', {{ $parent->students_count ?? 0 }}, {{ json_encode($parent->students->map(fn($s) => $s->full_name)->toArray()) }})"
+                                                    @click="fd.openPerRowModal({{ $parent->id }}, '{{ addslashes($parent->name ?? 'Parent') }}', {{ $parent->students_count ?? 0 }}, {{ json_encode($parent->students->map(fn($s) => $s->full_name)->toArray()) }})"
                                                     class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">
                                                 Hapus Permanen
                                             </button>

@@ -12,8 +12,9 @@
              resource: 'bank-accounts',
              label: 'rekening',
              itemName: 'Rekening',
+             modalPrefix: 'fd-modal-bank-accounts',
              bulkForceUrl: '{{ route('admin.bank-accounts.bulk-force-destroy') }}',
-             forceDestroyUrl: (id) => `/admin/bank-accounts/${id}/force-destroy`,
+             forceDestroyUrl: (id) => '/admin/bank-accounts/' + id + '/force-destroy',
              listSelector: 'table',
          })">
 

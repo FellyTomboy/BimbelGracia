@@ -12,8 +12,9 @@
              resource: 'lesson-offers',
              label: 'tawaran les',
              itemName: 'Tawaran Les',
+             modalPrefix: 'fd-modal-lesson-offers',
              bulkForceUrl: '{{ route('admin.lesson-offers.bulk-force-destroy') }}',
-             forceDestroyUrl: (id) => `/admin/lesson-offers/${id}/force-destroy`,
+             forceDestroyUrl: (id) => '/admin/lesson-offers/' + id + '/force-destroy',
              listSelector: 'table',
          })">
 

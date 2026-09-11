@@ -12,8 +12,9 @@
              resource: 'programs',
              label: 'program',
              itemName: 'Program',
+             modalPrefix: 'fd-modal-programs',
              bulkForceUrl: '{{ route('admin.programs.bulk-force-destroy') }}',
-             forceDestroyUrl: (id) => `/admin/programs/${id}/force-destroy`,
+             forceDestroyUrl: (id) => '/admin/programs/' + id + '/force-destroy',
              listSelector: 'table',
          })">
 

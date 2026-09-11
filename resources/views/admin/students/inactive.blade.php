@@ -9,16 +9,18 @@
 
     <div class="py-12"
          x-data="{
-             ...window.forceDeleteActions({
+             // ── Force Delete State (from factory) ──────────────────────────────
+             fd: window.forceDeleteActions({
                  resource: 'students',
                  label: 'murid',
                  itemName: 'Murid',
+                 modalPrefix: 'fd-modal-students',
                  bulkForceUrl: '{{ route('admin.students.bulk-force-destroy') }}',
-                 forceDestroyUrl: (id) => `/admin/students/${id}/force-destroy`,
+                 forceDestroyUrl: (id) => '/admin/students/' + id + '/force-destroy',
                  listSelector: 'table',
              }),
 
-             // ── Restore Modal State ───────────────────────────────────────────
+             // ── Restore Modal State ────────────────────────────────────────────
              restoreModalOpen: false,
              restoreLoading: false,
              restoreError: '',
@@ -54,11 +56,10 @@
                  if (this.restoreNewParentName.trim()) params.append('new_parent_name', this.restoreNewParentName);
                  if (this.restoreNewParentPhone.trim()) params.append('new_parent_phone', this.restoreNewParentPhone);
                  try {
-                     const resp = await window.Ajax.post(`/admin/students/${this.restoreStudentId}/restore`, params);
+                     const resp = await window.Ajax.post('/admin/students/' + this.restoreStudentId + '/restore', params);
                      window.Toast?.success(resp.data?.message || 'Murid berhasil dipulihkan.');
                      this.closeRestoreModal();
-                     // Remove the row from DOM
-                     const row = document.querySelector('[data-row-id="' + this.restoreStudentId + '"]');
+                     const row = document.querySelector('[data-row-id=\"' + this.restoreStudentId + '\"]');
                      if (row) row.remove();
                  } catch (e) {
                      if (e.response?.status === 422) {
@@ -83,12 +84,12 @@
                 <div class="p-4 border-b border-gray-100 flex items-center justify-between gap-4 flex-wrap">
                     <div class="text-sm text-gray-400">{{ $students->count() }} murid</div>
                     <button type="button"
-                            @click="openBulkModal()"
-                            x-show="selectedIds.length > 0"
+                            @click="fd.openBulkModal()"
+                            x-show="fd.selectedIds.length > 0"
                             x-cloak
                             class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-rose-600 hover:bg-rose-700 transition-colors shadow-sm">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                        Hapus Permanen (<span x-text="selectedIds.length"></span>)
+                        Hapus Permanen (<span x-text="fd.selectedIds.length"></span>)
                     </button>
                 </div>
                 <div class="p-6 text-gray-900 overflow-x-auto">
@@ -98,7 +99,7 @@
                                 <th class="py-2 w-8">
                                     <input type="checkbox"
                                            class="select-all-checkbox rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                                           @change="toggleAll($event)" />
+                                           @change="fd.toggleAll($event)" />
                                 </th>
                                 <th class="py-2">Nama</th>
                                 <th class="py-2">Nama Panggilan</th>
@@ -115,7 +116,7 @@
                                                value="{{ $student->id }}"
                                                data-name="{{ $student->display_name }}"
                                                data-cascade-count="{{ ($student->teachers_count ?? 0) + ($student->enrollments_count ?? 0) }}"
-                                               @change="toggleOne($event)" />
+                                               @change="fd.toggleOne($event)" />
                                     </td>
                                     <td class="py-2 font-medium">{{ $student->display_name }}</td>
                                     <td class="py-2">{{ $student->nickname ?: '—' }}</td>
@@ -130,7 +131,7 @@
                                                 Pulihkan
                                             </button>
                                             <button type="button"
-                                                    @click="openPerRowModal({{ $student->id }}, '{{ addslashes($student->display_name) }}', {{ ($student->teachers_count ?? 0) + ($student->enrollments_count ?? 0) }}, [])"
+                                                    @click="fd.openPerRowModal({{ $student->id }}, '{{ addslashes($student->display_name) }}', {{ ($student->teachers_count ?? 0) + ($student->enrollments_count ?? 0) }}, [])"
                                                     class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">
                                                 Hapus Permanen
                                             </button>
