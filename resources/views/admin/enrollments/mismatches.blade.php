@@ -15,20 +15,141 @@
         </div>
     </x-slot>
 
+    <script>
+    document.addEventListener('alpine:init', () => {
+        try {
+            Alpine.data('enrollmentModal', () => ({
+                ...crudModal({
+                    createUrl: '{{ route('admin.enrollments.create-form') }}',
+                    storeUrl: '{{ route('admin.enrollments.store') }}',
+                    editUrl: (id) => '/admin/enrollments/' + id + '/edit-form',
+                    updateUrl: (id) => '/admin/enrollments/' + id,
+                    listSelector: 'table',
+                }),
+                activeTab: '{{ $activeTab }}',
+                tab: '{{ $activeTab }}',
+                flashMessage: {{ \Illuminate\Support\Js::from(session('status') ?? '') }},
+                showFlash: {{ \Illuminate\Support\Js::from((bool) session('status')) }},
+                flashTimer: null,
+                init() {
+                    document.addEventListener('submit', (e) => {
+                        if (!e.target || e.target.id !== 'crud-form') return;
+                        e.preventDefault();
+                        if (this.submit) this.submit();
+                    }, true);
+                    window._mismatchFlashSetter = (msg) => { this.setFlash(msg); };
+                    if (this.showFlash) this._startTimer();
+                },
+                _startTimer() {
+                    if (this.flashTimer) clearTimeout(this.flashTimer);
+                    this.showFlash = true;
+                    this.flashTimer = setTimeout(() => { this.showFlash = false; }, 4000);
+                },
+                setFlash(msg) { this.flashMessage = msg; this._startTimer(); },
+                refreshTable() { window.location.reload(); },
+                async submit() {
+                    const form = document.getElementById('crud-form');
+                    if (!form) return;
+                    const isFormEdit = this.isEdit;
+                    const url = isFormEdit
+                        ? (typeof this.updateUrl === 'function' ? this.updateUrl(this.currentId) : this.updateUrl + '/' + this.currentId)
+                        : this.storeUrl;
+                    const method = isFormEdit ? 'put' : 'post';
+                    this.submitting = true;
+                    const params = new URLSearchParams();
+                    for (const el of form.querySelectorAll('input[name], select[name], textarea[name]')) {
+                        if (el.disabled) continue;
+                        if (el.type === 'checkbox') { if (el.checked) params.append(el.name, el.value || 'on'); }
+                        else if (el.type === 'radio') { if (el.checked) params.append(el.name, el.value); }
+                        else if (el.tagName === 'SELECT' && el.multiple) { for (const o of el.selectedOptions) params.append(el.name, o.value); }
+                        else { params.append(el.name, el.value); }
+                    }
+                    form.querySelectorAll('[class^="crud-error-"]').forEach(el => { el.style.display = 'none'; el.textContent = ''; });
+                    form.querySelectorAll('[class^="crud-field-"]').forEach(el => { el.classList.remove('border-rose-400','ring-1','ring-rose-300'); el.classList.add('border-gray-300'); });
+                    try {
+                        await window.Ajax[method](url, params);
+                        window.Toast?.success(isFormEdit ? 'Berhasil diperbarui.' : 'Berhasil disimpan.');
+                        this.close();
+                        this.refreshTable();
+                    } catch (e) {
+                        if (e.response?.status === 422) {
+                            const errors = e.response.data.errors || {};
+                            Object.entries(errors).forEach(([field, messages]) => {
+                                const errEl = form.querySelector('.crud-error-' + field);
+                                if (errEl) { errEl.textContent = Array.isArray(messages) ? messages.join(', ') : messages; errEl.style.display = 'block'; }
+                                const fieldEl = form.querySelector('.crud-field-' + field);
+                                if (fieldEl) { fieldEl.classList.remove('border-gray-300'); fieldEl.classList.add('border-rose-400','ring-1','ring-rose-300'); }
+                            });
+                        } else {
+                            window.Toast?.error('Gagal menyimpan enrollment.');
+                        }
+                        this.submitting = false;
+                    }
+                },
+            }));
+        } catch (e) {
+            console.error('[mismatch] Alpine.data("enrollmentModal") failed:', e);
+        }
+    });
+    </script>
+
     <div class="py-8"
-         x-data="{
-             tab: '{{ $activeTab }}',
-             flashMessage: {{ \Illuminate\Support\Js::from(session('status') ?? '') }},
-             showFlash: {{ \Illuminate\Support\Js::from((bool) session('status')) }},
-             flashTimer: null,
-             init() { if (this.showFlash) this._startTimer(); },
-             _startTimer() {
-                 if (this.flashTimer) clearTimeout(this.flashTimer);
-                 this.showFlash = true;
-                 this.flashTimer = setTimeout(() => { this.showFlash = false; }, 4000);
-             },
-             setFlash(msg) { this.flashMessage = msg; this._startTimer(); },
-         }">
+         x-data="enrollmentModal"
+         @open-edit-modal.window="openEdit($event.detail)">
+
+        {{-- ── Create / Edit Modal Shell ─────────────────────────────── --}}
+        <div x-show="modalOpen"
+             x-transition:enter="ease-out duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="ease-in duration-200"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             class="fixed inset-0 bg-gray-500/60 z-50 flex items-center justify-center p-4"
+             @click.self="close()"
+             @keydown.escape.window="close()"
+             style="display:none">
+            <div x-show="modalOpen"
+                 x-transition:enter="ease-out duration-300"
+                 x-transition:enter-start="opacity-0 translate-y-4"
+                 x-transition:enter-end="opacity-100 translate-y-0"
+                 x-transition:leave="ease-in duration-200"
+                 x-transition:leave-start="opacity-100 translate-y-0"
+                 x-transition:leave-end="opacity-0 translate-y-4"
+                 class="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+                <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white rounded-t-2xl z-10">
+                    <h3 class="text-lg font-semibold text-gray-900" x-text="modalTitle"></h3>
+                    <button @click="close()" class="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <div class="p-6">
+                    <div x-show="loading" class="flex justify-center py-8">
+                        <svg class="animate-spin w-8 h-8 text-indigo-500" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                        </svg>
+                    </div>
+                    <div x-show="!loading && modalBody" x-html="modalBody"></div>
+                    <div x-show="!loading && modalBody && modalBody.indexOf('type=\&quot;submit\&quot;') === -1"
+                         class="mt-6 flex justify-end gap-3 pt-4 border-t border-gray-100">
+                        <button type="button" @click="close()"
+                                class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                            Batal
+                        </button>
+                        <button type="button" @click="submit()"
+                                :disabled="submitting"
+                                class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors flex items-center gap-2">
+                            <template x-if="submitting">
+                                <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                            </template>
+                            <span x-text="isEdit ? 'Simpan Perubahan' : 'Simpan'"></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             {{-- Flash Banner --}}
             <div x-show="showFlash"
@@ -140,10 +261,11 @@
                                         </td>
                                         <td class="py-3 px-4 text-xs text-gray-500">{{ $reason }}</td>
                                         <td class="py-3 px-4">
-                                            <a href="{{ route('admin.enrollments.edit', $enrollment) }}"
-                                               class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors">
+                                            <button type="button"
+                                                    onclick="window.dispatchEvent(new CustomEvent('open-edit-modal', { detail: {{ $enrollment->id }} }))"
+                                                    class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors">
                                                 Edit Manual
-                                            </a>
+                                            </button>
                                         </td>
                                     </tr>
                                 @empty
@@ -225,10 +347,11 @@
                                         </td>
                                         <td class="py-3 px-4 text-xs text-gray-500">{{ $reason }}</td>
                                         <td class="py-3 px-4">
-                                            <a href="{{ route('admin.enrollments.edit', $enrollment) }}"
-                                               class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors">
+                                            <button type="button"
+                                                    onclick="window.dispatchEvent(new CustomEvent('open-edit-modal', { detail: {{ $enrollment->id }} }))"
+                                                    class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors">
                                                 Edit Manual
-                                            </a>
+                                            </button>
                                         </td>
                                     </tr>
                                 @empty
