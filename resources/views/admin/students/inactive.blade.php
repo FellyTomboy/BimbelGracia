@@ -18,34 +18,57 @@
                  listSelector: 'table',
              }),
 
-             // ── Bulk Restore ─────────────────────────────────────────────────────
-             bulkRestoreLoading: false,
-             async bulkRestore() {
-                 if (!confirm('Pulihkan {{ $students->count() }} murid?')) return;
-                 this.bulkRestoreLoading = true;
-                 try {
-                     const resp = await window.Ajax.post('/admin/students/bulk-restore');
-                     window.Toast?.success(resp.data?.message || 'Berhasil dipulihkan.');
-                     window.location.reload();
-                 } catch (e) {
-                     window.Toast?.error('Gagal memulihkan murid.');
-                 } finally {
-                     this.bulkRestoreLoading = false;
-                 }
+             // ── Restore Modal State ───────────────────────────────────────────
+             restoreModalOpen: false,
+             restoreLoading: false,
+             restoreError: '',
+             restoreStudentId: null,
+             restoreStudentName: '',
+             restoreOriginalParent: '',
+             restoreSelectedParentId: '',
+             restoreNewParentName: '',
+             restoreNewParentPhone: '',
+
+             openRestoreModal(studentId, studentName, originalParent) {
+                 this.restoreStudentId = studentId;
+                 this.restoreStudentName = studentName;
+                 this.restoreOriginalParent = originalParent || 'Tidak ada';
+                 this.restoreSelectedParentId = '';
+                 this.restoreNewParentName = '';
+                 this.restoreNewParentPhone = '';
+                 this.restoreError = '';
+                 this.restoreModalOpen = true;
              },
 
-             // ── Per-row Restore ──────────────────────────────────────────────────
-             restoreLoading: null,
-             async restoreRow(studentId) {
-                 this.restoreLoading = studentId;
+             closeRestoreModal() {
+                 this.restoreModalOpen = false;
+             },
+
+             async submitRestore() {
+                 if (this.restoreLoading) return;
+                 this.restoreLoading = true;
+                 this.restoreError = '';
+                 const params = new URLSearchParams();
+                 params.append('_token', document.querySelector('meta[name=csrf-token]')?.content || '');
+                 if (this.restoreSelectedParentId) params.append('parent_id', this.restoreSelectedParentId);
+                 if (this.restoreNewParentName.trim()) params.append('new_parent_name', this.restoreNewParentName);
+                 if (this.restoreNewParentPhone.trim()) params.append('new_parent_phone', this.restoreNewParentPhone);
                  try {
-                     await window.Ajax.post(`/admin/students/${studentId}/restore`);
-                     window.Toast?.success('Murid berhasil dipulihkan.');
-                     window.location.reload();
+                     const resp = await window.Ajax.post(`/admin/students/${this.restoreStudentId}/restore`, params);
+                     window.Toast?.success(resp.data?.message || 'Murid berhasil dipulihkan.');
+                     this.closeRestoreModal();
+                     // Remove the row from DOM
+                     const row = document.querySelector(`[data-row-id="${this.restoreStudentId}"]`);
+                     if (row) row.remove();
                  } catch (e) {
-                     window.Toast?.error('Gagal memulihkan murid.');
+                     if (e.response?.status === 422) {
+                         const errs = e.response.data?.errors || {};
+                         this.restoreError = Object.values(errs).flat().join(', ');
+                     } else {
+                         this.restoreError = 'Gagal memulihkan murid.';
+                     }
                  } finally {
-                     this.restoreLoading = null;
+                     this.restoreLoading = false;
                  }
              },
          }">
@@ -59,24 +82,14 @@
             <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden">
                 <div class="p-4 border-b border-gray-100 flex items-center justify-between gap-4 flex-wrap">
                     <div class="text-sm text-gray-400">{{ $students->count() }} murid</div>
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <button type="button"
-                                @click="bulkRestore()"
-                                :disabled="bulkRestoreLoading"
-                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 transition-colors disabled:opacity-50 shadow-sm">
-                            <svg x-show="bulkRestoreLoading" class="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-                            <svg x-show="!bulkRestoreLoading" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                            Pulihkan Semua
-                        </button>
-                        <button type="button"
-                                @click="openBulkModal()"
-                                x-show="selectedIds.length > 0"
-                                x-cloak
-                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-rose-600 hover:bg-rose-700 transition-colors shadow-sm">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                            Hapus Permanen (<span x-text="selectedIds.length"></span>)
-                        </button>
-                    </div>
+                    <button type="button"
+                            @click="openBulkModal()"
+                            x-show="selectedIds.length > 0"
+                            x-cloak
+                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-rose-600 hover:bg-rose-700 transition-colors shadow-sm">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        Hapus Permanen (<span x-text="selectedIds.length"></span>)
+                    </button>
                 </div>
                 <div class="p-6 text-gray-900 overflow-x-auto">
                     <table class="min-w-full text-sm">
@@ -88,10 +101,8 @@
                                            @change="toggleAll($event)" />
                                 </th>
                                 <th class="py-2">Nama</th>
-                                <th class="py-2">Jenjang</th>
-                                <th class="py-2">Sekolah</th>
+                                <th class="py-2">Nama Panggilan</th>
                                 <th class="py-2">Orang Tua</th>
-                                <th class="py-2">Guru</th>
                                 <th class="py-2">Aksi</th>
                             </tr>
                         </thead>
@@ -106,47 +117,16 @@
                                                data-cascade-count="{{ ($student->teachers_count ?? 0) + ($student->enrollments_count ?? 0) }}"
                                                @change="toggleOne($event)" />
                                     </td>
+                                    <td class="py-2 font-medium">{{ $student->display_name }}</td>
+                                    <td class="py-2">{{ $student->nickname ?: '—' }}</td>
                                     <td class="py-2">
-                                        <div class="font-medium">{{ $student->display_name }}</div>
-                                        <div class="text-xs text-gray-400">{{ $student->whatsapp ?? '-' }}</div>
-                                    </td>
-                                    <td class="py-2">{{ $student->education_level }}</td>
-                                    <td class="py-2">{{ $student->school ?? '-' }}</td>
-                                    <td class="py-2">
-                                        @if ($student->parent?->user)
-                                            <div class="flex items-center gap-1.5">
-                                                @if ($student->parent->trashed())
-                                                    <span class="inline-block w-2 h-2 rounded-full bg-gray-400" title="Orang tua dihibernasi"></span>
-                                                @endif
-                                                <span>{{ $student->parent->user->name }}</span>
-                                            </div>
-                                        @else
-                                            <span class="text-gray-400">—</span>
-                                        @endif
-                                    </td>
-                                    <td class="py-2">
-                                        @if ($student->teachers->count() > 0)
-                                            <div class="flex flex-wrap gap-1">
-                                                @foreach ($student->teachers as $teacher)
-                                                    <span class="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">
-                                                        @if ($teacher->trashed())
-                                                            <span class="w-1.5 h-1.5 rounded-full bg-gray-400 inline-block"></span>
-                                                        @endif
-                                                        {{ $teacher->displayName }}
-                                                    </span>
-                                                @endforeach
-                                            </div>
-                                        @else
-                                            <span class="text-gray-400">—</span>
-                                        @endif
+                                        {{ $student->parent?->name ?? ($student->parent_id ? 'Parent dihapus' : 'Tidak ada parent') }}
                                     </td>
                                     <td class="py-2">
                                         <div class="flex items-center gap-2">
                                             <button type="button"
-                                                    @click="restoreRow({{ $student->id }})"
-                                                    :disabled="restoreLoading === {{ $student->id }}"
-                                                    class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 transition-colors disabled:opacity-50">
-                                                <svg x-show="restoreLoading === {{ $student->id }}" class="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                                                    @click="openRestoreModal({{ $student->id }}, '{{ addslashes($student->display_name) }}', '{{ addslashes($student->parent?->name ?? '') }}')"
+                                                    class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 transition-colors">
                                                 Pulihkan
                                             </button>
                                             <button type="button"
@@ -185,5 +165,85 @@
             :bulk-count="0"
             :cascade-count="0"
             :need-acknowledge="false" />
+
+        {{-- Restore Modal --}}
+        <div x-show="restoreModalOpen"
+             x-cloak
+             x-transition:enter="ease-out duration-200"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="ease-in duration-150"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             class="fixed inset-0 bg-gray-500/60 z-[9999] flex items-center justify-center p-4"
+             @click.self="closeRestoreModal()">
+
+            <div x-show="restoreModalOpen"
+                 x-transition:enter="transition ease-out duration-200"
+                 x-transition:enter-start="opacity-0 scale-95"
+                 x-transition:enter-end="opacity-100 scale-100"
+                 x-transition:leave="transition ease-in duration-150"
+                 x-transition:leave-start="opacity-100 scale-100"
+                 x-transition:leave-end="opacity-0 scale-95"
+                 class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+
+                {{-- Header --}}
+                <div class="px-6 py-4 bg-emerald-600 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        <h3 class="text-white font-semibold text-base">Pulihkan Murid</h3>
+                    </div>
+                    <button @click="closeRestoreModal()" class="text-white/70 hover:text-white transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+
+                {{-- Body --}}
+                <div class="p-6 space-y-4">
+                    <div class="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
+                        <p class="text-sm font-medium text-gray-900" x-text="restoreStudentName"></p>
+                        <p class="text-xs text-gray-500 mt-0.5">Orang tua awal: <span x-text="restoreOriginalParent || 'Tidak ada'"></span></p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Kembalikan ke Parent:</label>
+                        <select x-model="restoreSelectedParentId" class="w-full border-gray-300 rounded-xl text-sm py-2 px-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                            <option value="">-- Pilih parent (atau buat baru) --</option>
+                            @foreach ($parents as $parent)
+                                <option value="{{ $parent->id }}">{{ $parent->name }} ({{ $parent->user?->phone ?? '-' }})</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Atau buat parent baru:</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="text" x-model="restoreNewParentName" class="w-full border-gray-300 rounded-xl text-sm py-2 px-3" placeholder="Nama parent" />
+                            <input type="text" x-model="restoreNewParentPhone" class="w-full border-gray-300 rounded-xl text-sm py-2 px-3" placeholder="No HP" />
+                        </div>
+                    </div>
+
+                    <p x-show="restoreError" x-cloak x-text="restoreError"
+                       class="bg-rose-50 text-rose-700 text-sm px-4 py-3 rounded-xl"></p>
+                </div>
+
+                {{-- Footer --}}
+                <div class="px-6 py-4 bg-gray-50 flex items-center justify-end gap-3 border-t">
+                    <button @click="closeRestoreModal()"
+                            :disabled="restoreLoading"
+                            class="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-100 transition-colors disabled:opacity-50">
+                        Batal
+                    </button>
+                    <button @click="submitRestore()"
+                            :disabled="restoreLoading"
+                            class="px-4 py-2 rounded-xl bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50 flex items-center gap-2">
+                        <svg x-show="restoreLoading" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                        Pulihkan
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <style>[x-cloak] { display: none !important; }</style>
     </div>
 </x-app-layout>
