@@ -24,6 +24,11 @@ class EnsureAccountActive
         $role = $user->role?->value;
 
         if (in_array($role, ['guru', 'parent'])) {
+            // User model no longer has SoftDeletes trait — skip trashed check
+            if (! in_array(\Illuminate\Database\Eloquent\SoftDeletes::class, class_uses_recursive(\App\Models\User::class), true)) {
+                return $next($request);
+            }
+
             // Query fresh from DB — Auth::user() may be cached and not reflect trashed status
             $isTrashed = \App\Models\User::withoutGlobalScopes()
                 ->where('id', $user->id)
