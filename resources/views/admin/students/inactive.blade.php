@@ -58,7 +58,7 @@
                      window.Toast?.success(resp.data?.message || 'Murid berhasil dipulihkan.');
                      this.closeRestoreModal();
                      // Remove the row from DOM
-                     const row = document.querySelector(`[data-row-id="${this.restoreStudentId}"]`);
+                     const row = document.querySelector('[data-row-id="' + this.restoreStudentId + '"]');
                      if (row) row.remove();
                  } catch (e) {
                      if (e.response?.status === 422) {
