@@ -4,6 +4,8 @@ import Alpine from 'alpinejs';
 import collapse from '@alpinejs/collapse';
 import { crudModal } from './alpine/crud-modal';
 import { EnrollmentForm } from './alpine/enrollment-form';
+import { forceDeleteActions } from './alpine/force-delete';
+import { bulkHibernateActions } from './alpine/bulk-hibernate';
 
 import './utils/toast';
 import './utils/ajax';
@@ -11,6 +13,8 @@ import './utils/ajax';
 window.Alpine = Alpine;
 Alpine.plugin(collapse);
 Alpine.data('crudModal', crudModal);
+Alpine.data('forceDeleteActions', forceDeleteActions);
+Alpine.data('bulkHibernateActions', bulkHibernateActions);
 // Expose to window so per-page Alpine.data factories (e.g. enrollmentModal)
 // can spread it via `...crudModal({...})` from their inline <script> scope.
 // Alpine.data() only registers the provider in Alpine's internal scope — it
@@ -18,6 +22,8 @@ Alpine.data('crudModal', crudModal);
 // Alpine.data factory defined in a Blade <script>.
 window.crudModal = crudModal;
 window.EnrollmentForm = EnrollmentForm;
+window.forceDeleteActions = forceDeleteActions;
+window.bulkHibernateActions = bulkHibernateActions;
 
 Alpine.start();
 

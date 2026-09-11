@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\BankAccount;
 use App\Traits\SearchAndSort;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class BankAccountController extends Controller
@@ -101,5 +103,58 @@ class BankAccountController extends Controller
         return redirect()
             ->route('admin.bank-accounts.index')
             ->with('status', 'Rekening bimbel berhasil dipulihkan.');
+    }
+
+    public function bulkDestroy(Request $request): JsonResponse|RedirectResponse
+    {
+        $validated = $request->validate([
+            'ids'   => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer'],
+        ]);
+
+        $count = BankAccount::whereIn('id', $validated['ids'])->delete();
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => "{$count} rekening bimbel dihibernasi."]);
+        }
+
+        return redirect()
+            ->route('admin.bank-accounts.index')
+            ->with('status', "{$count} rekening bimbel dihibernasi.");
+    }
+
+    public function forceDestroy(Request $request, int $bankAccountId): JsonResponse|RedirectResponse
+    {
+        $bankAccount = BankAccount::onlyTrashed()->findOrFail($bankAccountId);
+
+        DB::transaction(fn () => $bankAccount->forceDelete());
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Rekening bimbel dihapus permanen.']);
+        }
+
+        return redirect()
+            ->route('admin.bank-accounts.inactive')
+            ->with('status', 'Rekening bimbel dihapus permanen.');
+    }
+
+    public function bulkForceDestroy(Request $request): JsonResponse|RedirectResponse
+    {
+        $validated = $request->validate([
+            'ids'   => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer'],
+        ]);
+
+        $count = DB::transaction(fn () =>
+            BankAccount::onlyTrashed()->whereIn('id', $validated['ids'])->forceDelete()
+        );
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => "{$count} rekening bimbel dihapus permanen."]);
+        }
+
+        return redirect()
+            ->route('admin.bank-accounts.inactive')
+            ->with('status', "{$count} rekening bimbel dihapus permanen.");
     }
 }

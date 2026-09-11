@@ -9,6 +9,16 @@
 
     <div class="py-12"
          x-data="{
+             ...window.forceDeleteActions({
+                 resource: 'enrollments',
+                 label: 'enrollment',
+                 itemName: 'Enrollment',
+                 bulkForceUrl: '{{ route('admin.enrollments.bulk-force-destroy') }}',
+                 forceDestroyUrl: (id) => `/admin/enrollments/${id}/force-destroy`,
+                 listSelector: 'table',
+             }),
+
+             // ── Flash ──────────────────────────────────────────────────────────
              flashMessage: {{ \Illuminate\Support\Js::from(session('status') ?? '') }},
              showFlash: {{ \Illuminate\Support\Js::from((bool) session('status')) }},
              flashTimer: null,
@@ -20,7 +30,7 @@
              },
              setFlash(msg) { this.flashMessage = msg; this._startTimer(); },
 
-             // Restore modal
+             // ── Restore modal ────────────────────────────────────────────────
              restoreConfirmId: null,
              restoreLoading: false,
              confirmRestore(id) { this.restoreConfirmId = id; },
@@ -65,10 +75,26 @@
             </div>
 
             <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden">
+                <div class="p-4 border-b border-gray-100 flex items-center justify-between gap-4 flex-wrap">
+                    <div class="text-sm text-gray-400">{{ $enrollments->count() }} enrollment</div>
+                    <button type="button"
+                            @click="openBulkModal()"
+                            x-show="selectedIds.length > 0"
+                            x-cloak
+                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-rose-600 hover:bg-rose-700 transition-colors shadow-sm">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        Hapus Permanen (<span x-text="selectedIds.length"></span>)
+                    </button>
+                </div>
                 <div class="p-6 text-gray-900 overflow-x-auto">
                     <table class="min-w-full text-sm">
                         <thead>
                             <tr class="text-left text-gray-500">
+                                <th class="py-2 w-8">
+                                    <input type="checkbox"
+                                           class="select-all-checkbox rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                           @change="toggleAll($event)" />
+                                </th>
                                 <th class="py-2">Program</th>
                                 <th class="py-2">Guru</th>
                                 <th class="py-2">Murid</th>
@@ -81,7 +107,15 @@
                         </thead>
                         <tbody class="divide-y">
                             @forelse ($enrollments as $enrollment)
-                                <tr data-enrollment-id="{{ $enrollment->id }}">
+                                <tr data-row-id="{{ $enrollment->id }}">
+                                    <td class="py-2">
+                                        <input type="checkbox"
+                                               class="row-checkbox rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                               value="{{ $enrollment->id }}"
+                                               data-name="Enrollment #{{ $enrollment->id }}"
+                                               data-cascade-count="{{ $enrollment->students_count ?? 0 }}"
+                                               @change="toggleOne($event)" />
+                                    </td>
                                     <td class="py-2 font-medium">
                                         <x-hibernated-label :model="$enrollment->program" :label="$enrollment->program?->name ?? '-'" type="program" />
                                     </td>
@@ -104,16 +138,23 @@
                                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500 border border-gray-200">hibernasi</span>
                                     </td>
                                     <td class="py-2">
-                                        <button type="button"
-                                                @click="confirmRestore({{ $enrollment->id }})"
-                                                class="text-emerald-600 hover:text-emerald-800 font-medium text-sm">
-                                            Restore
-                                        </button>
+                                        <div class="flex items-center gap-2">
+                                            <button type="button"
+                                                    @click="confirmRestore({{ $enrollment->id }})"
+                                                    class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 transition-colors">
+                                                Pulihkan
+                                            </button>
+                                            <button type="button"
+                                                    @click="openPerRowModal({{ $enrollment->id }}, 'Enrollment #{{ $enrollment->id }}', {{ $enrollment->students_count ?? 0 }}, [])"
+                                                    class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">
+                                                Hapus Permanen
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="8" class="py-8 text-center text-gray-400">
+                                    <td colspan="9" class="py-8 text-center text-gray-400">
                                         Tidak ada enrollment yang dihibernasi.
                                     </td>
                                 </tr>
@@ -123,6 +164,28 @@
                 </div>
             </div>
         </div>
+
+        {{-- Force Delete Modal --}}
+        <x-force-delete-modal
+            id="fd-modal-enrollments-single"
+            title="Hapus Permanen Enrollment?"
+            message="Enrollment akan dihapus permanen dan tidak dapat dipulihkan."
+            confirm-text="Hapus Permanen"
+            ajax-url="#"
+            :is-bulk="false"
+            :bulk-count="0"
+            :cascade-count="0"
+            :need-acknowledge="false" />
+        <x-force-delete-modal
+            id="fd-modal-enrollments-bulk"
+            title="Hapus Permanen Enrollment?"
+            message="Enrollment yang dipilih akan dihapus permanen dan tidak dapat dipulihkan."
+            confirm-text="Hapus Permanen"
+            ajax-url="{{ route('admin.enrollments.bulk-force-destroy') }}"
+            :is-bulk="true"
+            :bulk-count="0"
+            :cascade-count="0"
+            :need-acknowledge="false" />
 
         {{-- Restore Modal --}}
         <div x-show="restoreConfirmId !== null" x-cloak

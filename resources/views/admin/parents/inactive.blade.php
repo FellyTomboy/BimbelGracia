@@ -15,6 +15,62 @@
 
     <div class="py-8"
          x-data="{
+             ...window.forceDeleteActions({
+                 resource: 'parents',
+                 label: 'parent',
+                 itemName: 'Parent',
+                 bulkForceUrl: '{{ route('admin.parents.bulk-force-destroy') }}',
+                 forceDestroyUrl: (id) => `/admin/parents/${id}/force-destroy`,
+                 listSelector: 'table',
+             }),
+
+             // ── Override openPerRowModal — set cascade data then dispatch event ───
+             openPerRowModal(id, name, cascadeCount, cascadeList) {
+                 this.pendingId = id;
+                 this.pendingName = name;
+                 this.pendingCascadeCount = cascadeCount;
+                 this.cascadeList = cascadeList || [];
+                 this.acknowledged = false;
+                 window.dispatchEvent(new CustomEvent('force-delete-open', {
+                     bubbles: true,
+                     detail: {
+                         modalId: 'fd-modal-parents-single',
+                         id, name,
+                         cascadeCount: cascadeCount || 0,
+                         cascadeList: cascadeList || [],
+                         _alpineParent: this,
+                     }
+                 }));
+             },
+
+             // ── Override openBulkModal — collect all student names then dispatch ──
+             openBulkModal() {
+                 const checked = document.querySelectorAll('.row-checkbox:checked');
+                 if (checked.length === 0) return;
+                 this.selectedIds = Array.from(checked).map(cb => parseInt(cb.value));
+                 this.pendingName = checked.length + ' parent';
+                 this.pendingCascadeCount = 0;
+                 const allStudentNames = [];
+                 checked.forEach(cb => {
+                     try {
+                         allStudentNames.push(...JSON.parse(cb.dataset.cascadeList || '[]'));
+                     } catch(e) {}
+                 });
+                 this.cascadeList = [...new Set(allStudentNames)];
+                 this.acknowledged = false;
+                 window.dispatchEvent(new CustomEvent('force-delete-open', {
+                     bubbles: true,
+                     detail: {
+                         modalId: 'fd-modal-parents-bulk',
+                         bulkCount: checked.length,
+                         totalCascadeCount: 0,
+                         allCascadeLists: this.selectedCascadeLists,
+                         _alpineParent: this,
+                     }
+                 }));
+             },
+
+             // ── Restore ─────────────────────────────────────────────────────────
              restoreLoading: null,
              bulkRestoreLoading: false,
 
@@ -48,7 +104,7 @@
                      window.Toast?.error('Gagal memulihkan parent.');
                      this.bulkRestoreLoading = false;
                  }
-             }
+             },
          }">
 
         <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
@@ -62,14 +118,23 @@
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div class="p-4 border-b border-gray-100 flex items-center justify-between gap-4 flex-wrap">
                     <div class="text-sm text-gray-400">{{ $parents->total() }} parent</div>
-                    <button type="button"
-                            @click="bulkRestore()"
-                            :disabled="bulkRestoreLoading"
-                            class="hidden inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 transition-colors disabled:opacity-50"
-                            id="bulk-restore-btn">
-                        <svg x-show="bulkRestoreLoading" class="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-                        Pulihkan Massal
-                    </button>
+                    <div class="flex items-center gap-2">
+                        <button type="button"
+                                @click="bulkRestore()"
+                                :disabled="bulkRestoreLoading"
+                                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 transition-colors disabled:opacity-50">
+                            <svg x-show="bulkRestoreLoading" class="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                            Pulihkan Massal
+                        </button>
+                        <button type="button"
+                                @click="openBulkModal()"
+                                x-show="selectedIds.length > 0"
+                                x-cloak
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-rose-600 hover:bg-rose-700 transition-colors shadow-sm">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                            Hapus Permanen (<span x-text="selectedIds.length"></span>)
+                        </button>
+                    </div>
                 </div>
 
                 <div class="overflow-x-auto">
@@ -77,36 +142,66 @@
                         <thead>
                             <tr class="text-left text-gray-500 bg-gray-50/50">
                                 <th class="py-3 px-4 w-10">
-                                    <input type="checkbox" onclick="toggleAllRestore(this)" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                                    <input type="checkbox" @change="toggleAll($event)" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
                                 </th>
                                 <th class="py-3 px-4 font-medium">Nama</th>
                                 <th class="py-3 px-4 font-medium">No. Telepon</th>
+                                <th class="py-3 px-4 font-medium">Murid</th>
                                 <th class="py-3 px-4 font-medium">Dihibernasi</th>
                                 <th class="py-3 px-4 font-medium">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-50">
                             @forelse ($parents as $parent)
-                                <tr class="hover:bg-gray-50/50 transition-colors">
+                                <tr data-row-id="{{ $parent->id }}">
                                     <td class="py-3 px-4">
-                                        <input type="checkbox" value="{{ $parent->id }}" class="row-checkbox rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" onchange="updateBulkRestoreBtn()" />
+                                        <input type="checkbox"
+                                               class="row-checkbox rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                               value="{{ $parent->id }}"
+                                               data-name="{{ $parent->name ?? 'Parent' }}"
+                                               data-cascade-count="{{ $parent->students_count ?? 0 }}"
+                                               data-cascade-list="{{ json_encode($parent->students->map(fn($s) => $s->full_name)->toArray()) }}"
+                                               @change="toggleOne($event)" />
                                     </td>
                                     <td class="py-3 px-4 font-medium text-gray-900">{{ $parent->name ?? '-' }}</td>
                                     <td class="py-3 px-4 text-gray-600">{{ $parent->user?->phone ?? '-' }}</td>
+                                    <td class="py-3 px-4">
+                                        @if ($parent->students->count() > 0)
+                                            <div class="flex flex-wrap gap-1">
+                                                @foreach ($parent->students as $student)
+                                                    <span class="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">
+                                                        @if ($student->trashed())
+                                                            <span class="w-1.5 h-1.5 rounded-full bg-gray-400 inline-block"></span>
+                                                        @endif
+                                                        {{ $student->full_name }}
+                                                    </span>
+                                                @endforeach
+                                            </div>
+                                        @else
+                                            <span class="text-gray-400">—</span>
+                                        @endif
+                                    </td>
                                     <td class="py-3 px-4 text-gray-500 text-xs">{{ $parent->deleted_at?->diffForHumans() ?? '-' }}</td>
                                     <td class="py-3 px-4">
-                                        <button type="button"
-                                                @click="restoreRow({{ $parent->id }})"
-                                                :disabled="restoreLoading === {{ $parent->id }}"
-                                                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 transition-colors disabled:opacity-50">
-                                            <svg x-show="restoreLoading === {{ $parent->id }}" class="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-                                            Pulihkan
-                                        </button>
+                                        <div class="flex items-center gap-2">
+                                            <button type="button"
+                                                    @click="restoreRow({{ $parent->id }})"
+                                                    :disabled="restoreLoading === {{ $parent->id }}"
+                                                    class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 transition-colors disabled:opacity-50">
+                                                <svg x-show="restoreLoading === {{ $parent->id }}" class="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                                                Pulihkan
+                                            </button>
+                                            <button type="button"
+                                                    @click="openPerRowModal({{ $parent->id }}, '{{ addslashes($parent->name ?? 'Parent') }}', {{ $parent->students_count ?? 0 }}, {{ json_encode($parent->students->map(fn($s) => $s->full_name)->toArray()) }})"
+                                                    class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">
+                                                Hapus Permanen
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5">
+                                    <td colspan="6">
                                         <x-empty-state icon="👤" title="Tidak ada parent tidak aktif" description="Parent yang dihibernasi akan muncul di sini." />
                                     </td>
                                 </tr>
@@ -122,18 +217,31 @@
                 @endif
             </div>
         </div>
-    </div>
 
-    <script>
-        function toggleAllRestore(source) {
-            document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = source.checked);
-            updateBulkRestoreBtn();
-        }
-        function updateBulkRestoreBtn() {
-            const checked = document.querySelectorAll('.row-checkbox:checked');
-            const btn = document.getElementById('bulk-restore-btn');
-            if (checked.length > 0) btn.classList.remove('hidden');
-            else btn.classList.add('hidden');
-        }
-    </script>
+        {{-- Force Delete Modal — Parent (double confirm, cascade) --}}
+        <x-force-delete-modal
+            id="fd-modal-parents-single"
+            title="Hapus Permanen Parent?"
+            message="Data parent akan dihapus permanen bersama seluruh murid terkait."
+            confirm-text="Hapus Permanen"
+            ajax-url="#"
+            :is-bulk="false"
+            :bulk-count="0"
+            :cascade-count="0"
+            :need-acknowledge="true"
+            acknowledge-label="Saya memahami bahwa seluruh murid terkait akan ikut dihapus permanen" />
+
+        {{-- Bulk Force Delete Modal — Parent (double confirm, cascade) --}}
+        <x-force-delete-modal
+            id="fd-modal-parents-bulk"
+            title="Hapus Permanen Parent?"
+            message="Data parent yang dipilih akan dihapus permanen bersama seluruh murid terkait."
+            confirm-text="Hapus Permanen"
+            ajax-url="{{ route('admin.parents.bulk-force-destroy') }}"
+            :is-bulk="true"
+            :bulk-count="0"
+            :cascade-count="0"
+            :need-acknowledge="true"
+            acknowledge-label="Saya memahami bahwa seluruh murid terkait akan ikut dihapus permanen" />
+    </div>
 </x-app-layout>

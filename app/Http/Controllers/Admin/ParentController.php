@@ -64,8 +64,9 @@ class ParentController extends Controller
         $parents = ParentModel::onlyTrashed()
             ->with([
                 'user' => fn($q) => $q->withTrashed(),
-                'students' => fn($q) => $q->withTrashed(),
+                'students' => fn($q) => $q->withTrashed()->orderBy('full_name'),
             ])
+            ->withCount(['students'])
             ->latest('deleted_at')
             ->paginate(20);
 
@@ -503,5 +504,63 @@ class ParentController extends Controller
         }
 
         return $phone;
+    }
+
+    public function forceDestroy(Request $request, int $parentId): JsonResponse|RedirectResponse
+    {
+        $parent = ParentModel::onlyTrashed()->findOrFail($parentId);
+
+        $validated = $request->validate([
+            'acknowledge_cascade' => ['required', 'accepted'],
+        ]);
+
+        DB::transaction(function () use ($parent) {
+            // Cascade: force-delete students (which cascade to student_teacher, enrollment_student)
+            $parent->students()->withTrashed()->get()->each->forceDelete();
+            // Force-delete user if exists (nullOnDelete FK handles this too)
+            if ($parent->user) {
+                $parent->user->forceDelete();
+            }
+            $parent->forceDelete();
+        });
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Parent dan data terkait dihapus permanen.']);
+        }
+
+        return redirect()
+            ->route('admin.parents.inactive')
+            ->with('status', 'Parent dan data terkait dihapus permanen.');
+    }
+
+    public function bulkForceDestroy(Request $request): JsonResponse|RedirectResponse
+    {
+        $validated = $request->validate([
+            'ids'   => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer'],
+            'acknowledge_cascade' => ['required', 'accepted'],
+        ]);
+
+        $count = DB::transaction(function () use ($validated) {
+            $parents = ParentModel::onlyTrashed()->whereIn('id', $validated['ids'])->get();
+            $deleted = 0;
+            foreach ($parents as $parent) {
+                $parent->students()->withTrashed()->get()->each->forceDelete();
+                if ($parent->user) {
+                    $parent->user->forceDelete();
+                }
+                $parent->forceDelete();
+                $deleted++;
+            }
+            return $deleted;
+        });
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => "{$count} parent dihapus permanen."]);
+        }
+
+        return redirect()
+            ->route('admin.parents.inactive')
+            ->with('status', "{$count} parent dihapus permanen.");
     }
 }

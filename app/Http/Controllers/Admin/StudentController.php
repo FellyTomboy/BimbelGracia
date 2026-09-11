@@ -10,6 +10,7 @@ use App\Traits\SearchAndSort;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class StudentController extends Controller
@@ -46,6 +47,7 @@ class StudentController extends Controller
         $students = Student::withTrashed()
             ->where('status', 'hibernasi')
             ->with(['parent.user', 'teachers'])
+            ->withCount(['teachers', 'enrollments'])
             ->latest('deleted_at')
             ->get();
 
@@ -191,5 +193,44 @@ class StudentController extends Controller
             'user_id' => $user->id,
             'name' => $name,
         ]);
+    }
+
+    public function forceDestroy(Request $request, int $studentId): JsonResponse|RedirectResponse
+    {
+        $student = Student::onlyTrashed()->findOrFail($studentId);
+
+        DB::transaction(fn () => $student->forceDelete());
+
+        $this->snapshotSyncService->syncAll();
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Murid dihapus permanen.']);
+        }
+
+        return redirect()
+            ->route('admin.students.inactive')
+            ->with('status', 'Murid dihapus permanen.');
+    }
+
+    public function bulkForceDestroy(Request $request): JsonResponse|RedirectResponse
+    {
+        $validated = $request->validate([
+            'ids'   => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer'],
+        ]);
+
+        $count = DB::transaction(fn () =>
+            Student::onlyTrashed()->whereIn('id', $validated['ids'])->forceDelete()
+        );
+
+        $this->snapshotSyncService->syncAll();
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => "{$count} murid dihapus permanen."]);
+        }
+
+        return redirect()
+            ->route('admin.students.inactive')
+            ->with('status', "{$count} murid dihapus permanen.");
     }
 }

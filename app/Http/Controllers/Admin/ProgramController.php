@@ -47,6 +47,7 @@ class ProgramController extends Controller
     {
         $programs = Program::withTrashed()
             ->where('status', 'hibernasi')
+            ->withCount(['enrollments'])
             ->latest('deleted_at')
             ->get();
 
@@ -283,5 +284,44 @@ class ProgramController extends Controller
                 'rate' => $rateInt,
             ]);
         }
+    }
+
+    public function forceDestroy(Request $request, int $programId): JsonResponse|RedirectResponse
+    {
+        $program = Program::onlyTrashed()->findOrFail($programId);
+
+        DB::transaction(fn () => $program->forceDelete());
+
+        $this->snapshotSyncService->syncAll();
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Program dihapus permanen.']);
+        }
+
+        return redirect()
+            ->route('admin.programs.inactive')
+            ->with('status', 'Program dihapus permanen.');
+    }
+
+    public function bulkForceDestroy(Request $request): JsonResponse|RedirectResponse
+    {
+        $validated = $request->validate([
+            'ids'   => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer'],
+        ]);
+
+        $count = DB::transaction(fn () =>
+            Program::onlyTrashed()->whereIn('id', $validated['ids'])->forceDelete()
+        );
+
+        $this->snapshotSyncService->syncAll();
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => "{$count} program dihapus permanen."]);
+        }
+
+        return redirect()
+            ->route('admin.programs.inactive')
+            ->with('status', "{$count} program dihapus permanen.");
     }
 }

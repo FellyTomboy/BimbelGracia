@@ -17,7 +17,13 @@
         </div>
     </x-slot>
 
-    <div class="py-8">
+    <div class="py-8"
+         x-data="bulkHibernateActions({
+             bulkHibernateUrl: '{{ route('admin.lesson-offers.bulk-destroy') }}',
+             resource: 'lesson-offers',
+             label: 'tawaran les',
+         })">
+
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             @if (session('status'))
                 <div class="mb-4 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl text-sm flex items-center gap-2">
@@ -27,14 +33,29 @@
             @endif
 
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                <div class="p-4 border-b border-gray-100 flex items-center justify-between gap-4">
+                <div class="p-4 border-b border-gray-100 flex items-center justify-between gap-4 flex-wrap">
                     <x-search-form placeholder="Cari kode, mapel, tingkat..." />
-                    <div class="text-sm text-gray-400">{{ $offers->total() }} tawaran</div>
+                    <div class="flex items-center gap-3">
+                        <div class="text-sm text-gray-400">{{ $offers->total() }} tawaran</div>
+                        <button type="button"
+                                @click="submitBulkHibernate()"
+                                x-show="selectedIds.length > 0"
+                                x-cloak
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-amber-500 hover:bg-amber-600 transition-colors shadow-sm">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.316 4.954A9.993 9.993 0 0 0 12 3a9.993 9.993 0 0 0-8.316 4.954C1.992 10.169 1 12.565 1 15.125c0 3.375 2.25 6.375 5.5 8.75 3.25 2.375 6.5 2.5 6.5 2.5s3.25-.125 6.5-2.5c3.25-2.375 5.5-5.375 5.5-8.75 0-2.56-.992-4.956-2.684-7.171z"/></svg>
+                            Hapus Terpilih (<span x-text="selectedIds.length"></span>)
+                        </button>
+                    </div>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="min-w-full text-sm">
                         <thead>
                             <tr class="text-left text-gray-500 bg-gray-50/50">
+                                <th class="py-3 px-4 w-8 font-medium">
+                                    <input type="checkbox"
+                                           class="select-all-checkbox rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                           @change="toggleAll($event)" />
+                                </th>
                                 <th class="py-3 px-4 font-medium">Kode</th>
                                 <th class="py-3 px-4 font-medium">Mapel</th>
                                 <th class="py-3 px-4 font-medium">Tingkat</th>
@@ -48,6 +69,12 @@
                         <tbody class="divide-y divide-gray-50">
                             @forelse ($offers as $offer)
                                 <tr class="hover:bg-gray-50/50 transition-colors">
+                                    <td class="py-3 px-4">
+                                        <input type="checkbox"
+                                               class="row-checkbox rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                               value="{{ $offer->id }}"
+                                               @change="toggleOne($event)" />
+                                    </td>
                                     <td class="py-3 px-4 font-medium text-gray-900">{{ $offer->code }}</td>
                                     <td class="py-3 px-4 text-gray-600">{{ $offer->subject }}</td>
                                     <td class="py-3 px-4 text-gray-600">{{ $offer->education_level }}</td>
@@ -80,7 +107,7 @@
                                     </td>
                                 </tr>
                             @empty
-                                <tr><td colspan="8"><x-empty-state icon="🎯" title="Belum ada tawaran les" description="Buat tawaran les baru." action="Tambah Tawaran" actionUrl="{{ route('admin.lesson-offers.create') }}" /></td></tr>
+                                <tr><td colspan="9"><x-empty-state icon="🎯" title="Belum ada tawaran les" description="Buat tawaran les baru." action="Tambah Tawaran" actionUrl="{{ route('admin.lesson-offers.create') }}" /></td></tr>
                             @endforelse
                         </tbody>
                     </table>

@@ -64,6 +64,7 @@ class TeacherController extends Controller
         $teachers = Teacher::withTrashed()
             ->where('status', 'hibernasi')
             ->with('user')
+            ->withCount(['enrollments', 'students'])
             ->latest('deleted_at')
             ->get();
 
@@ -451,5 +452,44 @@ class TeacherController extends Controller
         return redirect()
             ->route('admin.teachers.index')
             ->with('status', 'Guru berhasil dipulihkan.');
+    }
+
+    public function forceDestroy(Request $request, int $teacherId): JsonResponse|RedirectResponse
+    {
+        $teacher = Teacher::onlyTrashed()->findOrFail($teacherId);
+
+        DB::transaction(fn () => $teacher->forceDelete());
+
+        $this->snapshotSyncService->syncAll();
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Guru dihapus permanen.']);
+        }
+
+        return redirect()
+            ->route('admin.teachers.inactive')
+            ->with('status', 'Guru dihapus permanen.');
+    }
+
+    public function bulkForceDestroy(Request $request): JsonResponse|RedirectResponse
+    {
+        $validated = $request->validate([
+            'ids'   => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer'],
+        ]);
+
+        $count = DB::transaction(fn () =>
+            Teacher::onlyTrashed()->whereIn('id', $validated['ids'])->forceDelete()
+        );
+
+        $this->snapshotSyncService->syncAll();
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => "{$count} guru dihapus permanen."]);
+        }
+
+        return redirect()
+            ->route('admin.teachers.inactive')
+            ->with('status', "{$count} guru dihapus permanen.");
     }
 }

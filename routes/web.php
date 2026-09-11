@@ -56,6 +56,10 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('students.destroy');
             Route::post('students/{studentId}/restore', [StudentController::class, 'restore'])
                 ->name('students.restore');
+            Route::post('students/{id}/force-destroy', [StudentController::class, 'forceDestroy'])
+                ->name('students.force-destroy');
+            Route::post('students/bulk-force-destroy', [StudentController::class, 'bulkForceDestroy'])
+                ->name('students.bulk-force-destroy');
 
             Route::resource('teachers', TeacherController::class)->except(['show']);
             Route::get('teachers/inactive', [TeacherController::class, 'inactive'])
@@ -64,6 +68,10 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('teachers.restore');
             Route::post('teachers/bulk-destroy', [TeacherController::class, 'bulkDestroy'])
                 ->name('teachers.bulk-destroy');
+            Route::post('teachers/{id}/force-destroy', [TeacherController::class, 'forceDestroy'])
+                ->name('teachers.force-destroy');
+            Route::post('teachers/bulk-force-destroy', [TeacherController::class, 'bulkForceDestroy'])
+                ->name('teachers.bulk-force-destroy');
             Route::get('teachers/create-form', [TeacherController::class, 'createForm'])
                 ->name('teachers.create-form');
             Route::get('teachers/{teacher}/form', [TeacherController::class, 'editForm'])
@@ -76,6 +84,10 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('programs.inactive');
             Route::post('programs/{program}/restore', [ProgramController::class, 'restore'])
                 ->name('programs.restore');
+            Route::post('programs/bulk-force-destroy', [ProgramController::class, 'bulkForceDestroy'])
+                ->name('programs.bulk-force-destroy');
+            Route::post('programs/{id}/force-destroy', [ProgramController::class, 'forceDestroy'])
+                ->name('programs.force-destroy');
             Route::get('programs/form', [ProgramController::class, 'createForm'])
                 ->name('programs.create-form');
             Route::get('programs/{program}/form', [ProgramController::class, 'editForm'])
@@ -90,6 +102,10 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('enrollments.restore');
             Route::post('enrollments/bulk-destroy', [EnrollmentController::class, 'bulkDestroy'])
                 ->name('enrollments.bulk-destroy');
+            Route::post('enrollments/bulk-force-destroy', [EnrollmentController::class, 'bulkForceDestroy'])
+                ->name('enrollments.bulk-force-destroy');
+            Route::post('enrollments/{id}/force-destroy', [EnrollmentController::class, 'forceDestroy'])
+                ->name('enrollments.force-destroy');
             Route::get('enrollments/create-form', [EnrollmentController::class, 'createForm'])
                 ->name('enrollments.create-form');
             Route::get('enrollments/{enrollment}/edit-form', [EnrollmentController::class, 'editForm'])
@@ -100,12 +116,24 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('lesson-offers.inactive');
             Route::post('lesson-offers/{lessonOffer}/restore', [AdminLessonOfferController::class, 'restore'])
                 ->name('lesson-offers.restore');
+            Route::post('lesson-offers/bulk-destroy', [AdminLessonOfferController::class, 'bulkDestroy'])
+                ->name('lesson-offers.bulk-destroy');
+            Route::post('lesson-offers/bulk-force-destroy', [AdminLessonOfferController::class, 'bulkForceDestroy'])
+                ->name('lesson-offers.bulk-force-destroy');
+            Route::post('lesson-offers/{id}/force-destroy', [AdminLessonOfferController::class, 'forceDestroy'])
+                ->name('lesson-offers.force-destroy');
 
             Route::resource('bank-accounts', BankAccountController::class)->except(['show']);
             Route::get('bank-accounts/inactive', [BankAccountController::class, 'inactive'])
                 ->name('bank-accounts.inactive');
             Route::post('bank-accounts/{bankAccount}/restore', [BankAccountController::class, 'restore'])
                 ->name('bank-accounts.restore');
+            Route::post('bank-accounts/bulk-destroy', [BankAccountController::class, 'bulkDestroy'])
+                ->name('bank-accounts.bulk-destroy');
+            Route::post('bank-accounts/bulk-force-destroy', [BankAccountController::class, 'bulkForceDestroy'])
+                ->name('bank-accounts.bulk-force-destroy');
+            Route::post('bank-accounts/{id}/force-destroy', [BankAccountController::class, 'forceDestroy'])
+                ->name('bank-accounts.force-destroy');
 
             Route::resource('parents', ParentController::class)->except(['show']);
             Route::get('parents/inactive', [ParentController::class, 'inactive'])
@@ -118,6 +146,10 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('parents.bulk-destroy');
             Route::post('parents/bulk-restore', [ParentController::class, 'bulkRestore'])
                 ->name('parents.bulk-restore');
+            Route::post('parents/bulk-force-destroy', [ParentController::class, 'bulkForceDestroy'])
+                ->name('parents.bulk-force-destroy');
+            Route::post('parents/{id}/force-destroy', [ParentController::class, 'forceDestroy'])
+                ->name('parents.force-destroy');
             Route::delete('parents/{parent}/students/{student}', [ParentController::class, 'removeStudent'])
                 ->name('parents.remove-student');
             Route::post('parents/{parent}/add-student', [ParentController::class, 'addStudent'])

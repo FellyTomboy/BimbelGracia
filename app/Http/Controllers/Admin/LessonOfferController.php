@@ -7,8 +7,10 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\LessonOffer;
 use App\Traits\SearchAndSort;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class LessonOfferController extends Controller
@@ -156,5 +158,58 @@ class LessonOfferController extends Controller
         return redirect()
             ->route('admin.lesson-offers.index')
             ->with('status', 'Tawaran les berhasil dipulihkan.');
+    }
+
+    public function bulkDestroy(Request $request): JsonResponse|RedirectResponse
+    {
+        $validated = $request->validate([
+            'ids'   => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer'],
+        ]);
+
+        $count = LessonOffer::whereIn('id', $validated['ids'])->delete();
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => "{$count} tawaran les dihibernasi."]);
+        }
+
+        return redirect()
+            ->route('admin.lesson-offers.index')
+            ->with('status', "{$count} tawaran les dihibernasi.");
+    }
+
+    public function forceDestroy(Request $request, int $lessonOfferId): JsonResponse|RedirectResponse
+    {
+        $lessonOffer = LessonOffer::onlyTrashed()->findOrFail($lessonOfferId);
+
+        DB::transaction(fn () => $lessonOffer->forceDelete());
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Tawaran les dihapus permanen.']);
+        }
+
+        return redirect()
+            ->route('admin.lesson-offers.inactive')
+            ->with('status', 'Tawaran les dihapus permanen.');
+    }
+
+    public function bulkForceDestroy(Request $request): JsonResponse|RedirectResponse
+    {
+        $validated = $request->validate([
+            'ids'   => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer'],
+        ]);
+
+        $count = DB::transaction(fn () =>
+            LessonOffer::onlyTrashed()->whereIn('id', $validated['ids'])->forceDelete()
+        );
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => "{$count} tawaran les dihapus permanen."]);
+        }
+
+        return redirect()
+            ->route('admin.lesson-offers.inactive')
+            ->with('status', "{$count} tawaran les dihapus permanen.");
     }
 }

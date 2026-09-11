@@ -77,6 +77,7 @@ class EnrollmentController extends Controller
         $enrollments = Enrollment::withTrashed()
             ->where('status', 'hibernasi')
             ->with(['program', 'teacher', 'students'])
+            ->withCount(['students'])
             ->latest('deleted_at')
             ->get();
 
@@ -523,6 +524,45 @@ class EnrollmentController extends Controller
             'enrollments.parent_rate', 'enrollments.teacher_rate', 'enrollments.validation_status', 'enrollments.status', 'enrollments.created_at' => $query->orderBy($sort, $direction),
             default => $query->latest(),
         };
+    }
+
+    public function forceDestroy(Request $request, int $enrollmentId): JsonResponse|RedirectResponse
+    {
+        $enrollment = Enrollment::onlyTrashed()->findOrFail($enrollmentId);
+
+        DB::transaction(fn () => $enrollment->forceDelete());
+
+        $this->snapshotSyncService->syncAll();
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Enrollment dihapus permanen.']);
+        }
+
+        return redirect()
+            ->route('admin.enrollments.inactive')
+            ->with('status', 'Enrollment dihapus permanen.');
+    }
+
+    public function bulkForceDestroy(Request $request): JsonResponse|RedirectResponse
+    {
+        $validated = $request->validate([
+            'ids'   => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer'],
+        ]);
+
+        $count = DB::transaction(fn () =>
+            Enrollment::onlyTrashed()->whereIn('id', $validated['ids'])->forceDelete()
+        );
+
+        $this->snapshotSyncService->syncAll();
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => "{$count} enrollment dihapus permanen."]);
+        }
+
+        return redirect()
+            ->route('admin.enrollments.inactive')
+            ->with('status', "{$count} enrollment dihapus permanen.");
     }
 
 }
