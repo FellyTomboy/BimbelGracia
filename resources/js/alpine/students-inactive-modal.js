@@ -29,6 +29,14 @@ export function studentsInactiveModal(bulkForceUrl) {
         restoreNewParentName: '',
         restoreNewParentPhone: '',
 
+        init() {
+            window.addEventListener('force-delete-success', (e) => {
+                if (e.detail?.modalId?.startsWith('fd-modal-students')) {
+                    location.reload();
+                }
+            });
+        },
+
         openRestoreModal(studentId, studentName, originalParent) {
             this.restoreStudentId = studentId;
             this.restoreStudentName = studentName;

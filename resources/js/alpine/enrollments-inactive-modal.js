@@ -20,7 +20,14 @@ export function enrollmentsInactiveModal(bulkForceUrl, flashMessage, showFlash) 
         flashMessage: flashMessage,
         showFlash: showFlash,
         flashTimer: null,
-        init() { if (this.showFlash) this._startTimer(); },
+        init() {
+            if (this.showFlash) this._startTimer();
+            window.addEventListener('force-delete-success', (e) => {
+                if (e.detail?.modalId?.startsWith('fd-modal-enrollments')) {
+                    location.reload();
+                }
+            });
+        },
         _startTimer() {
             if (this.flashTimer) clearTimeout(this.flashTimer);
             this.showFlash = true;
