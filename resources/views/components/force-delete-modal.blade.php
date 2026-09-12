@@ -44,89 +44,11 @@
     $cascadeListJson = is_array($cascadeList) ? json_encode($cascadeList) : $cascadeList;
 @endphp
 
-<div x-data="{
-    open: false,
-    loading: false,
-    acknowledged: false,
-
-    // Parent reference — set via openPerRowModal() / openBulkModal() overrides in parent Alpine.
-    // Allows this modal to read dynamic state (pendingId, pendingName, cascadeCount, cascadeList)
-    // from the triggering Alpine component without needing a shared store.
-    _parent: null,
-
-    // Cascade display: try to get from parent component, fall back to static Blade defaults
-    get cascadeCount() {
-        return this._parent?.pendingCascadeCount ?? {{ (int) $cascadeCount }};
-    },
-    get cascadeList() {
-        return this._parent?.cascadeList ?? {{ $cascadeListJson }};
-    },
-    get pendingId() {
-        return this._parent?.pendingId ?? {{ $itemId ? (int) $itemId : 'null' }};
-    },
-    get pendingName() {
-        return this._parent?.pendingName ?? '';
-    },
-    get selectedIds() {
-        return this._parent?.selectedIds ?? [];
-    },
-
-    init() {
-        window.addEventListener('force-delete-open', (e) => {
-            if (e.detail?.modalId === '{{ $id }}') {
-                // Bridge: set _parent so cascade getters can read triggering Alpine component
-                if (e.detail._alpineParent) {
-                    this._parent = e.detail._alpineParent;
-                }
-                this.open = true;
-                this.acknowledged = {{ $needAcknowledge ? 'false' : 'true' }};
-            }
-        });
-    },
-    async submit() {
-        @if ($needAcknowledge)
-        if (!this.acknowledged) {
-            window.Toast?.warning('Centang persetujuan terlebih dahulu.');
-            return;
-        }
-        @endif
-        this.loading = true;
-        try {
-            const params = new URLSearchParams();
-            params.append('_token', '{{ $csrfToken }}');
-
-            // Determine resource from modal id (e.g. "fd-modal-students-single" → "students")
-            // to construct URL without depending on DOM attributes that ModPageSpeed may strip.
-            const modalId = '{{ $id }}';
-            const resourceMatch = modalId.match(/fd-modal-(\w+)-/);
-            const resource = resourceMatch ? resourceMatch[1] : 'items';
-            const ids = this.selectedIds;
-            const isBulk = ids && ids.length > 0;
-
-            let ajaxUrl;
-            if (isBulk) {
-                ajaxUrl = `/${resource}/bulk-force-destroy`;
-                ids.forEach(id => params.append('ids[]', id));
-            } else {
-                if (!this.pendingId) {
-                    window.Toast?.error('ID item tidak ditemukan.');
-                    this.loading = false;
-                    return;
-                }
-                ajaxUrl = `/${resource}/${this.pendingId}/force-destroy`;
-            }
-
-            await window.Ajax.post(ajaxUrl, params);
-            window.Toast?.success('Berhasil dihapus permanen.');
-            this.open = false;
-            window.dispatchEvent(new CustomEvent('force-delete-success', {detail: {modalId: '{{ $id }}'}}));
-        } catch (e) {
-            // error toast handled by Ajax utility
-        } finally {
-            this.loading = false;
-        }
-    }
-}">
+{{-- Modal wrapper — x-data lives in a separate .js file so ModPageSpeed cannot
+   corrupt it. ModPageSpeed rewrites quote-delimited strings inside HTML attribute
+   values, truncating the expression at the first "}}" it encounters and destroying
+   try/catch/finally blocks and method bodies. --}}
+<div x-data="forceDeleteModal('{{ $id }}', '{{ $csrfToken }}', {{ \Illuminate\Support\Js::from($needAcknowledge) }})">
 
     <div x-show="open"
          x-cloak

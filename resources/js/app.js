@@ -28,6 +28,8 @@ window.forceDeleteActions = forceDeleteActions;
 window.bulkHibernateActions = bulkHibernateActions;
 window.studentsInactiveModal = studentsInactiveModal;
 window.enrollmentsInactiveModal = enrollmentsInactiveModal;
+import { forceDeleteModal } from './alpine/force-delete-modal';
+window.forceDeleteModal = forceDeleteModal;
 
 Alpine.start();
 
