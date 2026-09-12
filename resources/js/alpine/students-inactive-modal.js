@@ -5,7 +5,7 @@
  * and corrupting it.
  */
 
-export function studentsInactiveModal(bulkForceUrl) {
+export function studentsInactiveModal() {
     return {
         // ── Force Delete State (from factory) ──────────────────────────────────
         fd: window.forceDeleteActions({
@@ -13,7 +13,7 @@ export function studentsInactiveModal(bulkForceUrl) {
             label: 'murid',
             itemName: 'Murid',
             modalPrefix: 'fd-modal-students',
-            bulkForceUrl: bulkForceUrl,
+            bulkForceUrl: window.__bulkForceUrls?.students ?? '/admin/students/bulk-force-destroy',
             forceDestroyUrl: (id) => '/admin/students/' + id + '/force-destroy',
             listSelector: 'table',
         }),

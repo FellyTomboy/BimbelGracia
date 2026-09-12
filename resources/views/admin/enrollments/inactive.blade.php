@@ -1,3 +1,10 @@
+@push('scripts')
+<script>
+    window.__bulkForceUrls = window.__bulkForceUrls || {};
+    window.__bulkForceUrls.enrollments = '{{ route('admin.enrollments.bulk-force-destroy') }}';
+</script>
+@endpush
+
 <x-app-layout>
     <x-slot name="title">Enrollments (Hibernasi)</x-slot>
     <x-slot name="header">
@@ -9,7 +16,6 @@
 
     <div class="py-12"
          x-data="enrollmentsInactiveModal(
-             '{{ route('admin.enrollments.bulk-force-destroy') }}',
              {{ \Illuminate\Support\Js::from(session('status') ?? '') }},
              {{ \Illuminate\Support\Js::from((bool) session('status')) }}
          )"

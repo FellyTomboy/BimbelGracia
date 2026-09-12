@@ -1,8 +1,10 @@
 /**
  * Alpine.js factory for the Parents Inactive page.
- * Separate file prevents ModPageSpeed from rewriting inline x-data expressions.
+ * URL stored in window.__bulkForceUrls.parents (injected via @push('scripts'))
+ * to avoid ModPageSpeed corrupting inline x-data with URLs in it.
  */
-export function parentsInactiveModal(bulkForceUrl) {
+export function parentsInactiveModal() {
+    const bulkForceUrl = window.__bulkForceUrls?.parents ?? '/admin/parents/bulk-force-destroy';
     return {
         fd: window.forceDeleteActions({
             resource: 'parents',

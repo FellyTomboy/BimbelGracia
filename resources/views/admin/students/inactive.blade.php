@@ -1,3 +1,10 @@
+@push('scripts')
+<script>
+    window.__bulkForceUrls = window.__bulkForceUrls || {};
+    window.__bulkForceUrls.students = '{{ route('admin.students.bulk-force-destroy') }}';
+</script>
+@endpush
+
 <x-app-layout>
     <x-slot name="title">Murid (Hibernasi)</x-slot>
     <x-slot name="header">
@@ -8,7 +15,7 @@
     </x-slot>
 
     <div class="py-12"
-         x-data="studentsInactiveModal('{{ route('admin.students.bulk-force-destroy') }}')"
+         x-data="studentsInactiveModal()"
          data-pagespeed-no-transform>
 
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-4">

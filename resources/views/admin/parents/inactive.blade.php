@@ -1,3 +1,10 @@
+@push('scripts')
+<script>
+    window.__bulkForceUrls = window.__bulkForceUrls || {};
+    window.__bulkForceUrls.parents = '{{ route('admin.parents.bulk-force-destroy') }}';
+</script>
+@endpush
+
 <x-app-layout>
     <x-slot name="title">Parent Tidak Aktif</x-slot>
     <x-slot name="header">
@@ -14,7 +21,7 @@
     </x-slot>
 
     <div class="py-8"
-         x-data="parentsInactiveModal('{{ route('admin.parents.bulk-force-destroy') }}')"
+         x-data="parentsInactiveModal()"
          data-pagespeed-no-transform>
                      window.Toast?.error('Gagal memulihkan parent.');
                  } finally {

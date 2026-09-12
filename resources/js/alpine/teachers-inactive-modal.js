@@ -2,14 +2,14 @@
  * Alpine.js factory for the Teachers Inactive page.
  * Separate file prevents ModPageSpeed from rewriting inline x-data expressions.
  */
-export function teachersInactiveModal(bulkForceUrl) {
+export function teachersInactiveModal() {
     return {
         fd: window.forceDeleteActions({
             resource: 'teachers',
             label: 'guru',
             itemName: 'Guru',
             modalPrefix: 'fd-modal-teachers',
-            bulkForceUrl: bulkForceUrl,
+            bulkForceUrl: window.__bulkForceUrls?.teachers ?? '/admin/teachers/bulk-force-destroy',
             forceDestroyUrl: (id) => '/admin/teachers/' + id + '/force-destroy',
             listSelector: 'table',
         }),

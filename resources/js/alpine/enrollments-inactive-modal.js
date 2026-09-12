@@ -3,7 +3,7 @@
  * Separate file prevents ModPageSpeed from rewriting inline x-data expressions.
  */
 
-export function enrollmentsInactiveModal(bulkForceUrl, flashMessage, showFlash) {
+export function enrollmentsInactiveModal(flashMessage, showFlash) {
     return {
         // ── Force Delete State ───────────────────────────────────────────────────
         fd: window.forceDeleteActions({
@@ -11,7 +11,7 @@ export function enrollmentsInactiveModal(bulkForceUrl, flashMessage, showFlash) 
             label: 'enrollment',
             itemName: 'Enrollment',
             modalPrefix: 'fd-modal-enrollments',
-            bulkForceUrl: bulkForceUrl,
+            bulkForceUrl: window.__bulkForceUrls?.enrollments ?? '/admin/enrollments/bulk-force-destroy',
             forceDestroyUrl: (id) => '/admin/enrollments/' + id + '/force-destroy',
             listSelector: 'table',
         }),
