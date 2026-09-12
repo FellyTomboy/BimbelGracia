@@ -115,29 +115,25 @@ class StudentController extends Controller
             'new_parent_phone' => ['nullable', 'string', 'max:20'],
         ]);
 
-        // If student had a parent that's still active, restore to that parent
-        $parentId = $validated['parent_id'] ?? $student->parent_id;
-
-        // If no parent selected and no new parent info, try original parent
-        if (! $parentId && blank($validated['new_parent_name']) && blank($validated['new_parent_phone'])) {
-            $originalParent = ParentModel::withTrashed()->find($student->parent_id);
-            if ($originalParent) {
-                $parentId = $originalParent->id;
-            } else {
-                if ($request->wantsJson() || $request->ajax()) {
-                    return response()->json(['errors' => ['parent_id' => ['Pilih parent atau buat parent baru untuk murid ini.']]], 422);
-                }
-                return back()->withErrors(['parent_id' => 'Pilih parent atau buat parent baru untuk murid ini.'])->withInput();
-            }
-        }
-
-        // Create new parent if new info provided
-        if (! $parentId && $validated['new_parent_phone']) {
+        // If user provided new parent info, create it (takes precedence over existing parent)
+        if (blank($validated['parent_id']) && ($validated['new_parent_phone'] || $validated['new_parent_name'])) {
             $parent = $this->createParent(
                 $validated['new_parent_name'] ?? 'Orang Tua',
-                $validated['new_parent_phone']
+                $validated['new_parent_phone'] ?? ''
             );
             $parentId = $parent->id;
+        } elseif (! empty($validated['parent_id'])) {
+            // User selected a parent from dropdown
+            $parentId = (int) $validated['parent_id'];
+        } elseif ($student->parent_id) {
+            // No new info and student already had a parent — restore to original
+            $parentId = $student->parent_id;
+        } else {
+            // No parent info at all
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['errors' => ['parent_id' => ['Pilih parent atau buat parent baru untuk murid ini.']]], 422);
+            }
+            return back()->withErrors(['parent_id' => 'Pilih parent atau buat parent baru untuk murid ini.'])->withInput();
         }
 
         // Restore student
