@@ -98,9 +98,22 @@
             if (ids && ids.length > 0) {
                 ids.forEach(id => params.append('ids[]', id));
             } else {
+                if (!this.pendingId) {
+                    window.Toast?.error('ID item tidak ditemukan.');
+                    return;
+                }
                 params.append('id', this.pendingId);
             }
-            await window.Ajax.post('{{ $ajaxUrl }}', params);
+            // Resolve URL: prefer data-ajax-url (DOM attr survives ModPageSpeed),
+            // fallback to Blade-compiled ajaxUrl property.
+            const domUrl = this.$el.closest('[data-ajax-url]')?.dataset?.ajaxUrl || null;
+            const rawUrl = domUrl || '{{ $ajaxUrl }}';
+            // Replace __ID__ placeholder with pendingId for per-row deletes
+            let ajaxUrl = rawUrl;
+            if (rawUrl.includes('__ID__') && this.pendingId) {
+                ajaxUrl = rawUrl.replace('__ID__', this.pendingId);
+            }
+            await window.Ajax.post(ajaxUrl, params);
             window.Toast?.success('Berhasil dihapus permanen.');
             this.open = false;
             window.dispatchEvent(new CustomEvent('force-delete-success', {detail: {modalId: '{{ $id }}'}}));
