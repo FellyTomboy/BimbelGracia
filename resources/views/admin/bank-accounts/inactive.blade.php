@@ -8,15 +8,8 @@
     </x-slot>
 
     <div class="py-12"
-         x-data="forceDeleteActions({
-             resource: 'bank-accounts',
-             label: 'rekening',
-             itemName: 'Rekening',
-             modalPrefix: 'fd-modal-bank-accounts',
-             bulkForceUrl: '{{ route('admin.bank-accounts.bulk-force-destroy') }}',
-             forceDestroyUrl: (id) => '/admin/bank-accounts/' + id + '/force-destroy',
-             listSelector: 'table',
-         })">
+         x-data="fdOnlyInactiveModal('{{ route('admin.bank-accounts.bulk-force-destroy') }}', 'bank-accounts', 'rekening', 'Rekening', 'fd-modal-bank-accounts')"
+         data-pagespeed-no-transform>
 
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-4">
             @if (session('status'))

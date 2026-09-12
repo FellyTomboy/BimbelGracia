@@ -8,31 +8,8 @@
     </x-slot>
 
     <div class="py-12"
-         x-data="{
-             fd: forceDeleteActions({
-                 resource: 'teachers',
-                 label: 'guru',
-                 itemName: 'Guru',
-                 modalPrefix: 'fd-modal-teachers',
-                 bulkForceUrl: '{{ route('admin.teachers.bulk-force-destroy') }}',
-                 forceDestroyUrl: (id) => '/admin/teachers/' + id + '/force-destroy',
-                 listSelector: 'table',
-             }),
-             restoreLoading: null,
-             async restoreRow(teacherId) {
-                 if (!confirm('Pulihkan guru ini?')) return;
-                 this.restoreLoading = teacherId;
-                 try {
-                     await window.Ajax.post('/admin/teachers/' + teacherId + '/restore');
-                     window.Toast?.success('Guru berhasil dipulihkan.');
-                     window.location.reload();
-                 } catch (e) {
-                     window.Toast?.error('Gagal memulihkan guru.');
-                 } finally {
-                     this.restoreLoading = null;
-                 }
-             }
-         }">
+         x-data="teachersInactiveModal('{{ route('admin.teachers.bulk-force-destroy') }}')"
+         data-pagespeed-no-transform>
 
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-4">
             @if (session('status'))

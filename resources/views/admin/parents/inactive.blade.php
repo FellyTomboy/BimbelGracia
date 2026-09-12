@@ -14,30 +14,8 @@
     </x-slot>
 
     <div class="py-8"
-         x-data="{
-             // ── Force Delete State (from factory) ──────────────────────────────
-             fd: window.forceDeleteActions({
-                 resource: 'parents',
-                 label: 'parent',
-                 itemName: 'Parent',
-                 modalPrefix: 'fd-modal-parents',
-                 bulkForceUrl: '{{ route('admin.parents.bulk-force-destroy') }}',
-                 forceDestroyUrl: (id) => '/admin/parents/' + id + '/force-destroy',
-                 listSelector: 'table',
-             }),
-
-             // ── Restore ─────────────────────────────────────────────────────────
-             restoreLoading: null,
-             bulkRestoreLoading: false,
-
-             async restoreRow(parentId) {
-                 if (!confirm('Pulihkan parent ini?')) return;
-                 this.restoreLoading = parentId;
-                 try {
-                     await window.Ajax.post('/admin/parents/' + parentId + '/restore');
-                     window.Toast?.success('Parent berhasil dipulihkan.');
-                     window.location.reload();
-                 } catch (e) {
+         x-data="parentsInactiveModal('{{ route('admin.parents.bulk-force-destroy') }}')"
+         data-pagespeed-no-transform>
                      window.Toast?.error('Gagal memulihkan parent.');
                  } finally {
                      this.restoreLoading = null;

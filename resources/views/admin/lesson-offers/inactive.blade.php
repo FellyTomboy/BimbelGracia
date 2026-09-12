@@ -8,15 +8,8 @@
     </x-slot>
 
     <div class="py-12"
-         x-data="forceDeleteActions({
-             resource: 'lesson-offers',
-             label: 'tawaran les',
-             itemName: 'Tawaran Les',
-             modalPrefix: 'fd-modal-lesson-offers',
-             bulkForceUrl: '{{ route('admin.lesson-offers.bulk-force-destroy') }}',
-             forceDestroyUrl: (id) => '/admin/lesson-offers/' + id + '/force-destroy',
-             listSelector: 'table',
-         })">
+         x-data="fdOnlyInactiveModal('{{ route('admin.lesson-offers.bulk-force-destroy') }}', 'lesson-offers', 'tawaran les', 'Tawaran Les', 'fd-modal-lesson-offers')"
+         data-pagespeed-no-transform>
 
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-4">
             @if (session('status'))

@@ -8,6 +8,10 @@ import { forceDeleteActions } from './alpine/force-delete';
 import { bulkHibernateActions } from './alpine/bulk-hibernate';
 import { studentsInactiveModal } from './alpine/students-inactive-modal';
 import { enrollmentsInactiveModal } from './alpine/enrollments-inactive-modal';
+import { fdOnlyInactiveModal } from './alpine/fd-only-inactive-modal';
+import { teachersInactiveModal } from './alpine/teachers-inactive-modal';
+import { parentsInactiveModal } from './alpine/parents-inactive-modal';
+import { forceDeleteModal } from './alpine/force-delete-modal';
 
 import './utils/toast';
 import './utils/ajax';
@@ -28,7 +32,9 @@ window.forceDeleteActions = forceDeleteActions;
 window.bulkHibernateActions = bulkHibernateActions;
 window.studentsInactiveModal = studentsInactiveModal;
 window.enrollmentsInactiveModal = enrollmentsInactiveModal;
-import { forceDeleteModal } from './alpine/force-delete-modal';
+window.fdOnlyInactiveModal = fdOnlyInactiveModal;
+window.teachersInactiveModal = teachersInactiveModal;
+window.parentsInactiveModal = parentsInactiveModal;
 window.forceDeleteModal = forceDeleteModal;
 
 Alpine.start();
