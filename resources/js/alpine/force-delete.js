@@ -96,6 +96,10 @@ export function forceDeleteActions(config) {
 
         // ── Modal openers — dispatch CustomEvent for modal to pick up ───────
         openPerRowModal(id, name, cascadeCount, cascadeList) {
+            this.pendingId = id;
+            this.pendingName = name;
+            this.pendingCascadeCount = cascadeCount || 0;
+            this.cascadeList = cascadeList || [];
             window.dispatchEvent(new CustomEvent('force-delete-open', {
                 bubbles: true,
                 detail: {
