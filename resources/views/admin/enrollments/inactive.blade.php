@@ -54,7 +54,7 @@
              },
 
              removeRow(id) {
-                 const row = document.querySelector('[data-enrollment-id=\"' + id + '\"]');
+                 const row = document.querySelector("[data-enrollment-id='" + id + "']");
                  if (!row) return;
                  row.style.transition = 'opacity 0.3s';
                  row.style.opacity = '0';
