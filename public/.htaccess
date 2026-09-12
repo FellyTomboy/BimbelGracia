@@ -3,6 +3,14 @@
         Options -MultiViews -Indexes
     </IfModule>
 
+    # Disable ModPageSpeed completely — it mangles x-data inline JavaScript
+    <IfModule mod_pagespeed_module>
+        ModPagespeed off
+    </IfModule>
+    <IfModule mod_pagespeed_ap27eqe93frso_module>
+        ModPagespeed off
+    </IfModule>
+
     # Increase PHP upload limits to match Laravel's 50MB max validation
     <IfModule php_module>
         php_value upload_max_filesize 64M

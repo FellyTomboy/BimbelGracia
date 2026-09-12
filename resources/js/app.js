@@ -6,6 +6,8 @@ import { crudModal } from './alpine/crud-modal';
 import { EnrollmentForm } from './alpine/enrollment-form';
 import { forceDeleteActions } from './alpine/force-delete';
 import { bulkHibernateActions } from './alpine/bulk-hibernate';
+import { studentsInactiveModal } from './alpine/students-inactive-modal';
+import { enrollmentsInactiveModal } from './alpine/enrollments-inactive-modal';
 
 import './utils/toast';
 import './utils/ajax';
@@ -24,6 +26,8 @@ window.crudModal = crudModal;
 window.EnrollmentForm = EnrollmentForm;
 window.forceDeleteActions = forceDeleteActions;
 window.bulkHibernateActions = bulkHibernateActions;
+window.studentsInactiveModal = studentsInactiveModal;
+window.enrollmentsInactiveModal = enrollmentsInactiveModal;
 
 Alpine.start();
 

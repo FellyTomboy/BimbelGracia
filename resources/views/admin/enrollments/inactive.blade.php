@@ -8,59 +8,12 @@
     </x-slot>
 
     <div class="py-12"
-         x-data="{
-             // ── Force Delete State ───────────────────────────────────────────
-             fd: window.forceDeleteActions({
-                 resource: 'enrollments',
-                 label: 'enrollment',
-                 itemName: 'Enrollment',
-                 modalPrefix: 'fd-modal-enrollments',
-                 bulkForceUrl: '{{ route('admin.enrollments.bulk-force-destroy') }}',
-                 forceDestroyUrl: (id) => '/admin/enrollments/' + id + '/force-destroy',
-                 listSelector: 'table',
-             }),
-
-             // ── Flash ──────────────────────────────────────────────────────────
-             flashMessage: {{ \Illuminate\Support\Js::from(session('status') ?? '') }},
-             showFlash: {{ \Illuminate\Support\Js::from((bool) session('status')) }},
-             flashTimer: null,
-             init() { if (this.showFlash) this._startTimer(); },
-             _startTimer() {
-                 if (this.flashTimer) clearTimeout(this.flashTimer);
-                 this.showFlash = true;
-                 this.flashTimer = setTimeout(() => { this.showFlash = false; }, 4000);
-             },
-             setFlash(msg) { this.flashMessage = msg; this._startTimer(); },
-
-             // ── Restore modal ────────────────────────────────────────────────
-             restoreConfirmId: null,
-             restoreLoading: false,
-             confirmRestore(id) { this.restoreConfirmId = id; },
-             cancelRestore() { this.restoreConfirmId = null; },
-
-             async restoreEnrollment(enrollmentId) {
-                 this.restoreLoading = true;
-                 try {
-                     const resp = await window.Ajax.post('/admin/enrollments/' + enrollmentId + '/restore');
-                     window.Toast?.success(resp.data?.message || 'Berhasil dipulihkan.');
-                     this.restoreConfirmId = null;
-                     this.removeRow(enrollmentId);
-                     this.setFlash(resp.data?.message || 'Berhasil dipulihkan.');
-                 } catch (e) {
-                     if (e.response?.status !== 422) window.Toast?.error('Gagal memulihkan enrollment.');
-                 } finally {
-                     this.restoreLoading = false;
-                 }
-             },
-
-             removeRow(id) {
-                 const row = document.querySelector("[data-enrollment-id='" + id + "']");
-                 if (!row) return;
-                 row.style.transition = 'opacity 0.3s';
-                 row.style.opacity = '0';
-                 setTimeout(() => row.remove(), 300);
-             },
-         }">
+         x-data="enrollmentsInactiveModal(
+             '{{ route('admin.enrollments.bulk-force-destroy') }}',
+             {{ \Illuminate\Support\Js::from(session('status') ?? '') }},
+             {{ \Illuminate\Support\Js::from((bool) session('status')) }}
+         )"
+         data-pagespeed-no-transform>
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-4">
             {{-- Flash Banner --}}
             <div x-show="showFlash"
