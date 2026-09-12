@@ -116,7 +116,7 @@ class StudentController extends Controller
         ]);
 
         // If user provided new parent info, create it (takes precedence over existing parent)
-        if (blank($validated['parent_id']) && ($validated['new_parent_phone'] || $validated['new_parent_name'])) {
+        if (empty($validated['parent_id']) && ($validated['new_parent_phone'] || $validated['new_parent_name'])) {
             $parent = $this->createParent(
                 $validated['new_parent_name'] ?? 'Orang Tua',
                 $validated['new_parent_phone'] ?? ''
