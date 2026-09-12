@@ -57,7 +57,7 @@ export function forceDeleteModal(id, csrfToken, needAcknowledge = false) {
                 let ajaxUrl;
 
                 if (isBulk) {
-                    ajaxUrl = '/' + resource + '/bulk-force-destroy';
+                    ajaxUrl = '/admin/' + resource + '/bulk-force-destroy';
                     ids.forEach(id => params.append('ids[]', id));
                 } else {
                     if (!this.pendingId) {
@@ -65,7 +65,7 @@ export function forceDeleteModal(id, csrfToken, needAcknowledge = false) {
                         this.loading = false;
                         return;
                     }
-                    ajaxUrl = '/' + resource + '/' + this.pendingId + '/force-destroy';
+                    ajaxUrl = '/admin/' + resource + '/' + this.pendingId + '/force-destroy';
                 }
 
                 await window.Ajax.post(ajaxUrl, params);
