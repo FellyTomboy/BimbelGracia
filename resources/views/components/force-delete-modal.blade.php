@@ -94,20 +94,29 @@
         try {
             const params = new URLSearchParams();
             params.append('_token', '{{ $csrfToken }}');
+
+            // Determine resource from modal id (e.g. "fd-modal-students-single" → "students")
+            // to construct URL without depending on DOM attributes that ModPageSpeed may strip.
+            const modalId = '{{ $id }}';
+            const resourceMatch = modalId.match(/fd-modal-(\w+)-/);
+            const resource = resourceMatch ? resourceMatch[1] : 'items';
             const ids = this.selectedIds;
-            if (ids && ids.length > 0) {
+            const isBulk = ids && ids.length > 0;
+
+            let ajaxUrl;
+            if (isBulk) {
+                ajaxUrl = `/${resource}/bulk-force-destroy`;
                 ids.forEach(id => params.append('ids[]', id));
-                const ajaxUrl = this.$el.closest('[data-force-url]')?.dataset?.forceUrl || '{{ $ajaxUrl }}';
-                await window.Ajax.post(ajaxUrl, params);
             } else {
                 if (!this.pendingId) {
                     window.Toast?.error('ID item tidak ditemukan.');
                     this.loading = false;
                     return;
                 }
-                const ajaxUrl = (this.$el.closest('[data-force-url]')?.dataset?.forceUrl || '{{ $ajaxUrl }}').replace('REPLACEME', this.pendingId);
-                await window.Ajax.post(ajaxUrl, params);
+                ajaxUrl = `/${resource}/${this.pendingId}/force-destroy`;
             }
+
+            await window.Ajax.post(ajaxUrl, params);
             window.Toast?.success('Berhasil dihapus permanen.');
             this.open = false;
             window.dispatchEvent(new CustomEvent('force-delete-success', {detail: {modalId: '{{ $id }}'}}));
