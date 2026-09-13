@@ -95,7 +95,7 @@ class LessonOfferController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): JsonResponse|RedirectResponse
     {
         $validated = $request->validate([
             'education_level' => ['required', 'string', 'max:50'],
@@ -117,6 +117,10 @@ class LessonOfferController extends Controller
             'contact_whatsapp' => $validated['contact_whatsapp'] ?? null,
             'created_by' => $request->user()?->id,
         ]);
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Tawaran les berhasil dibuat.']);
+        }
 
         return redirect()
             ->route('admin.lesson-offers.index')
@@ -146,7 +150,7 @@ class LessonOfferController extends Controller
         ]);
     }
 
-    public function update(Request $request, LessonOffer $lessonOffer): RedirectResponse
+    public function update(Request $request, LessonOffer $lessonOffer): JsonResponse|RedirectResponse
     {
         $validated = $request->validate([
             'education_level' => ['required', 'string', 'max:50'],
@@ -160,6 +164,10 @@ class LessonOfferController extends Controller
         ]);
 
         $lessonOffer->update($validated);
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Tawaran les berhasil diperbarui.']);
+        }
 
         return redirect()
             ->route('admin.lesson-offers.index')

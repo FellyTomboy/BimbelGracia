@@ -54,7 +54,7 @@ class DocumentController extends Controller
         return view('admin.documents.create', compact('teachers'));
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): JsonResponse|RedirectResponse
     {
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
@@ -95,6 +95,10 @@ class DocumentController extends Controller
             $document->teachers()->sync($validated['teacher_ids']);
         }
 
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Dokumen berhasil diupload.']);
+        }
+
         return redirect()
             ->route('admin.documents.index')
             ->with('status', 'Dokumen berhasil diupload.');
@@ -120,7 +124,7 @@ class DocumentController extends Controller
         return view('admin.documents.edit', compact('document', 'teachers'));
     }
 
-    public function update(Request $request, Document $document): RedirectResponse
+    public function update(Request $request, Document $document): JsonResponse|RedirectResponse
     {
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
@@ -169,6 +173,10 @@ class DocumentController extends Controller
             $document->teachers()->sync($validated['teacher_ids'] ?? []);
         } else {
             $document->teachers()->detach();
+        }
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Dokumen berhasil diperbarui.']);
         }
 
         return redirect()
