@@ -16,12 +16,25 @@ for f in sw.js manifest.webmanifest; do
     DEST="$PUBLIC_HTML/$f"
 
     if [ ! -L "$DEST" ] || [ ! -e "$DEST" ]; then
-        # Not a valid symlink (broken or regular file) — recreate symlink
         echo "    Fixing $DEST (was $([ -L "$DEST" ] && echo "broken symlink" || echo "regular file"))"
         rm -f "$DEST"
         ln -s "$TARGET" "$DEST"
     else
-        # Valid symlink — just ensure it points to correct target
+        echo "    $DEST already OK"
+    fi
+done
+
+echo "==> Syncing workbox (non-build assets)..."
+# workbox-*.js lives in public/ root (not public/build/), so it needs its own symlink
+for f in "$APP_DIR"/public/workbox-*.js; do
+    [ -e "$f" ] || continue
+    BN=$(basename "$f")
+    DEST="$PUBLIC_HTML/$BN"
+    if [ ! -L "$DEST" ] || [ ! -e "$DEST" ]; then
+        echo "    Fixing $DEST"
+        rm -f "$DEST"
+        ln -s "$f" "$DEST"
+    else
         echo "    $DEST already OK"
     fi
 done
