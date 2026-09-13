@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Document;
 use App\Models\DocumentAccessLog;
 use App\Models\Teacher;
+use Illuminate\Http\BinaryFileResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -107,7 +108,7 @@ class DocumentController extends Controller
      * Image files are watermarked server-side with the teacher's identity
      * as a deterrent against unauthorized redistribution.
      */
-    public function view(Request $request, Document $document): StreamedResponse
+    public function view(Request $request, Document $document): BinaryFileResponse
     {
         $user = $request->user();
 

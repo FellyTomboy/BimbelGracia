@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Document;
 use App\Models\DocumentAccessLog;
 use App\Models\Teacher;
+use Illuminate\Http\BinaryFileResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -197,7 +198,7 @@ class DocumentController extends Controller
      * Stream the document file inline for preview (admin).
      * Admin has full access to all documents (enforced by role middleware).
      */
-    public function preview(Document $document): StreamedResponse
+    public function preview(Document $document): BinaryFileResponse
     {
         $disk = Storage::disk('documents');
 
