@@ -1,7 +1,7 @@
 <form id="crud-form"
-      x-data="{
-          accessType: '{{ old('access_type', $document?->access_type ?? 'teacher') }}',
-      }"
+      x-data='{
+          accessType: "{{ old('access_type', $document?->access_type ?? 'teacher') }}",
+      }'
       @submit.prevent="$parent.submit()">
 
     @csrf

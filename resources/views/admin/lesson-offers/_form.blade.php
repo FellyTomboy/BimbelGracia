@@ -1,8 +1,8 @@
 <form id="crud-form"
-      x-data="{
-          schedules: @json($lessonOffer?->schedules ?? [['day'=>'','time'=>'']]),
+      x-data='{
+          schedules: @json($lessonOffer?->schedules ?? [["day"=>"","time"=>""]]),
           addSchedule() {
-              this.schedules.push({day: '', time: ''});
+              this.schedules.push({day: "", time: ""});
           },
           removeSchedule(i) {
               if (this.schedules.length > 1) {
@@ -10,7 +10,7 @@
               }
           },
           errors: {},
-      }"
+      }'
       @submit.prevent="$parent.submit()">
 
     @csrf
