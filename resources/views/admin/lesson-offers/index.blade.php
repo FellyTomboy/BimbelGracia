@@ -10,7 +10,7 @@
             <div class="flex items-center gap-3">
                 <a href="{{ route('admin.lesson-offers.inactive') }}" class="inline-flex items-center px-4 py-2 rounded-xl border border-slate-300 bg-slate-100 text-sm font-medium text-slate-800 shadow-sm hover:bg-slate-200 hover:border-slate-400 transition-all">Data tidak aktif</a>
                 <button type="button"
-                        @click="openCreate()"
+                        onclick="window.dispatchEvent(new CustomEvent('open-create-modal'))"
                         class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition-all shadow-sm">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                     Tambah Tawaran
@@ -34,7 +34,8 @@
                  resource: 'lesson-offers',
                  label: 'tawaran les',
              },
-         })">
+         })"
+         @open-create-modal.window="openCreate()">
 
         <!-- ── Modal Overlay ──────────────────────────────────────────────── -->
         <div x-show="modalOpen"

@@ -7,7 +7,7 @@
                 <p class="text-sm text-gray-500 mt-0.5">Upload dan atur akses dokumen untuk guru</p>
             </div>
             <button type="button"
-                    @click="openCreate()"
+                    onclick="window.dispatchEvent(new CustomEvent('open-create-modal'))"
                     class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition-all shadow-sm">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                 Upload Dokumen
@@ -23,7 +23,8 @@
              updateUrl: (id) => `/admin/documents/${id}`,
              deleteUrl: (id) => `/admin/documents/${id}`,
              listSelector: 'table',
-         })">
+         })"
+         @open-create-modal.window="openCreate()">
 
         <!-- ── Modal Overlay ──────────────────────────────────────────────── -->
         <div x-show="modalOpen"
