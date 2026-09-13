@@ -51,6 +51,7 @@ export function lessonOfferModal(config) {
         editUrl: config.crud.editUrl,
         updateUrl: config.crud.updateUrl,
         deleteUrl: config.crud.deleteUrl,
+        deleteMethod: config.crud.deleteMethod,
         listSelector: config.crud.listSelector || 'table',
     });
 

@@ -35,7 +35,9 @@
                  label: 'tawaran les',
              },
          })"
-         @open-create-modal.window="openCreate()">
+         @open-create-modal.window="openCreate()"
+         @open-edit-modal.window="openEdit($event.detail)"
+         @open-delete-modal.window="confirmDelete($event.detail)">
 
         <!-- ── Modal Overlay ──────────────────────────────────────────────── -->
         <div x-show="modalOpen"
@@ -204,10 +206,10 @@
                                     <td class="py-3 px-4">
                                         <div class="flex items-center gap-2">
                                             <button type="button"
-                                                    @click="openEdit({{ $offer->id }})"
+                                                    onclick="window.dispatchEvent(new CustomEvent('open-edit-modal', {detail: {{ $offer->id }}}))"
                                                     class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors">Edit</button>
                                             <button type="button"
-                                                    @click="confirmDelete({{ $offer->id }})"
+                                                    onclick="window.dispatchEvent(new CustomEvent('open-delete-modal', {detail: {{ $offer->id }}}))"
                                                     class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">Hibernasi</button>
                                         </div>
                                     </td>

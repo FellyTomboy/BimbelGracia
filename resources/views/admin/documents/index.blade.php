@@ -24,7 +24,9 @@
              deleteUrl: (id) => `/admin/documents/${id}`,
              listSelector: 'table',
          })"
-         @open-create-modal.window="openCreate()">
+         @open-create-modal.window="openCreate()"
+         @open-edit-modal.window="openEdit($event.detail)"
+         @open-delete-modal.window="confirmDelete($event.detail)">
 
         <!-- ── Modal Overlay ──────────────────────────────────────────────── -->
         <div x-show="modalOpen"
@@ -185,10 +187,10 @@
                                         <div class="flex items-center gap-2">
                                             <a href="{{ route('admin.documents.download', $doc) }}" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 transition-colors">Download</a>
                                             <button type="button"
-                                                    @click="openEdit({{ $doc->id }})"
+                                                    onclick="window.dispatchEvent(new CustomEvent('open-edit-modal', {detail: {{ $doc->id }}}))"
                                                     class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors">Edit</button>
                                             <button type="button"
-                                                    @click="confirmDelete({{ $doc->id }})"
+                                                    onclick="window.dispatchEvent(new CustomEvent('open-delete-modal', {detail: {{ $doc->id }}}))"
                                                     class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">Hapus</button>
                                         </div>
                                     </td>
