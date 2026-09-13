@@ -222,7 +222,6 @@ class DocumentController extends Controller
                 'Pragma' => 'no-cache',
                 'Expires' => '0',
                 'X-Content-Type-Options' => 'nosniff',
-                'Content-Security-Policy' => "frame-ancestors 'self'",
             ]
         );
     }
