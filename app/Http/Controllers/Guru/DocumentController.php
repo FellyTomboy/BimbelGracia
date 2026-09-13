@@ -66,10 +66,10 @@ class DocumentController extends Controller
         // Server-side authorization: guru must be able to access this document.
         abort_unless($document->canBeAccessedBy($user), 403, 'Anda tidak memiliki akses ke dokumen ini.');
 
-        // Build watermark text with teacher identity.
+        // Build watermark text with teacher identity + access date/time.
         $teacher = Teacher::where('user_id', $user->id)->first();
         $teacherName = $teacher?->display_name ?? $user->name;
-        $watermarkText = $teacherName . ' • ' . $user->email;
+        $watermarkText = $teacherName . ' — ' . $user->email . ' — ' . now()->format('d/m/Y H:i');
 
         // Strict-tier documents load through a short-lived signed URL so the
         // underlying file endpoint can't be bookmarked, shared, or reused
