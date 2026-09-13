@@ -91,6 +91,13 @@ export function crudModal(config) {
                 const data = response.data;
                 this.modalTitle = data.title || 'Tambah Data';
                 this.modalBody = data.html || data;
+                // Activate Alpine directives inside x-html content (x-model, x-for, @click, etc.)
+                this.$nextTick(() => {
+                    const form = document.getElementById('crud-form');
+                    if (form && window.Alpine) {
+                        window.Alpine.initTree(form);
+                    }
+                });
             } catch (e) {
                 this.modalBody = `
                     <div class="text-center py-8">
@@ -126,6 +133,13 @@ export function crudModal(config) {
                 const data = response.data;
                 this.modalTitle = data.title || 'Edit Data';
                 this.modalBody = data.html || data;
+                // Activate Alpine directives inside x-html content
+                this.$nextTick(() => {
+                    const form = document.getElementById('crud-form');
+                    if (form && window.Alpine) {
+                        window.Alpine.initTree(form);
+                    }
+                });
             } catch (e) {
                 this.modalBody = `
                     <div class="text-center py-8">

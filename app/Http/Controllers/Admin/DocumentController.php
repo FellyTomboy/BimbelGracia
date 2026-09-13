@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Document;
 use App\Models\DocumentAccessLog;
 use App\Models\Teacher;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -33,6 +34,18 @@ class DocumentController extends Controller
             ->paginate(20);
 
         return view('admin.documents.index', compact('documents'));
+    }
+
+    public function createForm(Request $request): JsonResponse
+    {
+        $teachers = Teacher::where('status', 'active')->orderBy('full_name')->get();
+        return response()->json([
+            'html' => view('admin.documents._form', [
+                'document' => null,
+                'teachers' => $teachers,
+            ])->render(),
+            'title' => 'Upload Dokumen',
+        ]);
     }
 
     public function create(): View
@@ -85,6 +98,19 @@ class DocumentController extends Controller
         return redirect()
             ->route('admin.documents.index')
             ->with('status', 'Dokumen berhasil diupload.');
+    }
+
+    public function editForm(Request $request, Document $document): JsonResponse
+    {
+        $document->load('teachers');
+        $teachers = Teacher::where('status', 'active')->orderBy('full_name')->get();
+        return response()->json([
+            'html' => view('admin.documents._form', [
+                'document' => $document,
+                'teachers' => $teachers,
+            ])->render(),
+            'title' => 'Edit Dokumen — ' . $document->title,
+        ]);
     }
 
     public function edit(Document $document): View
@@ -150,10 +176,14 @@ class DocumentController extends Controller
             ->with('status', 'Dokumen berhasil diperbarui.');
     }
 
-    public function destroy(Document $document): RedirectResponse
+    public function destroy(Request $request, Document $document): JsonResponse|RedirectResponse
     {
         Storage::disk('documents')->delete($document->file_path);
         $document->delete();
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Dokumen dihapus.']);
+        }
 
         return redirect()
             ->route('admin.documents.index')

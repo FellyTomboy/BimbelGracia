@@ -73,6 +73,19 @@ class LessonOfferController extends Controller
         return view('admin.lesson-offers.inactive', compact('offers'));
     }
 
+    public function createForm(Request $request): JsonResponse
+    {
+        return response()->json([
+            'html' => view('admin.lesson-offers._form', [
+                'lessonOffer' => null,
+                'educationLevels' => $this->educationLevels,
+                'days' => $this->days,
+                'times' => $this->times,
+            ])->render(),
+            'title' => 'Tambah Tawaran Les',
+        ]);
+    }
+
     public function create(): View
     {
         return view('admin.lesson-offers.create', [
@@ -110,6 +123,19 @@ class LessonOfferController extends Controller
             ->with('status', 'Tawaran les berhasil dibuat.');
     }
 
+    public function editForm(Request $request, LessonOffer $lessonOffer): JsonResponse
+    {
+        return response()->json([
+            'html' => view('admin.lesson-offers._form', [
+                'lessonOffer' => $lessonOffer,
+                'educationLevels' => $this->educationLevels,
+                'days' => $this->days,
+                'times' => $this->times,
+            ])->render(),
+            'title' => 'Edit Tawaran Les — ' . $lessonOffer->code,
+        ]);
+    }
+
     public function edit(LessonOffer $lessonOffer): View
     {
         return view('admin.lesson-offers.edit', [
@@ -140,20 +166,28 @@ class LessonOfferController extends Controller
             ->with('status', 'Tawaran les berhasil diperbarui.');
     }
 
-    public function destroy(LessonOffer $lessonOffer): RedirectResponse
+    public function destroy(Request $request, LessonOffer $lessonOffer): JsonResponse|RedirectResponse
     {
         $lessonOffer->delete();
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Tawaran les dihibernasi.']);
+        }
 
         return redirect()
             ->route('admin.lesson-offers.index')
             ->with('status', 'Tawaran les dihibernasi.');
     }
 
-    public function restore(Request $request): RedirectResponse
+    public function restore(Request $request): JsonResponse|RedirectResponse
     {
         $lessonOfferId = $request->route('lessonOffer');
         $lessonOffer = LessonOffer::withTrashed()->findOrFail($lessonOfferId);
         $lessonOffer->restore();
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Tawaran les dipulihkan.']);
+        }
 
         return redirect()
             ->route('admin.lesson-offers.index')

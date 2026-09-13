@@ -81,12 +81,18 @@
                                     <td class="py-2">{{ $offer->contact_whatsapp ?? '-' }}</td>
                                     <td class="py-2">
                                         <div class="flex items-center gap-2">
-                                            <form method="POST" action="{{ route('admin.lesson-offers.restore', $offer->id) }}" class="inline">
-                                                @csrf
-                                                <button type="submit" class="inline-flex items-center px-2.5 py-1.5 rounded-lg text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 transition-colors">
-                                                    Pulihkan
-                                                </button>
-                                            </form>
+                                            <button type="button"
+                                                    @click="async () => {
+                                                        if (!confirm('Pulihkan tawaran ini?')) return;
+                                                        try {
+                                                            await window.Ajax.post('{{ route('admin.lesson-offers.restore', $offer->id) }}');
+                                                            window.Toast?.success('Tawaran les dipulihkan.');
+                                                            $el.closest('tr').remove();
+                                                        } catch(e) { window.Toast?.error('Gagal memulihkan.'); }
+                                                    }"
+                                                    class="inline-flex items-center px-2.5 py-1.5 rounded-lg text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 transition-colors">
+                                                Pulihkan
+                                            </button>
                                             <button type="button"
                                                     @click="openPerRowModal({{ $offer->id }}, '{{ addslashes($offer->code) }}', 0, [])"
                                                     class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">

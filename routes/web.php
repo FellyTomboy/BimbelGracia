@@ -112,6 +112,10 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('enrollments.edit-form');
 
             Route::resource('lesson-offers', AdminLessonOfferController::class)->except(['show']);
+            Route::get('lesson-offers/form', [AdminLessonOfferController::class, 'createForm'])
+                ->name('lesson-offers.create-form');
+            Route::get('lesson-offers/{lessonOffer}/form', [AdminLessonOfferController::class, 'editForm'])
+                ->name('lesson-offers.edit-form');
             Route::get('lesson-offers/inactive', [AdminLessonOfferController::class, 'inactive'])
                 ->name('lesson-offers.inactive');
             Route::post('lesson-offers/{lessonOffer}/restore', [AdminLessonOfferController::class, 'restore'])
@@ -259,6 +263,10 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('teacher-registrants.destroy-all');
 
             Route::resource('documents', AdminDocumentController::class)->except(['show']);
+            Route::get('documents/form', [AdminDocumentController::class, 'createForm'])
+                ->name('documents.create-form');
+            Route::get('documents/{document}/form', [AdminDocumentController::class, 'editForm'])
+                ->name('documents.edit-form');
             Route::get('documents/{document}/download', [AdminDocumentController::class, 'download'])
                 ->name('documents.download');
             Route::get('documents/{document}/preview', [AdminDocumentController::class, 'preview'])

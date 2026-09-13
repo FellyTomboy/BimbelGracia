@@ -3,6 +3,8 @@ import './bootstrap';
 import Alpine from 'alpinejs';
 import collapse from '@alpinejs/collapse';
 import { crudModal } from './alpine/crud-modal';
+import { lessonOfferModal } from './alpine/lesson-offer-modal';
+import { documentModal } from './alpine/document-modal';
 import { EnrollmentForm } from './alpine/enrollment-form';
 import { forceDeleteActions } from './alpine/force-delete';
 import { bulkHibernateActions } from './alpine/bulk-hibernate';
@@ -19,6 +21,8 @@ import './utils/ajax';
 window.Alpine = Alpine;
 Alpine.plugin(collapse);
 Alpine.data('crudModal', crudModal);
+Alpine.data('lessonOfferModal', lessonOfferModal);
+Alpine.data('documentModal', documentModal);
 Alpine.data('forceDeleteActions', forceDeleteActions);
 Alpine.data('bulkHibernateActions', bulkHibernateActions);
 // Expose to window so per-page Alpine.data factories (e.g. enrollmentModal)
@@ -27,6 +31,8 @@ Alpine.data('bulkHibernateActions', bulkHibernateActions);
 // does NOT make the identifier accessible in the lexical scope of an
 // Alpine.data factory defined in a Blade <script>.
 window.crudModal = crudModal;
+window.lessonOfferModal = lessonOfferModal;
+window.documentModal = documentModal;
 window.EnrollmentForm = EnrollmentForm;
 window.forceDeleteActions = forceDeleteActions;
 window.bulkHibernateActions = bulkHibernateActions;
