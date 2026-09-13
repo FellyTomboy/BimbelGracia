@@ -52,7 +52,7 @@ export function forceDeleteModal(id, csrfToken, needAcknowledge = false) {
                 const ids = this.selectedIds;
                 const isBulk = ids && ids.length > 0;
 
-                const resourceMatch = id.match(/fd-modal-(\w+)-/);
+                const resourceMatch = id.match(/fd-modal-([\w-]+?)-\w+$/);
                 const resource = resourceMatch ? resourceMatch[1] : 'items';
                 let ajaxUrl;
 
