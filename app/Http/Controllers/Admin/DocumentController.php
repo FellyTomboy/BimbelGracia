@@ -212,17 +212,13 @@ class DocumentController extends Controller
             'document'
         );
 
-        return response()->streamDownload(
-            fn () => readfile($fullPath),
-            null,
-            [
-                'Content-Type' => $document->file_type ?: 'application/octet-stream',
-                'Content-Disposition' => $disposition,
-                'Cache-Control' => 'no-store, no-cache, must-revalidate, private, max-age=0',
-                'Pragma' => 'no-cache',
-                'Expires' => '0',
-                'X-Content-Type-Options' => 'nosniff',
-            ]
-        );
+        return response()->file($fullPath, [
+            'Content-Type' => $document->file_type ?: 'application/octet-stream',
+            'Content-Disposition' => $disposition,
+            'Cache-Control' => 'no-store, no-cache, must-revalidate, private, max-age=0',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 }

@@ -155,19 +155,15 @@ class DocumentController extends Controller
             'document'
         );
 
-        return response()->streamDownload(
-            fn () => readfile($fullPath),
-            null,
-            [
-                'Content-Type' => $mimeType,
-                'Content-Disposition' => $disposition,
-                'Cache-Control' => 'no-store, no-cache, must-revalidate, private, max-age=0',
-                'Pragma' => 'no-cache',
-                'Expires' => '0',
-                'X-Content-Type-Options' => 'nosniff',
-                'Referrer-Policy' => 'no-referrer',
-            ]
-        );
+        return response()->file($fullPath, [
+            'Content-Type' => $mimeType,
+            'Content-Disposition' => $disposition,
+            'Cache-Control' => 'no-store, no-cache, must-revalidate, private, max-age=0',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
+            'X-Content-Type-Options' => 'nosniff',
+            'Referrer-Policy' => 'no-referrer',
+        ]);
     }
 
     /**
