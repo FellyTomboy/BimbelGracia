@@ -111,7 +111,7 @@
             class="viewer-frame"
             src="{{ $viewUrl }}"
             title="{{ $document->title }}"
-            sandbox="allow-same-origin allow-scripts allow-forms"
+            sandbox="allow-same-origin allow-scripts allow-forms allow-downloads"
         ></iframe>
         <div class="watermark">
             <span>{{ $watermarkText }}</span>
