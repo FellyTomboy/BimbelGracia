@@ -1,4 +1,9 @@
+/**
+ * Build: @vite-build-ts
+ */
 import './bootstrap';
+
+window.__BUILD_ID__ = '__BUILD_ID__';
 
 import Alpine from 'alpinejs';
 import collapse from '@alpinejs/collapse';

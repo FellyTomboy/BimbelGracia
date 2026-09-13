@@ -1,8 +1,12 @@
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
 import { VitePWA } from 'vite-plugin-pwa';
+import crypto from 'crypto';
 
 export default defineConfig({
+    define: {
+        __BUILD_ID__: JSON.stringify(process.env.BUILD_ID || Date.now().toString(36)),
+    },
     plugins: [
         laravel({
             input: ['resources/css/app.css', 'resources/js/app.js'],
@@ -10,9 +14,8 @@ export default defineConfig({
         }),
         VitePWA({
             registerType: 'autoUpdate',
-            strategies: 'injectManifest',
-            srcDir: 'resources/js',
-            filename: 'sw.js',
+            strategies: 'generateSW',
+            injectRegister: 'auto',
             outDir: 'public',
             manifest: {
                 name: 'BimbelGracia',
@@ -44,8 +47,10 @@ export default defineConfig({
                     },
                 ],
             },
-            injectManifest: {
-                globPatterns: ['build/**/*.{js,css}', 'build/manifest.webmanifest'],
+            build: {
+                // Content-hash sw.js filename — regenerates every build,
+                // forcing all clients to update their SW when a new deploy lands.
+                filename: `sw.${crypto.randomUUID().split('-')[0]}.js`,
             },
             devOptions: {
                 enabled: true,

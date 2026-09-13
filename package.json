@@ -3,7 +3,7 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "build": "vite build",
+        "build": "BUILD_ID=$(date +%s) vite build",
         "dev": "vite"
     },
     "devDependencies": {
