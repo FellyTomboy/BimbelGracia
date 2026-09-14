@@ -73,12 +73,11 @@
                                     <td class="py-2">hibernasi</td>
                                     <td class="py-2">
                                         <div class="flex items-center gap-2">
-                                            <form action="{{ route('admin.programs.restore', $program->id) }}" method="POST" class="inline">
-                                                @csrf
-                                                <button type="submit" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 transition-colors">
-                                                    Pulihkan
-                                                </button>
-                                            </form>
+                                            <button type="button"
+                                                    @click="openRestoreModal({{ $program->id }}, '{{ addslashes($program->name) }}')"
+                                                    class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 transition-colors">
+                                                Pulihkan
+                                            </button>
                                             <button type="button"
                                                     @click="openPerRowModal({{ $program->id }}, '{{ addslashes($program->name) }}', {{ $program->enrollments_count ?? 0 }}, [])"
                                                     class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">
@@ -115,5 +114,73 @@
             :bulk-count="0"
             :cascade-count="0"
             :need-acknowledge="false" />
+
+        {{-- Restore Confirmation Modal --}}
+        <div x-show="restoreModalOpen"
+             x-cloak
+             x-transition:enter="ease-out duration-200"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="ease-in duration-150"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+             @click.self="closeRestoreModal()"
+             @keydown.escape.window="closeRestoreModal()">
+
+            <div x-show="restoreModalOpen"
+                 x-transition:enter="ease-out duration-200"
+                 x-transition:enter-start="opacity-0 scale-95"
+                 x-transition:enter-end="opacity-100 scale-100"
+                 x-transition:leave="ease-in duration-150"
+                 x-transition:leave-start="opacity-100 scale-100"
+                 x-transition:leave-end="opacity-0 scale-95"
+                 class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+
+                {{-- Header --}}
+                <div class="px-6 py-4 bg-emerald-600 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        <h3 class="text-white font-semibold text-base" x-text="restoreModalTitle">Pulihkan Data?</h3>
+                    </div>
+                    <button @click="closeRestoreModal()" class="text-white/70 hover:text-white transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+
+                {{-- Body --}}
+                <div class="p-6 space-y-4">
+                    <p class="text-sm text-gray-600">
+                        Yakin ingin memulihkan data berikut?
+                    </p>
+                    <div class="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
+                        <p class="text-sm font-medium text-emerald-800" x-text="restoreItemName"></p>
+                        <p class="text-xs text-emerald-600 mt-0.5">Program akan dikembalikan ke daftar aktif.</p>
+                    </div>
+                </div>
+
+                {{-- Footer --}}
+                <div class="px-6 py-4 bg-gray-50 flex items-center justify-end gap-3 border-t">
+                    <button @click="closeRestoreModal()"
+                            :disabled="restoreLoading"
+                            class="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-100 transition-colors disabled:opacity-50">
+                        Batal
+                    </button>
+                    <button @click="submitRestore()"
+                            :disabled="restoreLoading"
+                            class="px-4 py-2 rounded-xl bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50 flex items-center gap-2">
+                        <svg x-show="restoreLoading" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                        </svg>
+                        <span x-text="restoreLoading ? 'Memulihkan...' : 'Ya, Pulihkan'">Ya, Pulihkan</span>
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 </x-app-layout>

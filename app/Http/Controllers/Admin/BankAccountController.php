@@ -94,11 +94,15 @@ class BankAccountController extends Controller
             ->with('status', 'Rekening bimbel dihibernasi.');
     }
 
-    public function restore(Request $request): RedirectResponse
+    public function restore(Request $request): JsonResponse|RedirectResponse
     {
         $bankAccountId = $request->route('bankAccount');
         $bankAccount = BankAccount::withTrashed()->findOrFail($bankAccountId);
         $bankAccount->restore();
+
+        if ($request->wantsJson()) {
+            return response()->json(['message' => 'Rekening berhasil dipulihkan.']);
+        }
 
         return redirect()
             ->route('admin.bank-accounts.index')
