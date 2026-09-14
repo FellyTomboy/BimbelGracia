@@ -184,6 +184,8 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('presensi.create');
             Route::post('presensi/bulk', [AdminAttendanceController::class, 'storeBulk'])
                 ->name('presensi.store-bulk');
+            Route::get('presensi/preview-create-form', [AdminAttendanceController::class, 'previewCreateForm'])
+                ->name('presensi.preview-create-form');
             Route::post('presensi', [AdminAttendanceController::class, 'store'])
                 ->name('presensi.store');
             Route::get('presensi/{attendance}', [AdminAttendanceController::class, 'show'])

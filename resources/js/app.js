@@ -26,6 +26,7 @@ import { attendanceValidationModal } from './alpine/attendance-validation-modal'
 import { attendanceDetailModal } from './alpine/attendance-detail-modal';
 import { classAttendanceModal } from './alpine/class-attendance-modal';
 import { classSessionModal } from './alpine/class-session-modal';
+import { presensiCreateModal } from './alpine/presensi-create-modal';
 
 import './utils/toast';
 import './utils/ajax';
@@ -43,6 +44,7 @@ Alpine.data('attendanceValidationModal', attendanceValidationModal);
 Alpine.data('attendanceDetailModal', attendanceDetailModal);
 Alpine.data('classAttendanceModal', classAttendanceModal);
 Alpine.data('classSessionModal', classSessionModal);
+Alpine.data('presensiCreateModal', presensiCreateModal);
 Alpine.data('bulkHibernateActions', bulkHibernateActions);
 // Expose to window so per-page Alpine.data factories (e.g. enrollmentModal)
 // can spread it via `...crudModal({...})` from their inline <script> scope.
@@ -68,6 +70,7 @@ window.attendanceValidationModal = attendanceValidationModal;
 window.attendanceDetailModal = attendanceDetailModal;
 window.classAttendanceModal = classAttendanceModal;
 window.classSessionModal = classSessionModal;
+window.presensiCreateModal = presensiCreateModal;
 
 Alpine.start();
 
