@@ -248,6 +248,12 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('new-students.index');
             Route::post('new-students/{newStudent}/convert', [NewStudentController::class, 'convert'])
                 ->name('new-students.convert');
+            Route::get('new-students/{newStudent}/preview-convert', [NewStudentController::class, 'previewConvert'])
+                ->name('new-students.preview-convert');
+            Route::get('new-students/{newStudent}/preview-delete', [NewStudentController::class, 'previewDelete'])
+                ->name('new-students.preview-delete');
+            Route::get('new-students/preview-delete-all', [NewStudentController::class, 'previewDeleteAll'])
+                ->name('new-students.preview-delete-all');
             Route::delete('new-students/{newStudent}', [NewStudentController::class, 'destroy'])
                 ->name('new-students.destroy');
             Route::delete('new-students/all', [NewStudentController::class, 'destroyAll'])
@@ -257,6 +263,12 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('teacher-registrants.index');
             Route::post('teacher-registrants/{teacherRegistrant}/convert', [TeacherRegistrantController::class, 'convert'])
                 ->name('teacher-registrants.convert');
+            Route::get('teacher-registrants/{teacherRegistrant}/preview-convert', [TeacherRegistrantController::class, 'previewConvert'])
+                ->name('teacher-registrants.preview-convert');
+            Route::get('teacher-registrants/{teacherRegistrant}/preview-delete', [TeacherRegistrantController::class, 'previewDelete'])
+                ->name('teacher-registrants.preview-delete');
+            Route::get('teacher-registrants/preview-delete-all', [TeacherRegistrantController::class, 'previewDeleteAll'])
+                ->name('teacher-registrants.preview-delete-all');
             Route::delete('teacher-registrants/{teacherRegistrant}', [TeacherRegistrantController::class, 'destroy'])
                 ->name('teacher-registrants.destroy');
             Route::delete('teacher-registrants/all', [TeacherRegistrantController::class, 'destroyAll'])
@@ -276,6 +288,8 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('discounts.index');
             Route::post('discounts', [DiscountController::class, 'store'])
                 ->name('discounts.store');
+            Route::post('discounts/preview', [DiscountController::class, 'previewForm'])
+                ->name('discounts.preview');
 
             Route::get('finance', [FinanceController::class, 'index'])
                 ->name('finance.index');

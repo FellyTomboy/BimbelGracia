@@ -19,6 +19,9 @@ import { fdOnlyInactiveModal } from './alpine/fd-only-inactive-modal';
 import { teachersInactiveModal } from './alpine/teachers-inactive-modal';
 import { parentsInactiveModal } from './alpine/parents-inactive-modal';
 import { forceDeleteModal } from './alpine/force-delete-modal';
+import { discountModal } from './alpine/discount-modal';
+import { newStudentModal } from './alpine/new-student-modal';
+import { teacherRegistrantModal } from './alpine/teacher-registrant-modal';
 
 import './utils/toast';
 import './utils/ajax';
@@ -29,6 +32,9 @@ Alpine.data('crudModal', crudModal);
 Alpine.data('lessonOfferModal', lessonOfferModal);
 Alpine.data('documentModal', documentModal);
 Alpine.data('forceDeleteActions', forceDeleteActions);
+Alpine.data('discountModal', discountModal);
+Alpine.data('newStudentModal', newStudentModal);
+Alpine.data('teacherRegistrantModal', teacherRegistrantModal);
 Alpine.data('bulkHibernateActions', bulkHibernateActions);
 // Expose to window so per-page Alpine.data factories (e.g. enrollmentModal)
 // can spread it via `...crudModal({...})` from their inline <script> scope.
@@ -47,6 +53,9 @@ window.fdOnlyInactiveModal = fdOnlyInactiveModal;
 window.teachersInactiveModal = teachersInactiveModal;
 window.parentsInactiveModal = parentsInactiveModal;
 window.forceDeleteModal = forceDeleteModal;
+window.discountModal = discountModal;
+window.newStudentModal = newStudentModal;
+window.teacherRegistrantModal = teacherRegistrantModal;
 
 Alpine.start();
 

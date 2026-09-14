@@ -7,9 +7,11 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Enrollment;
 use App\Models\EnrollmentStudentDiscount;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Carbon\Carbon;
 
 class DiscountController extends Controller
 {
@@ -29,7 +31,48 @@ class DiscountController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function previewForm(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'month' => ['required', 'integer', 'min:1', 'max:12'],
+            'year' => ['required', 'integer', 'min:2020', 'max:2100'],
+            'enrollment_ids' => ['required', 'array', 'min:1'],
+            'enrollment_ids.*' => ['integer', 'exists:enrollments,id'],
+            'discount_type' => ['required', 'in:percent,amount,final'],
+            'discount_value' => ['required', 'integer', 'min:0'],
+        ]);
+
+        $month = (int) $validated['month'];
+        $year = (int) $validated['year'];
+        $discountType = $validated['discount_type'];
+        $discountValue = (int) $validated['discount_value'];
+        $enrollmentIds = $validated['enrollment_ids'];
+
+        $monthName = Carbon::createFromDate($year, $month, 1)->locale('id')->monthName;
+
+        $enrollments = Enrollment::query()
+            ->with(['program', 'teacher', 'students'])
+            ->whereIn('id', $enrollmentIds)
+            ->orderBy('id')
+            ->get();
+
+        $html = view('admin.discounts._form-preview', [
+            'month' => $month,
+            'year' => $year,
+            'monthName' => $monthName,
+            'discount_type' => $discountType,
+            'discount_value' => $discountValue,
+            'enrollmentIds' => $enrollmentIds,
+            'enrollments' => $enrollments,
+        ])->render();
+
+        return response()->json([
+            'html' => $html,
+            'title' => 'Konfirmasi Diskon Massal',
+        ]);
+    }
+
+    public function store(Request $request): JsonResponse|RedirectResponse
     {
         $validated = $request->validate([
             'month' => ['required', 'integer', 'min:1', 'max:12'],
@@ -73,6 +116,13 @@ class DiscountController extends Controller
                     ]
                 );
             }
+        }
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'message' => 'Diskon massal berhasil diterapkan.',
+                'enrollments' => $enrollments->pluck('id'),
+            ]);
         }
 
         return $this->backWithQueryString('Diskon massal berhasil diterapkan.');

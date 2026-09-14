@@ -10,6 +10,7 @@ use App\Models\Student;
 use App\Models\ParentModel;
 use App\Models\User;
 use App\Enums\UserRole;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -30,7 +31,48 @@ class NewStudentController extends Controller
         return view('admin.new-students.index', compact('newStudents', 'permanentLink'));
     }
 
-    public function convert(NewStudent $newStudent): RedirectResponse
+    public function previewConvert(NewStudent $newStudent): JsonResponse
+    {
+        $students = $newStudent->students_data ?? [];
+
+        $html = view('admin.new-students._convert-preview', [
+            'newStudent' => $newStudent,
+            'students' => $students,
+        ])->render();
+
+        return response()->json([
+            'html' => $html,
+            'title' => 'Konfirmasi Pendaftaran Murid',
+        ]);
+    }
+
+    public function previewDelete(NewStudent $newStudent): JsonResponse
+    {
+        $html = view('admin.new-students._delete-confirm', [
+            'newStudent' => $newStudent,
+        ])->render();
+
+        return response()->json([
+            'html' => $html,
+            'title' => 'Hapus Pendaftar',
+        ]);
+    }
+
+    public function previewDeleteAll(): JsonResponse
+    {
+        $count = NewStudent::count();
+
+        $html = view('admin.new-students._delete-all-confirm', [
+            'count' => $count,
+        ])->render();
+
+        return response()->json([
+            'html' => $html,
+            'title' => 'Hapus Semua Pendaftar',
+        ]);
+    }
+
+    public function convert(NewStudent $newStudent): JsonResponse|RedirectResponse
     {
         if ($newStudent->converted) {
             return back()->with('status', 'Data ini sudah dikonversi sebelumnya.');
@@ -99,22 +141,38 @@ class NewStudentController extends Controller
 
         $newStudent->update(['converted' => true]);
 
+        if ($request->wantsJson()) {
+            return response()->json([
+                'message' => "{$convertedCount} murid berhasil ditambahkan ke data murid.",
+            ]);
+        }
+
         return redirect()
             ->route('admin.new-students.index')
             ->with('status', "{$convertedCount} murid berhasil ditambahkan ke data murid.");
     }
 
-    public function destroy(NewStudent $newStudent): RedirectResponse
+    public function destroy(NewStudent $newStudent): JsonResponse|RedirectResponse
     {
-        $newStudent->delete();
+        $newStudent->forceDelete();
+
+        if (request()->wantsJson()) {
+            return response()->json(['message' => 'Data pendaftar dihapus.']);
+        }
+
         return redirect()
             ->route('admin.new-students.index')
             ->with('status', 'Data pendaftar dihapus.');
     }
 
-    public function destroyAll(): RedirectResponse
+    public function destroyAll(): JsonResponse|RedirectResponse
     {
         NewStudent::truncate();
+
+        if (request()->wantsJson()) {
+            return response()->json(['message' => 'Semua data pendaftar dihapus.']);
+        }
+
         return redirect()
             ->route('admin.new-students.index')
             ->with('status', 'Semua data pendaftar berhasil dihapus.');

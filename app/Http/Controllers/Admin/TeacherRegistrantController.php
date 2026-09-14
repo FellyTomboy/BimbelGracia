@@ -9,6 +9,7 @@ use App\Models\TeacherRegistrant;
 use App\Models\Teacher;
 use App\Models\User;
 use App\Enums\UserRole;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\Model;
@@ -31,9 +32,50 @@ class TeacherRegistrantController extends Controller
         return view('admin.teacher-registrants.index', compact('teacherRegistrants', 'permanentLink'));
     }
 
-    public function convert(TeacherRegistrant $teacherRegistrant): RedirectResponse
+    public function previewConvert(TeacherRegistrant $teacherRegistrant): JsonResponse
+    {
+        $html = view('admin.teacher-registrants._convert-preview', [
+            'registrant' => $teacherRegistrant,
+        ])->render();
+
+        return response()->json([
+            'html' => $html,
+            'title' => 'Konfirmasi Pendaftaran Guru',
+        ]);
+    }
+
+    public function previewDelete(TeacherRegistrant $teacherRegistrant): JsonResponse
+    {
+        $html = view('admin.teacher-registrants._delete-confirm', [
+            'registrant' => $teacherRegistrant,
+        ])->render();
+
+        return response()->json([
+            'html' => $html,
+            'title' => 'Hapus Pendaftar',
+        ]);
+    }
+
+    public function previewDeleteAll(): JsonResponse
+    {
+        $count = TeacherRegistrant::count();
+
+        $html = view('admin.teacher-registrants._delete-all-confirm', [
+            'count' => $count,
+        ])->render();
+
+        return response()->json([
+            'html' => $html,
+            'title' => 'Hapus Semua Pendaftar',
+        ]);
+    }
+
+    public function convert(Request $request, TeacherRegistrant $teacherRegistrant): JsonResponse|RedirectResponse
     {
         if ($teacherRegistrant->converted) {
+            if ($request->wantsJson()) {
+                return response()->json(['message' => 'Data ini sudah dikonversi sebelumnya.'], 422);
+            }
             return back()->with('status', 'Data ini sudah dikonversi sebelumnya.');
         }
 
@@ -43,6 +85,9 @@ class TeacherRegistrantController extends Controller
 
         if ($existingTeacher) {
             $teacherRegistrant->update(['converted' => true]);
+            if ($request->wantsJson()) {
+                return response()->json(['message' => 'Nomor WA sudah terdaftar sebagai guru.']);
+            }
             return redirect()
                 ->route('admin.teacher-registrants.index')
                 ->with('status', 'Nomor WA sudah terdaftar sebagai guru.');
@@ -76,6 +121,9 @@ class TeacherRegistrantController extends Controller
             $user->forceDelete();
             $teacherRegistrant->update(['converted' => true]);
 
+            if ($request->wantsJson()) {
+                return response()->json(['message' => 'Nomor WA sudah terdaftar sebagai guru.']);
+            }
             return redirect()
                 ->route('admin.teacher-registrants.index')
                 ->with('status', 'Nomor WA sudah terdaftar sebagai guru.');
@@ -83,22 +131,36 @@ class TeacherRegistrantController extends Controller
 
         $teacherRegistrant->update(['converted' => true]);
 
+        if ($request->wantsJson()) {
+            return response()->json(['message' => 'Data guru berhasil ditambahkan.']);
+        }
+
         return redirect()
             ->route('admin.teacher-registrants.index')
             ->with('status', 'Data guru berhasil ditambahkan.');
     }
 
-    public function destroy(TeacherRegistrant $teacherRegistrant): RedirectResponse
+    public function destroy(Request $request, TeacherRegistrant $teacherRegistrant): JsonResponse|RedirectResponse
     {
-        $teacherRegistrant->delete();
+        $teacherRegistrant->forceDelete();
+
+        if ($request->wantsJson()) {
+            return response()->json(['message' => 'Data pendaftar guru dihapus.']);
+        }
+
         return redirect()
             ->route('admin.teacher-registrants.index')
             ->with('status', 'Data pendaftar guru dihapus.');
     }
 
-    public function destroyAll(): RedirectResponse
+    public function destroyAll(Request $request): JsonResponse|RedirectResponse
     {
         TeacherRegistrant::truncate();
+
+        if ($request->wantsJson()) {
+            return response()->json(['message' => 'Semua data pendaftar guru dihapus.']);
+        }
+
         return redirect()
             ->route('admin.teacher-registrants.index')
             ->with('status', 'Semua data pendaftar guru berhasil dihapus.');
