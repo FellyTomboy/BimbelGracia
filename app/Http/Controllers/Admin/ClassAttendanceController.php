@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Enrollment;
 use App\Models\MonthlyAttendance;
 use App\Models\Student;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -63,9 +64,38 @@ class ClassAttendanceController extends Controller
     }
 
     /**
+     * Preview fill students modal.
+     */
+    public function previewFillStudents(MonthlyAttendance $attendance): JsonResponse
+    {
+        $enrollment = $attendance->enrollment;
+        abort_unless($enrollment?->isKelas(), 404);
+
+        $allStudents = Student::query()
+            ->where('status', 'active')
+            ->orderByRaw('COALESCE(full_name, nickname)')
+            ->get();
+
+        $attendance->load('students');
+        $selectedStudentIds = $attendance->students->pluck('id')->toArray();
+
+        $html = view('admin.class-attendance._fill-students-form', [
+            'attendance' => $attendance,
+            'enrollment' => $enrollment,
+            'allStudents' => $allStudents,
+            'selectedStudentIds' => $selectedStudentIds,
+        ])->render();
+
+        return response()->json([
+            'html' => $html,
+            'title' => 'Isi Murid Hadir - ' . ($enrollment?->program?->name ?? 'Kelas'),
+        ]);
+    }
+
+    /**
      * Save the selected students for a class attendance.
      */
-    public function update(Request $request, MonthlyAttendance $attendance): RedirectResponse
+    public function update(Request $request, MonthlyAttendance $attendance): JsonResponse|RedirectResponse
     {
         $enrollment = $attendance->enrollment;
         abort_unless($enrollment?->isKelas(), 404);
@@ -92,9 +122,30 @@ class ClassAttendanceController extends Controller
             $attendance->students()->detach();
         }
 
+        if ($request->wantsJson()) {
+            return response()->json(['message' => 'Daftar murid untuk sesi kelas berhasil diperbarui.']);
+        }
+
         return redirect()
             ->route('admin.class-attendance.index')
             ->with('status', 'Daftar murid untuk sesi kelas berhasil diperbarui.');
+    }
+
+    public function destroy(Request $request, MonthlyAttendance $attendance): JsonResponse|RedirectResponse
+    {
+        if ($attendance->image) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($attendance->image);
+        }
+
+        $attendance->delete();
+
+        if ($request->wantsJson()) {
+            return response()->json(['message' => 'Presensi kelas berhasil dihapus.']);
+        }
+
+        return redirect()
+            ->route('admin.class-attendance.index')
+            ->with('status', 'Presensi kelas berhasil dihapus.');
     }
 
     private function resolvePeriod(Request $request): array

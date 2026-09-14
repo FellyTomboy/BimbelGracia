@@ -188,6 +188,12 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('presensi.store');
             Route::get('presensi/{attendance}', [AdminAttendanceController::class, 'show'])
                 ->name('presensi.show');
+            Route::get('presensi/{attendance}/preview-validate', [AdminAttendanceController::class, 'previewValidate'])
+                ->name('presensi.preview-validate');
+            Route::get('presensi/{attendance}/preview-fix-enrollment', [AdminAttendanceController::class, 'previewFixEnrollment'])
+                ->name('presensi.preview-fix-enrollment');
+            Route::get('presensi/{attendance}/preview-delete', [AdminAttendanceController::class, 'previewDelete'])
+                ->name('presensi.preview-delete');
             Route::get('presensi/{attendance}/edit', [AdminAttendanceController::class, 'edit'])
                 ->name('presensi.edit');
             Route::put('presensi/{attendance}', [AdminAttendanceController::class, 'update'])
@@ -305,8 +311,12 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('class-attendance.index');
             Route::get('class-attendance/{attendance}/edit', [ClassAttendanceController::class, 'edit'])
                 ->name('class-attendance.edit');
+            Route::get('class-attendance/{attendance}/preview-fill', [ClassAttendanceController::class, 'previewFillStudents'])
+                ->name('class-attendance.preview-fill');
             Route::put('class-attendance/{attendance}', [ClassAttendanceController::class, 'update'])
                 ->name('class-attendance.update');
+            Route::delete('class-attendance/{attendance}', [ClassAttendanceController::class, 'destroy'])
+                ->name('class-attendance.destroy');
 
             Route::get('class-student-sessions', [ClassStudentSessionController::class, 'index'])
                 ->name('class-student-sessions.index');
@@ -322,6 +332,8 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('class-student-sessions.update');
             Route::delete('class-student-sessions/{session}', [ClassStudentSessionController::class, 'destroy'])
                 ->name('class-student-sessions.destroy');
+            Route::get('class-student-sessions/{session}/preview-delete', [ClassStudentSessionController::class, 'previewDeleteConfirm'])
+                ->name('class-student-sessions.preview-delete');
 
             Route::get('class-reports', [ClassReportController::class, 'index'])
                 ->name('class-reports.index');

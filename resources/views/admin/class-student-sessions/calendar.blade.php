@@ -17,7 +17,46 @@
         </div>
     </x-slot>
 
-    <div class="py-8">
+    <div class="py-8" x-data="classSessionModal({})">
+
+        {{-- Delete Confirmation Modal ─────────────────────────────────────────── --}}
+        <div x-show="modalOpen"
+            x-on:css-submit.window="submitModal()"
+            x-on:css-close.window="close()"
+            x-transition:enter="ease-out duration-200"
+            x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100"
+            x-transition:leave="ease-in duration-150"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+            class="fixed inset-0 z-50 flex items-center justify-center p-4"
+            @keydown.escape.window="close()">
+
+            <div x-show="modalOpen"
+                x-transition:enter="ease-out duration-200"
+                x-transition:enter-start="opacity-0 scale-95"
+                x-transition:enter-end="opacity-100 scale-100"
+                x-transition:leave="ease-in duration-150"
+                x-transition:leave-start="opacity-100 scale-100"
+                x-transition:leave-end="opacity-0 scale-95"
+                class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+
+                <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-rose-600 rounded-t-2xl">
+                    <h3 class="text-white font-semibold text-base">Hapus Sesi Kelas?</h3>
+                    <button @click="close()" class="text-white/70 hover:text-white transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="p-5">
+                    <div x-html="modalBody" class="space-y-0"></div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Main Content ───────────────────────────────────────────────────── --}}
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-4">
             @if (session('status'))
                 <div class="mb-4 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl text-sm flex items-center gap-2">
@@ -70,14 +109,12 @@
                     }
                 @endphp
 
-                {{-- Calendar Cells --}}
                 @php
                     $startOffset = $firstDayOfWeek - 1;
                     $totalCells = $startOffset + $daysInMonth;
                     $rows = (int) ceil($totalCells / 7);
                     $day = 1;
 
-                    // Build sessionsByDate from ClassSession grouped by program + date
                     $sessionsByDate = [];
                     foreach ($sessions as $programId => $programSessions) {
                         foreach ($programSessions as $session) {
@@ -138,11 +175,8 @@
                                                     <a href="{{ route('admin.class-student-sessions.edit', $session) }}"
                                                        class="text-[10px] text-purple-600 hover:text-purple-800 font-medium">Edit</a>
                                                     <button type="button"
-                                                            onclick="if(confirm('Hapus sesi {{ $session->session_date->format('d M Y') }}?')) { document.getElementById('delete-form-{{ $session->id }}').submit(); }"
+                                                            @click="openDeleteModal({{ $session->id }})"
                                                             class="text-[10px] text-rose-500 hover:text-rose-700 font-medium">Hapus</button>
-                                                    <form id="delete-form-{{ $session->id }}" method="POST" action="{{ route('admin.class-student-sessions.destroy', $session) }}" class="hidden">
-                                                        @csrf @method('DELETE')
-                                                    </form>
                                                 </div>
                                             </div>
                                         @endforeach

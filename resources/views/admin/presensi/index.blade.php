@@ -120,15 +120,22 @@
                                     </td>
                                     <td class="py-3 px-4 text-gray-600">#{{ $attendance->enrollment_id }}</td>
                                     <td class="py-3 px-4">
-                                        @if ($attendance->status_validation === 'terima')
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">Diterima</span>
-                                        @elseif ($attendance->status_validation === 'terlambat')
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">Terlambat</span>
-                                        @elseif ($attendance->status_validation === 'ditolak')
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-50 text-rose-700 border border-rose-200">Ditolak</span>
-                                        @else
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-50 text-gray-600 border border-gray-200">Pending</span>
-                                        @endif
+                                        <span data-row-status
+                                            @if ($attendance->status_validation === 'terima')
+                                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                            @elseif ($attendance->status_validation === 'terlambat')
+                                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200"
+                                            @elseif ($attendance->status_validation === 'ditolak')
+                                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-50 text-rose-700 border border-rose-200"
+                                            @else
+                                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-50 text-gray-600 border border-gray-200"
+                                            @endif>
+                                            @if ($attendance->status_validation === 'terima')Diterima
+                                            @elseif ($attendance->status_validation === 'terlambat')Terlambat
+                                            @elseif ($attendance->status_validation === 'ditolak')Ditolak
+                                            @else Pending
+                                            @endif
+                                        </span>
                                     </td>
                                     <td class="py-3 px-4">
                                         @if ($attendance->parent_review_status === 'pending')
@@ -143,29 +150,24 @@
                                     </td>
                                     <td class="py-3 px-4">
                                         <div class="flex items-center gap-1">
-                                            <form method="POST" action="{{ route('admin.presensi.validate', $attendance) }}" class="flex items-center">
-                                                @csrf
-                                                <select name="status" class="text-xs border-gray-200 rounded-lg py-1 px-2 bg-white" onchange="this.form.submit()">
-                                                    <option value="">—</option>
-                                                    <option value="terima">Terima</option>
-                                                    <option value="terlambat">Terlambat</option>
-                                                    <option value="ditolak">Tolak</option>
-                                                </select>
-                                            </form>
+                                            <select name="status"
+                                                class="text-xs border-gray-200 rounded-lg py-1 px-2 bg-white"
+                                                onchange="handleQuickValidate(this, {{ $attendance->id }})">
+                                                <option value="">—</option>
+                                                <option value="terima">Terima</option>
+                                                <option value="terlambat">Terlambat</option>
+                                                <option value="ditolak">Tolak</option>
+                                            </select>
                                             @if ($attendance->status_validation !== 'ditolak')
                                                 <a href="{{ route('admin.presensi.edit', $attendance) }}"
                                                     class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors">
                                                     Edit
                                                 </a>
-                                                <form action="{{ route('admin.presensi.destroy', $attendance) }}" method="POST"
-                                                    onsubmit="return confirm('Yakin ingin menghapus presensi ini?');">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit"
-                                                        class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">
-                                                        Hapus
-                                                    </button>
-                                                </form>
+                                                <button type="button"
+                                                    onclick="openDeleteAttendanceModal({{ $attendance->id }}, '{{ addslashes($attendance->enrollment?->program?->name ?? '-') }}', '{{ $attendance->lesson_date?->format('d/m/Y') ?? '-' }}')"
+                                                    class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">
+                                                    Hapus
+                                                </button>
                                             @endif
                                         </div>
                                     </td>
@@ -192,7 +194,102 @@
         </div>
     </div>
 
+    {{-- Delete Confirmation Modal ─────────────────────────────────────────── --}}
+    <div id="delete-attendance-modal"
+         class="fixed inset-0 z-50 hidden items-center justify-center p-4"
+         style="background:rgba(0,0,0,.25);backdrop-filter:blur(2px)">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div class="px-5 py-4 bg-rose-600 flex items-center justify-between rounded-t-2xl">
+                <h3 class="text-white font-semibold text-base">Hapus Presensi?</h3>
+                <button onclick="closeDeleteAttendanceModal()" class="text-white/70 hover:text-white">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="p-5 space-y-4">
+                <p class="text-sm text-gray-600">Yakin ingin menghapus presensi berikut?</p>
+                <div class="bg-rose-50 border border-rose-200 rounded-xl p-4 space-y-2">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-rose-600">Tanggal</span>
+                        <span class="font-medium text-rose-900" id="dam-date"></span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-rose-600">Program</span>
+                        <span class="font-medium text-rose-900" id="dam-program"></span>
+                    </div>
+                </div>
+                <div class="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                    <p class="text-sm text-amber-700">Tindakan ini tidak bisa dibatalkan.</p>
+                </div>
+                <div class="flex justify-end gap-3 pt-2">
+                    <button onclick="closeDeleteAttendanceModal()"
+                        class="px-4 py-2 rounded-xl text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors">
+                        Batal
+                    </button>
+                    <button onclick="submitDeleteAttendance()"
+                        id="dam-submit-btn"
+                        class="px-4 py-2 rounded-xl text-sm font-medium text-white bg-rose-600 hover:bg-rose-700 transition-colors">
+                        Ya, Hapus
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
+        let __damId = null;
+
+        function openDeleteAttendanceModal(id, program, date) {
+            __damId = id;
+            document.getElementById('dam-date').textContent = date;
+            document.getElementById('dam-program').textContent = program;
+            const modal = document.getElementById('delete-attendance-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeDeleteAttendanceModal() {
+            const modal = document.getElementById('delete-attendance-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            __damId = null;
+        }
+
+        async function submitDeleteAttendance() {
+            if (!__damId) return;
+            const btn = document.getElementById('dam-submit-btn');
+            btn.disabled = true;
+            btn.textContent = 'Menghapus...';
+            try {
+                await window.Ajax.delete('/admin/presensi/' + __damId);
+                window.Toast?.success('Presensi dihapus.');
+                closeDeleteAttendanceModal();
+                setTimeout(() => location.reload(), 500);
+            } catch (e) {
+                btn.disabled = false;
+                btn.textContent = 'Ya, Hapus';
+            }
+        }
+
+        function handleQuickValidate(selectEl, attendanceId) {
+            const status = selectEl.value;
+            if (!status) return;
+            const row = selectEl.closest('tr');
+            const badgeEl = row.querySelector('[data-row-status]');
+            const labels = { terima: 'Diterima', terlambat: 'Terlambat', ditolak: 'Ditolak' };
+            const colors = { terima: 'emerald', terlambat: 'amber', ditolak: 'rose' };
+            window.Ajax.post('/admin/presensi/' + attendanceId + '/validate', { status })
+                .then(resp => {
+                    window.Toast?.success(resp.data?.message ?? 'Presensi divalidasi.');
+                    if (badgeEl) {
+                        badgeEl.className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-' + colors[status] + '-50 text-' + colors[status] + '-700 border border-' + colors[status] + '-200';
+                        badgeEl.textContent = labels[status];
+                    }
+                })
+                .catch(() => { selectEl.value = ''; });
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             const tbody = document.getElementById('attendance-tbody');
             const rows = Array.from(tbody.querySelectorAll('tr[data-lesson-date]'));
@@ -221,12 +318,10 @@
                     currentSort.field = field;
                     currentSort.dir = 'asc';
                 }
-
                 rows.sort(function(a, b) {
                     const valA = getSortValue(a, currentSort.field);
                     const valB = getSortValue(b, currentSort.field);
                     const isNum = currentSort.field === 'created_at';
-
                     if (isNum) {
                         return currentSort.dir === 'asc' ? valA - valB : valB - valA;
                     }
@@ -234,7 +329,6 @@
                         ? valA.localeCompare(valB)
                         : valB.localeCompare(valA);
                 });
-
                 rows.forEach(function(row) { tbody.appendChild(row); });
                 updateHeaderIcons();
             }
@@ -245,7 +339,6 @@
                     const span = th.querySelector('span');
                     const existingArrow = span.querySelector('.sort-arrow');
                     if (existingArrow) existingArrow.remove();
-
                     if (field === currentSort.field) {
                         const arrow = document.createElement('span');
                         arrow.className = 'sort-arrow font-bold';

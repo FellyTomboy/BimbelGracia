@@ -11,6 +11,7 @@ use App\Models\MonthlyAttendance;
 use App\Models\Program;
 use App\Models\Teacher;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -518,7 +519,14 @@ class ClassStudentSessionController extends Controller
             ->with('status', 'Presensi kelas berhasil diperbarui.');
     }
 
-    public function destroy(ClassSession $session): RedirectResponse
+    public function previewDeleteConfirm(ClassSession $session): JsonResponse
+    {
+        $session->load(['program', 'teachers']);
+        $html = view('admin.class-student-sessions._delete-confirm', compact('session'))->render();
+        return response()->json(['html' => $html, 'title' => 'Hapus Sesi Kelas?']);
+    }
+
+    public function destroy(Request $request, ClassSession $session): JsonResponse|RedirectResponse
     {
         $month = $session->session_date->month;
         $year = $session->session_date->year;
@@ -531,6 +539,10 @@ class ClassStudentSessionController extends Controller
             if (!Enrollment::find($enrollmentId)?->attendances()->exists()) {
                 Enrollment::where('id', $enrollmentId)->update(['validation_status' => 0]);
             }
+        }
+
+        if ($request->wantsJson()) {
+            return response()->json(['message' => 'Sesi kelas berhasil dihapus.']);
         }
 
         return redirect()

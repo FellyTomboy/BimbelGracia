@@ -9,7 +9,46 @@
         </div>
     </x-slot>
 
-    <div class="py-8">
+    <div class="py-8" x-data="classSessionModal({})">
+
+        {{-- Delete Confirmation Modal ─────────────────────────────────────────── --}}
+        <div x-show="modalOpen"
+            x-on:css-submit.window="submitModal()"
+            x-on:css-close.window="close()"
+            x-transition:enter="ease-out duration-200"
+            x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100"
+            x-transition:leave="ease-in duration-150"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+            class="fixed inset-0 z-50 flex items-center justify-center p-4"
+            @keydown.escape.window="close()">
+
+            <div x-show="modalOpen"
+                x-transition:enter="ease-out duration-200"
+                x-transition:enter-start="opacity-0 scale-95"
+                x-transition:enter-end="opacity-100 scale-100"
+                x-transition:leave="ease-in duration-150"
+                x-transition:leave-start="opacity-100 scale-100"
+                x-transition:leave-end="opacity-0 scale-95"
+                class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+
+                <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-rose-600 rounded-t-2xl">
+                    <h3 class="text-white font-semibold text-base">Hapus Sesi Kelas?</h3>
+                    <button @click="close()" class="text-white/70 hover:text-white transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="p-5">
+                    <div x-html="modalBody" class="space-y-0"></div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Main Content ───────────────────────────────────────────────────── --}}
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-4">
             @if (session('status'))
                 <div class="bg-emerald-50 text-emerald-700 px-4 py-3 rounded-xl text-sm flex items-center gap-2">
@@ -73,15 +112,11 @@
                                                    class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors">
                                                     Edit
                                                 </a>
-                                                <form action="{{ route('admin.class-student-sessions.destroy', $row['class_session']) }}" method="POST"
-                                                      onsubmit="return confirm('Hapus sesi {{ $row['date']->format('d M Y') }}?')">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit"
-                                                            class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">
-                                                        Hapus
-                                                    </button>
-                                                </form>
+                                                <button type="button"
+                                                    @click="openDeleteModal({{ $row['class_session']->id }})"
+                                                    class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">
+                                                    Hapus
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>

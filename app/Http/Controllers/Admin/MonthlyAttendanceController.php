@@ -10,6 +10,7 @@ use App\Models\MonthlyAttendance;
 use App\Models\Student;
 use App\Services\AttendanceFineService;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -241,7 +242,7 @@ class MonthlyAttendanceController extends Controller
         return view('admin.presensi.show', compact('attendance', 'enrollments', 'isClassPlaceholder'));
     }
 
-    public function updateEnrollment(Request $request, MonthlyAttendance $attendance): RedirectResponse
+    public function updateEnrollment(Request $request, MonthlyAttendance $attendance): JsonResponse|RedirectResponse
     {
         $validated = $request->validate([
             'enrollment_id' => ['required', 'exists:enrollments,id'],
@@ -270,6 +271,10 @@ class MonthlyAttendanceController extends Controller
                 ->mapWithKeys(fn ($student) => [$student->id => ['total_present' => 0]])
                 ->all()
         );
+
+        if ($request->wantsJson()) {
+            return response()->json(['message' => 'Enrollment diperbarui.']);
+        }
 
         return $this->backWithQueryString('Enrollment diperbarui.');
     }
@@ -388,13 +393,17 @@ class MonthlyAttendanceController extends Controller
             ->with('status', 'Presensi berhasil diperbarui.');
     }
 
-    public function destroy(MonthlyAttendance $attendance): RedirectResponse
+    public function destroy(Request $request, MonthlyAttendance $attendance): JsonResponse|RedirectResponse
     {
         if ($attendance->image) {
             Storage::disk('public')->delete($attendance->image);
         }
 
         $attendance->delete();
+
+        if ($request->wantsJson()) {
+            return response()->json(['message' => 'Presensi berhasil dihapus.']);
+        }
 
         return redirect()
             ->route('admin.presensi.index')
@@ -416,7 +425,42 @@ class MonthlyAttendanceController extends Controller
         });
     }
 
-    public function validateAttendance(Request $request, MonthlyAttendance $attendance): RedirectResponse
+    public function previewValidate(MonthlyAttendance $attendance): JsonResponse
+    {
+        $html = view('admin.presensi._validate-form', [
+            'attendance' => $attendance,
+        ])->render();
+        return response()->json(['html' => $html, 'title' => 'Validasi Presensi']);
+    }
+
+    public function previewFixEnrollment(MonthlyAttendance $attendance): JsonResponse
+    {
+        $attendance->load(['enrollment.program', 'enrollment.teacher', 'students']);
+        $isClassPlaceholder = $this->hasClassPlaceholderStudent($attendance->students);
+
+        $enrollments = Enrollment::with(['program', 'teacher', 'students'])
+            ->when($isClassPlaceholder, fn ($q) => $q->where('type', 'kelas'))
+            ->orderBy('id')
+            ->get();
+
+        $html = view('admin.presensi._fix-enrollment-form', [
+            'attendance' => $attendance,
+            'enrollments' => $enrollments,
+            'isClassPlaceholder' => $isClassPlaceholder,
+        ])->render();
+        return response()->json(['html' => $html, 'title' => 'Perbaiki Enrollment']);
+    }
+
+    public function previewDelete(MonthlyAttendance $attendance): JsonResponse
+    {
+        $attendance->load(['enrollment.program', 'enrollment.teacher', 'students']);
+        $html = view('admin.presensi._delete-confirm', [
+            'attendance' => $attendance,
+        ])->render();
+        return response()->json(['html' => $html, 'title' => 'Hapus Presensi?']);
+    }
+
+    public function validateAttendance(Request $request, MonthlyAttendance $attendance): JsonResponse|RedirectResponse
     {
         $validated = $request->validate([
             'status' => ['required', 'in:terima,terlambat,ditolak'],
@@ -432,9 +476,13 @@ class MonthlyAttendanceController extends Controller
             $attendance->enrollment->update(['validation_status' => 1]);
         }
 
+        if ($request->wantsJson()) {
+            return response()->json(['message' => 'Presensi divalidasi.']);
+        }
+
         return redirect()
             ->route('admin.presensi.index')
-            ->with('status', 'Presensi diperbarui.');
+            ->with('status', 'Presensi divalidasi.');
     }
 
     public function store(Request $request): RedirectResponse
