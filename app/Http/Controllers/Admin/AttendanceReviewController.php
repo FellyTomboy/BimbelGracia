@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\MonthlyAttendance;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -30,7 +31,19 @@ class AttendanceReviewController extends Controller
         return view('admin.notifications.index', compact('attendances'));
     }
 
-    public function upholdParentRejection(Request $request, MonthlyAttendance $attendance): RedirectResponse
+    public function previewUpholdConfirm(MonthlyAttendance $attendance): JsonResponse
+    {
+        abort_unless($attendance->parent_review_status === 'pending', 404);
+
+        $html = view('admin.notifications._uphold-confirm', compact('attendance'))->render();
+
+        return response()->json([
+            'html' => $html,
+            'title' => 'Konfirmasi Penolakan Presensi',
+        ]);
+    }
+
+    public function upholdParentRejection(Request $request, MonthlyAttendance $attendance): JsonResponse|RedirectResponse
     {
         abort_unless($attendance->parent_review_status === 'pending', 404);
 
@@ -41,10 +54,14 @@ class AttendanceReviewController extends Controller
             'validated_by' => $request->user()->id,
         ]);
 
-        return $this->backWithQueryString('Penolakan orangtua diterima. Status presensi sekarang ditolak.');
+        if ($request->wantsJson()) {
+            return response()->json(['message' => 'Penolakan dikonfirmasi. Status presensi sekarang ditolak.']);
+        }
+
+        return $this->backWithQueryString('Penolakan dikonfirmasi. Status presensi sekarang ditolak.');
     }
 
-    public function dismiss(MonthlyAttendance $attendance): RedirectResponse
+    public function dismiss(Request $request, MonthlyAttendance $attendance): JsonResponse|RedirectResponse
     {
         abort_unless($attendance->parent_review_status === 'pending', 404);
 
@@ -52,6 +69,10 @@ class AttendanceReviewController extends Controller
             'parent_review_status' => 'dismissed',
         ]);
 
-        return $this->backWithQueryString('Penolakan orangtua dibatalkan. Status presensi tidak diubah.');
+        if ($request->wantsJson()) {
+            return response()->json(['message' => 'Penolakan dibatalkan. Status presensi tidak diubah.']);
+        }
+
+        return $this->backWithQueryString('Penolakan dibatalkan. Status presensi tidak diubah.');
     }
 }

@@ -22,6 +22,7 @@ import { forceDeleteModal } from './alpine/force-delete-modal';
 import { discountModal } from './alpine/discount-modal';
 import { newStudentModal } from './alpine/new-student-modal';
 import { teacherRegistrantModal } from './alpine/teacher-registrant-modal';
+import { attendanceValidationModal } from './alpine/attendance-validation-modal';
 
 import './utils/toast';
 import './utils/ajax';
@@ -35,6 +36,7 @@ Alpine.data('forceDeleteActions', forceDeleteActions);
 Alpine.data('discountModal', discountModal);
 Alpine.data('newStudentModal', newStudentModal);
 Alpine.data('teacherRegistrantModal', teacherRegistrantModal);
+Alpine.data('attendanceValidationModal', attendanceValidationModal);
 Alpine.data('bulkHibernateActions', bulkHibernateActions);
 // Expose to window so per-page Alpine.data factories (e.g. enrollmentModal)
 // can spread it via `...crudModal({...})` from their inline <script> scope.
@@ -56,6 +58,7 @@ window.forceDeleteModal = forceDeleteModal;
 window.discountModal = discountModal;
 window.newStudentModal = newStudentModal;
 window.teacherRegistrantModal = teacherRegistrantModal;
+window.attendanceValidationModal = attendanceValidationModal;
 
 Alpine.start();
 

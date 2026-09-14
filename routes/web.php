@@ -200,6 +200,8 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('presensi.validate');
             Route::get('notifikasi-presensi', [AttendanceReviewController::class, 'index'])
                 ->name('notifications.index');
+            Route::get('notifikasi-presensi/{attendance}/preview-uphold', [AttendanceReviewController::class, 'previewUpholdConfirm'])
+                ->name('notifications.preview-uphold');
             Route::post('notifikasi-presensi/{attendance}/confirm', [AttendanceReviewController::class, 'upholdParentRejection'])
                 ->name('notifications.uphold-rejection');
             Route::post('notifikasi-presensi/{attendance}/dismiss', [AttendanceReviewController::class, 'dismiss'])
