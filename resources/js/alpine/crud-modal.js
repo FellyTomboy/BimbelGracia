@@ -69,6 +69,19 @@ export function crudModal(config) {
             }, true);
         },
 
+        // Inject lookup data from JSON response into window globals (called before setting modalBody).
+        // Data keys like teachersByProgram, studentsByProgram, sessionTeachers, existingStudentIds
+        // are written to window.__css_<key>__ so the form partial can read them.
+        _injectResponseData(data) {
+            if (!data || typeof data !== 'object') return;
+            // Find keys that look like lookup data (not 'html', 'title', etc.)
+            const skipKeys = new Set(['html', 'title', 'success', 'message']);
+            Object.keys(data).forEach(key => {
+                if (skipKeys.has(key)) return;
+                window['__css_' + key + '__'] = data[key];
+            });
+        },
+
         // ── Open create form ──────────────────────────────────────────────
         async openCreate() {
             this.isEdit = false;
@@ -89,6 +102,8 @@ export function crudModal(config) {
             try {
                 const response = await window.Ajax.get(this.createUrl);
                 const data = response.data;
+                // Set lookup data globals BEFORE setting modalBody so form can read them
+                this._injectResponseData(data);
                 this.modalTitle = data.title || 'Tambah Data';
                 this.modalBody = data.html || data;
                 // Activate Alpine directives inside x-html content (x-model, x-for, @click, etc.)
@@ -131,6 +146,8 @@ export function crudModal(config) {
                 const url = typeof this.editUrl === 'function' ? this.editUrl(id) : `${this.editUrl}/${id}`;
                 const response = await window.Ajax.get(url);
                 const data = response.data;
+                // Set lookup data globals BEFORE setting modalBody so form can read them
+                this._injectResponseData(data);
                 this.modalTitle = data.title || 'Edit Data';
                 this.modalBody = data.html || data;
                 // Activate Alpine directives inside x-html content

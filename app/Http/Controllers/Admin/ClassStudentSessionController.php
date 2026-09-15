@@ -238,11 +238,11 @@ class ClassStudentSessionController extends Controller
             'selectedProgramId' => $programId ?: null,
         ])->render();
 
-        $script = "<script>window.__css_teachersByProgram__ = ".json_encode($teachersByProgram)."; window.__css_studentsByProgram__ = ".json_encode($studentsByProgram).";</script>";
-
         return response()->json([
-            'html' => $script.$html,
+            'html' => $html,
             'title' => 'Tambah Presensi Kelas',
+            'teachersByProgram' => $teachersByProgram,
+            'studentsByProgram' => $studentsByProgram,
         ]);
     }
 
@@ -436,17 +436,14 @@ class ClassStudentSessionController extends Controller
             'selectedProgramId' => $session->program_id,
         ])->render();
 
-        $script = "<script>".
-            "window.__css_teachersByProgram__ = ".json_encode($teachersByProgram).";".
-            "window.__css_studentsByProgram__ = ".json_encode($studentsByProgram).";".
-            "window.__css_session_teachers__ = ".json_encode($sessionTeachers).";".
-            "window.__css_session_student_ids__ = ".json_encode($existingStudentIds).";".
-            "window.__css_session_enrollment_map__ = ".json_encode($existingEnrollmentMap).";".
-            "</script>";
-
         return response()->json([
-            'html' => $script.$html,
+            'html' => $html,
             'title' => 'Edit Presensi Kelas — '.$session->session_date->format('d/m/Y'),
+            'teachersByProgram' => $teachersByProgram,
+            'studentsByProgram' => $studentsByProgram,
+            'sessionTeachers' => $sessionTeachers,
+            'existingStudentIds' => $existingStudentIds,
+            'existingEnrollmentMap' => $existingEnrollmentMap,
         ]);
     }
 
