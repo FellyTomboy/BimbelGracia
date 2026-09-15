@@ -118,9 +118,9 @@
                             Batal
                         </button>
                         <button @click="deleteRow()"
-                                :disabled="deleting"
+                                :disabled="deleteLoading"
                                 class="px-4 py-2 rounded-xl text-sm font-medium text-white bg-rose-600 hover:bg-rose-700 transition-colors disabled:opacity-50">
-                            <span x-text="deleting ? 'Menghapus...' : 'Ya, Hapus'"></span>
+                            <span x-text="deleteLoading ? 'Menghapus...' : 'Ya, Hapus'"></span>
                         </button>
                     </div>
                 </div>
