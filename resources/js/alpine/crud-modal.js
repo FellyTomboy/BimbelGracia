@@ -221,7 +221,18 @@ export function crudModal(config) {
                 el.classList.add('border-gray-300');
             });
 
-            const params = new URLSearchParams(new FormData(form));
+            const params = new URLSearchParams();
+            for (const el of form.querySelectorAll('input[name], select[name], textarea[name]')) {
+                if (el.type === 'checkbox') {
+                    if (el.checked) params.append(el.name, el.value || 'on');
+                } else if (el.type === 'radio') {
+                    if (el.checked) params.append(el.name, el.value);
+                } else if (el.tagName === 'SELECT' && el.multiple) {
+                    for (const opt of el.selectedOptions) params.append(el.name, opt.value);
+                } else if (el.type === 'hidden' || el.value) {
+                    params.append(el.name, el.value);
+                }
+            }
 
             const url = this.isEdit
                 ? (typeof this.updateUrl === 'function' ? this.updateUrl(this.currentId) : `${this.updateUrl}/${this.currentId}`)
