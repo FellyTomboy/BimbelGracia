@@ -221,16 +221,21 @@ export function crudModal(config) {
                 el.classList.add('border-gray-300');
             });
 
-            const params = new URLSearchParams();
+            // Build plain object — sent as JSON body (reliable across all Laravel versions)
+            const data = {};
             for (const el of form.querySelectorAll('input[name], select[name], textarea[name]')) {
+                const name = el.name;
                 if (el.type === 'checkbox') {
-                    if (el.checked) params.append(el.name, el.value || 'on');
+                    if (el.checked) {
+                        if (!data[name]) data[name] = [];
+                        data[name].push(el.value || 'on');
+                    }
                 } else if (el.type === 'radio') {
-                    if (el.checked) params.append(el.name, el.value);
+                    if (el.checked) data[name] = el.value;
                 } else if (el.tagName === 'SELECT' && el.multiple) {
-                    for (const opt of el.selectedOptions) params.append(el.name, opt.value);
+                    data[name] = Array.from(el.selectedOptions).map(o => o.value);
                 } else if (el.type === 'hidden' || el.value) {
-                    params.append(el.name, el.value);
+                    data[name] = el.value;
                 }
             }
 
@@ -240,7 +245,7 @@ export function crudModal(config) {
             const method = this.isEdit ? 'put' : 'post';
 
             try {
-                const response = await window.Ajax[method](url, params);
+                const response = await window.Ajax[method](url, data);
                 window.Toast?.success(this.isEdit ? 'Berhasil diperbarui.' : 'Berhasil disimpan.');
             } catch (e) {
                 console.error('[crudModal] submit error', e.response?.status, e.response?.data);
