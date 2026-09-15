@@ -1,5 +1,4 @@
-<form id="crud-form"
-      @submit.prevent="$parent.submit()">
+<form id="crud-form">
 
     <div class="space-y-4">
         <div class="grid md:grid-cols-2 gap-4">

@@ -1,4 +1,4 @@
-<form id="crud-form" @submit.prevent="$parent.submit()">
+<form id="crud-form">
 
     @csrf
     @if($session) @method('PUT') @endif

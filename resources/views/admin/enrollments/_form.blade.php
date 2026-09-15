@@ -31,8 +31,7 @@
           initialTeacherTiers: {{ json_encode($filledTeacherTiers) }},
           idPrefix: 'modal-',
       })"
-      x-init="init()"
-      @submit.prevent="$parent.submit()">
+      x-init="init()">
 
     @if ($isEdit)
         @csrf

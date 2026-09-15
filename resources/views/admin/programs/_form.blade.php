@@ -12,8 +12,7 @@
                   @endforeach
               @endif
           }
-      }"
-      @submit.prevent="$parent.submit()">
+      }">
 
     @csrf
 

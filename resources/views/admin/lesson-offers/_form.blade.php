@@ -10,8 +10,7 @@
               }
           },
           errors: {},
-      }'
-      @submit.prevent="$parent.submit()">
+      }'>
 
     @csrf
 

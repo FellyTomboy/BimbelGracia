@@ -54,20 +54,21 @@ export function crudModal(config) {
         init() {
             // Intercept form submissions from x-html-injected modal content.
             // Walks up the DOM from the form to find the nearest Alpine component
-            // with a submit() method. This works for any wrapper of crudModal
-            // (classPresensiModal, presensiModal, etc.) regardless of the x-data
-            // attribute shape — the previous [x-data^="crudModal"] prefix selector
-            // missed any component that wrapped/spread crudModal.
+            // with a submit() method. Works for any wrapper of crudModal
+            // (classPresensiModal, presensiModal, etc.) regardless of x-data
+            // attribute shape. stopImmediatePropagation prevents the form's
+            // @submit directive (which references $parent and fails in x-html
+            // scope) from throwing.
             document.addEventListener('submit', (e) => {
                 if (!e.target || e.target.id !== 'crud-form') return;
                 let el = e.target.parentElement;
-                while (el && (!el.__x || !el.__x.$data || typeof el.__x.$data.submit !== 'function')) {
+                while (el && (!el._x_dataStack || !el._x_dataStack[0] || typeof el._x_dataStack[0].submit !== 'function')) {
                     el = el.parentElement;
                 }
-                if (el && el.__x && el.__x.$data) {
+                if (el && el._x_dataStack && el._x_dataStack[0]) {
                     e.preventDefault();
                     e.stopImmediatePropagation();
-                    el.__x.$data.submit();
+                    el._x_dataStack[0].submit();
                 }
             }, true);
         },

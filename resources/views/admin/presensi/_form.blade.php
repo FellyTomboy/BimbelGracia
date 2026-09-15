@@ -38,8 +38,7 @@
                   this.studentIds.push(id);
               }
           },
-      }'
-      @submit.prevent="$parent.submit()">
+      }'>
 
     @csrf
     @if($attendance) @method('PUT') @endif
