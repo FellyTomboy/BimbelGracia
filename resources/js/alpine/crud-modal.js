@@ -280,6 +280,7 @@ export function crudModal(config) {
         },
 
         async deleteRow(id) {
+            if (id === undefined) id = this.deleteConfirmId;
             this.deleteLoading = true;
             try {
                 const url = typeof this.deleteUrl === 'function' ? this.deleteUrl(id) : `${this.deleteUrl}/${id}`;
