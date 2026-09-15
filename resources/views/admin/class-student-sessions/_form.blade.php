@@ -84,7 +84,10 @@
     <script>
     (function() {
         var form = document.getElementById('crud-form');
-        if (!form) return;
+        if (!form) {
+            console.error('[class-session-form] #crud-form not found');
+            return;
+        }
 
         var teachersByProgram = window.__css_teachersByProgram__ || {};
         var studentsByProgram = window.__css_studentsByProgram__ || {};
