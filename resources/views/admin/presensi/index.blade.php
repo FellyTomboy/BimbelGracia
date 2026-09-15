@@ -4,19 +4,14 @@
         <div class="flex items-center justify-between">
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">Validasi Presensi</h2>
             <a href="{{ route('admin.presensi.create') }}"
-               class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm"
-               @click.prevent="openCreateModal()">
+               class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                 Tambah Presensi
             </a>
         </div>
     </x-slot>
 
-    <div class="py-8"
-        x-data="presensiCreateModal({})"
-        x-init="initFromData()"
-        data-late-penalty="{{ $latePenaltyEnabled ? 'true' : 'false' }}"
-        data-billing-mode="{{ $billingMode }}">
+    <div class="py-8">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-4">
             {{-- Filter & Search Bar --}}
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
@@ -195,44 +190,6 @@
                         {{ $attendances->links('pagination::tailwind') }}
                     </div>
                 @endif
-            </div>
-        </div>
-    </div>
-
-    {{-- Create Attendance Modal ─────────────────────────────────────────────── --}}
-    <div x-show="modalOpen"
-        x-transition:enter="ease-out duration-200"
-        x-transition:enter-start="opacity-0"
-        x-transition:enter-end="opacity-100"
-        x-transition:leave="ease-in duration-150"
-        x-transition:leave-start="opacity-100"
-        x-transition:leave-end="opacity-0"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4"
-        @keydown.escape.window="close()"
-        style="background:rgba(0,0,0,.3);backdrop-filter:blur(2px)">
-
-        <div x-show="modalOpen"
-            x-transition:enter="ease-out duration-200"
-            x-transition:enter-start="opacity-0 scale-95"
-            x-transition:enter-end="opacity-100 scale-100"
-            x-transition:leave="ease-in duration-150"
-            x-transition:leave-start="opacity-100 scale-100"
-            x-transition:leave-end="opacity-0 scale-95"
-            class="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden">
-
-            {{-- Header --}}
-            <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-indigo-600 rounded-t-2xl">
-                <h3 class="text-white font-semibold text-base">Tambah Presensi Privat</h3>
-                <button @click="close()" class="text-white/70 hover:text-white transition-colors">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                </button>
-            </div>
-
-            {{-- Body --}}
-            <div class="p-6 overflow-y-auto max-h-[80vh]">
-                @include('admin.presensi._create-form')
             </div>
         </div>
     </div>

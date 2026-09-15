@@ -86,43 +86,7 @@ class MonthlyAttendanceController extends Controller
 
         $attendances = $query->paginate(20)->withQueryString();
 
-        // Load enrollments for the create-form modal
-        $createEnrollments = Enrollment::with(['program', 'teacher', 'students'])
-            ->where('status', 'active')
-            ->whereHas('program', fn ($q) => $q->where('type', 'privat'))
-            ->orderBy('id')
-            ->get()
-            ->map(function ($e) {
-                $teacher = $e->teacher;
-                $teacherFn = trim((string) ($teacher->full_name ?? ''));
-                $teacherNn = trim((string) ($teacher->nickname ?? ''));
-                return [
-                    'id'       => $e->id,
-                    'type'     => $e->type,
-                    'program'  => $e->program ? ['id' => $e->program->id, 'name' => $e->program->name, 'type' => $e->program->type] : null,
-                    'teacher'  => $teacher ? [
-                        'id' => $teacher->id,
-                        'display_name' => $teacherFn ? ($teacherNn ? "{$teacherFn} ({$teacherNn})" : $teacherFn) : ($teacherNn ?: 'Tanpa nama'),
-                    ] : null,
-                    'students' => $e->students->map(function ($s) {
-                        $fn = trim((string) ($s->full_name ?? ''));
-                        $nn = trim((string) ($s->nickname ?? ''));
-                        return [
-                            'id' => $s->id,
-                            'name' => $fn ? ($nn ? "{$fn} ({$nn})" : $fn) : ($nn ?: 'Tanpa nama'),
-                        ];
-                    })->values()->all(),
-                ];
-            })
-            ->values()
-            ->all();
-
-        $billingMode = $this->fineService->getBillingMode();
-        $latePenaltyEnabled = $this->fineService->isLatePenaltyEnabled();
-
-        return view('admin.presensi.index', compact(
-            'attendances', 'createEnrollments', 'billingMode', 'latePenaltyEnabled'
-        ));
+        return view('admin.presensi.index', compact('attendances'));
     }
 
     public function create(): View
@@ -162,54 +126,7 @@ class MonthlyAttendanceController extends Controller
         return view('admin.presensi.create', compact('enrollments', 'billingMode'));
     }
 
-    public function previewCreateForm(Request $request): JsonResponse
-    {
-        $enrollments = Enrollment::with(['program', 'teacher', 'students'])
-            ->where('status', 'active')
-            ->whereHas('program', fn ($q) => $q->where('type', 'privat'))
-            ->orderBy('id')
-            ->get()
-            ->map(function ($e) {
-                $teacher = $e->teacher;
-                $teacherFn = trim((string) ($teacher->full_name ?? ''));
-                $teacherNn = trim((string) ($teacher->nickname ?? ''));
-                return [
-                    'id'       => $e->id,
-                    'type'     => $e->type,
-                    'program'  => $e->program ? ['id' => $e->program->id, 'name' => $e->program->name, 'type' => $e->program->type] : null,
-                    'teacher'  => $teacher ? [
-                        'id' => $teacher->id,
-                        'display_name' => $teacherFn ? ($teacherNn ? "{$teacherFn} ({$teacherNn})" : $teacherFn) : ($teacherNn ?: 'Tanpa nama'),
-                    ] : null,
-                    'students' => $e->students->map(function ($s) {
-                        $fn = trim((string) ($s->full_name ?? ''));
-                        $nn = trim((string) ($s->nickname ?? ''));
-                        return [
-                            'id' => $s->id,
-                            'name' => $fn ? ($nn ? "{$fn} ({$nn})" : $fn) : ($nn ?: 'Tanpa nama'),
-                        ];
-                    })->values()->all(),
-                ];
-            })
-            ->values()
-            ->all();
-
-        $billingMode = $this->fineService->getBillingMode();
-        $latePenaltyEnabled = $this->fineService->isLatePenaltyEnabled();
-
-        $html = view('admin.presensi._create-form', [
-            'enrollments' => $enrollments,
-            'billingMode' => $billingMode,
-        ])->render();
-
-        return response()->json([
-            'html' => $html,
-            'billingMode' => $billingMode,
-            'latePenaltyEnabled' => $latePenaltyEnabled,
-        ]);
-    }
-
-    public function storeBulk(Request $request): JsonResponse|RedirectResponse
+    public function storeBulk(Request $request): RedirectResponse
     {
         $validated = $request->validate([
             'enrollment_id' => ['required', 'exists:enrollments,id'],
@@ -296,20 +213,12 @@ class MonthlyAttendanceController extends Controller
         });
 
         if (! empty($errors)) {
-            $errorMsg = implode(' ', $errors);
-            if ($request->wantsJson()) {
-                return response()->json(['message' => $errorMsg, 'errors' => ['sessions' => $errors]], 422);
-            }
-            return back()->withErrors(['sessions' => $errorMsg])->withInput();
+            return back()->withErrors(['sessions' => implode(' ', $errors)])->withInput();
         }
 
         $message = $createdCount === 1
             ? 'Presensi berhasil dicatat.'
             : "{$createdCount} presensi berhasil dicatat sekaligus.";
-
-        if ($request->wantsJson()) {
-            return response()->json(['message' => $message, 'created_count' => $createdCount]);
-        }
 
         return redirect()->route('admin.presensi.index')->with('status', $message);
     }
