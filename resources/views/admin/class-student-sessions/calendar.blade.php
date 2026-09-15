@@ -100,14 +100,16 @@ window.__cssClassSessionForm__ = function() {
             editUrl: (id) => `/admin/class-student-sessions/${id}/form`,
             updateUrl: (id) => `/admin/class-student-sessions/${id}`,
             deleteUrl: (id) => `/admin/class-student-sessions/${id}`,
-            listSelector: 'table',
         }),
+        async refreshTable() {
+            location.reload();
+        },
         openCreateWithDate(date, programId) {
             const params = new URLSearchParams();
             if (date) params.set('session_date', date);
             if (programId) params.set('program_id', programId);
             const query = params.toString();
-            const baseUrl = typeof this.createUrl === 'function' ? this.createUrl() : this.createUrl;
+            const baseUrl = this.createUrl;
             const url = query ? `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}${query}` : baseUrl;
             const orig = this.createUrl;
             this.createUrl = url;
