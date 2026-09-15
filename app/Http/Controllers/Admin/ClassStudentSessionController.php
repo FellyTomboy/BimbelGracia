@@ -449,6 +449,8 @@ class ClassStudentSessionController extends Controller
 
     public function update(Request $request, ClassSession $session): JsonResponse|RedirectResponse
     {
+        \Log::info('[update] all: ' . json_encode($request->all()));
+        \Log::info('[update] json: ' . $request->getContent());
         $validated = $request->validate([
             'program_id' => ['required', 'exists:programs,id'],
             'session_date' => ['required', 'date', 'before_or_equal:today'],

@@ -239,6 +239,8 @@ export function crudModal(config) {
                 }
             }
 
+            console.log('[crudModal] submitting data:', JSON.stringify(data));
+
             const url = this.isEdit
                 ? (typeof this.updateUrl === 'function' ? this.updateUrl(this.currentId) : `${this.updateUrl}/${this.currentId}`)
                 : this.storeUrl;
@@ -246,9 +248,10 @@ export function crudModal(config) {
 
             try {
                 const response = await window.Ajax[method](url, data);
+                console.log('[crudModal] submit success:', response.data);
                 window.Toast?.success(this.isEdit ? 'Berhasil diperbarui.' : 'Berhasil disimpan.');
             } catch (e) {
-                console.error('[crudModal] submit error', e.response?.status, e.response?.data);
+                console.error('[crudModal] submit error:', e.response?.status, e.response?.data);
                 if (e.response?.status === 422) {
                     this.errors = e.response.data.errors || {};
                     // Show errors via vanilla JS (Alpine $parent bindings don't work inside x-html)
