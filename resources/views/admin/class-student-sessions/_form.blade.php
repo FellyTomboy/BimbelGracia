@@ -5,6 +5,15 @@
           selectedTeacherIds: [],
           selectedStudentIds: [],
 
+          // Lookup data from window globals (injected by controller createForm/editForm)
+          teachersByProgram: window.__css_teachersByProgram__ || {},
+          studentsByProgram: window.__css_studentsByProgram__ || {},
+
+          // Form state
+          programId: '',
+          teachers: [],
+          students: [],
+
           filteredTeachers() {
               if (!this.teacherSearch) return this.teachers;
               const q = this.teacherSearch.toLowerCase();
@@ -67,6 +76,7 @@
               if (sc) { sc.innerHTML = ""; this.selectedStudentIds.forEach(id => { const i = document.createElement("input"); i.type = "hidden"; i.name = "student_enrollment_map[]"; i.value = id; sc.appendChild(i); }); }
           },
       }'
+      x-init="init()"
       @submit.prevent="$parent.submit()">
 
     @csrf
