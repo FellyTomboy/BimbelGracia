@@ -1,3 +1,95 @@
+<script>
+window.__cssClassSessionForm__ = function() {
+    return {
+        teacherSearch: "",
+        showTeacherDropdown: false,
+        selectedTeacherIds: [],
+        selectedStudentIds: [],
+        teachersByProgram: window.__css_teachersByProgram__ || {},
+        studentsByProgram: window.__css_studentsByProgram__ || {},
+        programId: "",
+        teachers: [],
+        students: [],
+
+        filteredTeachers() {
+            if (!this.teacherSearch) return this.teachers;
+            var q = this.teacherSearch.toLowerCase();
+            return this.teachers.filter(function(t) { return t.name.toLowerCase().indexOf(q) !== -1; });
+        },
+
+        toggleTeacher(teacherId) {
+            var idx = this.selectedTeacherIds.indexOf(teacherId);
+            if (idx >= 0) { this.selectedTeacherIds.splice(idx, 1); }
+            else { this.selectedTeacherIds.push(teacherId); }
+            this.syncHiddenInputs();
+        },
+
+        toggleStudent(studentId) {
+            var idx = this.selectedStudentIds.indexOf(studentId);
+            if (idx >= 0) { this.selectedStudentIds.splice(idx, 1); }
+            else { this.selectedStudentIds.push(studentId); }
+            this.syncHiddenInputs();
+        },
+
+        selectAllStudents() {
+            var self = this;
+            this.students.forEach(function(s) {
+                if (self.selectedStudentIds.indexOf(s.student_id) === -1) {
+                    self.selectedStudentIds.push(s.student_id);
+                }
+            });
+            this.syncHiddenInputs();
+        },
+
+        onProgramChange() {
+            var pid = parseInt(this.programId);
+            this.teachers = (this.teachersByProgram && this.teachersByProgram[pid]) ? this.teachersByProgram[pid] : [];
+            this.students = (this.studentsByProgram && this.studentsByProgram[pid]) ? this.studentsByProgram[pid] : [];
+            this.selectedTeacherIds = [];
+            this.selectedStudentIds = [];
+            this.syncHiddenInputs();
+        },
+
+        init() {
+            if (window.__css_session_teachers__) {
+                var self = this;
+                this.selectedTeacherIds = window.__css_session_teachers__.map(function(t) { return t.id; });
+            }
+            if (window.__css_session_student_ids__) {
+                this.selectedStudentIds = window.__css_session_student_ids__.slice();
+            }
+            this.syncHiddenInputs();
+        },
+
+        syncHiddenInputs() {
+            var tc = document.getElementById("teacher-hidden-container");
+            if (tc) {
+                tc.innerHTML = "";
+                var self = this;
+                this.selectedTeacherIds.forEach(function(id) {
+                    var i = document.createElement("input");
+                    i.type = "hidden";
+                    i.name = "teacher_ids[]";
+                    i.value = id;
+                    tc.appendChild(i);
+                });
+            }
+            var sc = document.getElementById("student-hidden-container");
+            if (sc) {
+                sc.innerHTML = "";
+                this.selectedStudentIds.forEach(function(id) {
+                    var i = document.createElement("input");
+                    i.type = "hidden";
+                    i.name = "student_enrollment_map[]";
+                    i.value = id;
+                    sc.appendChild(i);
+                });
+            }
+        },
+    };
+};
+</script>
+
 <x-app-layout>
     <x-slot name="title">Kalender Kelas</x-slot>
 
@@ -158,7 +250,6 @@
 
                 {{-- Calendar Grid --}}
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                    {{-- Day Header --}}
                     <div class="grid grid-cols-7 border-b border-gray-100">
                         @foreach (['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'] as $dayName)
                             <div class="py-3 text-center text-sm font-semibold text-gray-500 border-r border-gray-100 last:border-r-0">{{ $dayName }}</div>
@@ -268,7 +359,6 @@
                     @endfor
                 </div>
 
-                {{-- Legend: Programs --}}
                 @if (!empty($sessionsByDate))
                     <div class="flex flex-wrap gap-3 text-xs">
                         @foreach ($programs as $program)
