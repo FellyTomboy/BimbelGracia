@@ -291,6 +291,13 @@
             syncStudentHidden();
         };
 
+        // Exposed for re-render after Alpine state sync
+        window.__cssRenderAll = function() {
+            renderTeacherChips();
+            renderTeacherDropdown('');
+            renderStudents();
+        };
+
         // Wire events
         programSelect.addEventListener('change', function() {
             renderTeacherChips();

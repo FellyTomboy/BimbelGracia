@@ -441,9 +441,9 @@ class ClassStudentSessionController extends Controller
             'title' => 'Edit Presensi Kelas — '.$session->session_date->format('d/m/Y'),
             'teachersByProgram' => $teachersByProgram,
             'studentsByProgram' => $studentsByProgram,
-            'sessionTeachers' => $sessionTeachers,
-            'existingStudentIds' => $existingStudentIds,
-            'existingEnrollmentMap' => $existingEnrollmentMap,
+            'session_teachers' => $sessionTeachers,
+            'session_student_ids' => $existingStudentIds,
+            'session_enrollment_map' => $existingEnrollmentMap,
         ]);
     }
 

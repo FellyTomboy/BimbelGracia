@@ -131,6 +131,7 @@ export function classPresensiModal(config) {
             }
 
             this.syncHiddenInputs();
+            window.__cssRenderAll?.();
         },
 
         // ── Open edit ────────────────────────────────────────────────────
