@@ -162,32 +162,31 @@
             syncTeacherHidden();
         }
 
+        function buildTeacherRow(t) {
+            var checked = selectedTeacherIds.indexOf(t.id) !== -1 ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700';
+            var checkmark = selectedTeacherIds.indexOf(t.id) !== -1
+                ? '<svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>'
+                : '';
+            return '<button type="button" class="w-full text-left px-4 py-2.5 text-sm hover:bg-indigo-50 flex items-center justify-between transition-colors ' + checked + '" onclick="window.__cssAddTeacher(' + t.id + ')">'
+                + '<span>' + escHtml(t.name) + '</span>' + checkmark + '</button>';
+        }
+
         function renderTeacherDropdown(q) {
             var teachers = getCurrentTeachers();
-            if (!q) {
-                teacherDropdown.innerHTML = '';
-                teacherDropdown.classList.add('hidden');
+            if (teachers.length === 0) {
+                teacherDropdown.innerHTML = '<div class="px-4 py-2.5 text-sm text-gray-400">Tidak ada guru di program ini.</div>';
+                teacherDropdown.classList.remove('hidden');
                 return;
             }
-            var qLower = q.toLowerCase();
-            var filtered = teachers.filter(function(t) {
-                return t.name.toLowerCase().indexOf(qLower) !== -1;
-            });
+            var filtered = q
+                ? teachers.filter(function(t) { return t.name.toLowerCase().indexOf(q.toLowerCase()) !== -1; })
+                : teachers;
             if (filtered.length === 0) {
-                teacherDropdown.innerHTML = '';
-                teacherDropdown.classList.add('hidden');
+                teacherDropdown.innerHTML = '<div class="px-4 py-2.5 text-sm text-gray-400">Tidak ada guru yang cocok.</div>';
+                teacherDropdown.classList.remove('hidden');
                 return;
             }
-            var html = '';
-            filtered.forEach(function(t) {
-                var checked = selectedTeacherIds.indexOf(t.id) !== -1 ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700';
-                var checkmark = selectedTeacherIds.indexOf(t.id) !== -1
-                    ? '<svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>'
-                    : '';
-                html += '<button type="button" class="w-full text-left px-4 py-2.5 text-sm hover:bg-indigo-50 flex items-center justify-between transition-colors ' + checked + '" onclick="window.__cssAddTeacher(' + t.id + ')">'
-                    + '<span>' + escHtml(t.name) + '</span>' + checkmark + '</button>';
-            });
-            teacherDropdown.innerHTML = html;
+            teacherDropdown.innerHTML = filtered.map(buildTeacherRow).join('');
             teacherDropdown.classList.remove('hidden');
         }
 
@@ -287,6 +286,7 @@
         // Wire events
         programSelect.addEventListener('change', function() {
             renderTeacherChips();
+            renderTeacherDropdown('');
             renderStudents();
         });
 
@@ -311,6 +311,7 @@
             programSelect.value = preselectedProgramId;
         }
         renderTeacherChips();
+        renderTeacherDropdown('');
         renderStudents();
     })();
     </script>
