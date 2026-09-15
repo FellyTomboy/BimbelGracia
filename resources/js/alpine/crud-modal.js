@@ -82,6 +82,41 @@ export function crudModal(config) {
             });
         },
 
+        // Extract <script> tags from HTML, execute them, and return clean HTML.
+        // Scripts inside x-html don't auto-execute, so we do it manually.
+        _extractAndRunScripts(html) {
+            const scriptSrcRegex = /<script([^>]*)>/gi;
+            const scriptEndRegex = /<\/script>/gi;
+            const scripts = [];
+            let cleanHtml = html;
+            let match;
+            let lastIndex = 0;
+
+            // Find all <script>...</script> blocks
+            const fullRegex = /<script(\s[^>]*)?>([\s\S]*?)<\/script>/gi;
+            while ((match = fullRegex.exec(html)) !== null) {
+                const inner = (match[2] || '').trim();
+                if (inner) {
+                    scripts.push(inner);
+                }
+            }
+
+            // Strip script tags from HTML
+            cleanHtml = html.replace(/<script(\s[^>]*)?>[\s\S]*?<\/script>/gi, '');
+
+            // Execute scripts in order
+            scripts.forEach(code => {
+                try {
+                    // eslint-disable-next-line no-eval
+                    (0, eval)(code);
+                } catch (e) {
+                    console.error('[crudModal] script eval error:', e, '\nCode:', code);
+                }
+            });
+
+            return cleanHtml;
+        },
+
         // ── Open create form ──────────────────────────────────────────────
         async openCreate() {
             this.isEdit = false;
@@ -102,15 +137,11 @@ export function crudModal(config) {
             try {
                 const response = await window.Ajax.get(this.createUrl);
                 const data = response.data;
-                console.log('[crudModal] response data keys:', Object.keys(data || {}));
-                console.log('[crudModal] html length:', (data?.html || '').length);
-                console.log('[crudModal] teachersByProgram:', data?.teachersByProgram);
-                console.log('[crudModal] studentsByProgram:', data?.studentsByProgram);
                 // Set lookup data globals BEFORE setting modalBody so form can read them
                 this._injectResponseData(data);
-                console.log('[crudModal] after inject, __css_teachersByProgram__:', window.__css_teachersByProgram__);
                 this.modalTitle = data.title || 'Tambah Data';
-                this.modalBody = data.html || data;
+                // Extract & execute scripts from HTML, then inject
+                this.modalBody = this._extractAndRunScripts(data.html || data);
             } catch (e) {
                 this.modalBody = `
                     <div class="text-center py-8">
@@ -147,7 +178,8 @@ export function crudModal(config) {
                 // Set lookup data globals BEFORE setting modalBody so form can read them
                 this._injectResponseData(data);
                 this.modalTitle = data.title || 'Edit Data';
-                this.modalBody = data.html || data;
+                // Extract & execute scripts from HTML, then inject
+                this.modalBody = this._extractAndRunScripts(data.html || data);
             } catch (e) {
                 this.modalBody = `
                     <div class="text-center py-8">
