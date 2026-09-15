@@ -1,25 +1,19 @@
 <form id="crud-form"
-      x-data='{
-          teacherSearch: "",
+      x-data={
+          teacherSearch: '',
           showTeacherDropdown: false,
           selectedTeacherIds: [],
           selectedStudentIds: [],
-
-          // Lookup data from window globals (injected by controller createForm/editForm)
           teachersByProgram: window.__css_teachersByProgram__ || {},
           studentsByProgram: window.__css_studentsByProgram__ || {},
-
-          // Form state
           programId: '',
           teachers: [],
           students: [],
-
           filteredTeachers() {
               if (!this.teacherSearch) return this.teachers;
               const q = this.teacherSearch.toLowerCase();
               return this.teachers.filter(t => t.name.toLowerCase().includes(q));
           },
-
           toggleTeacher(teacherId) {
               const idx = this.selectedTeacherIds.indexOf(teacherId);
               if (idx >= 0) {
@@ -29,7 +23,6 @@
               }
               this.syncHiddenInputs();
           },
-
           toggleStudent(studentId) {
               const idx = this.selectedStudentIds.indexOf(studentId);
               if (idx >= 0) {
@@ -39,7 +32,6 @@
               }
               this.syncHiddenInputs();
           },
-
           selectAllStudents() {
               this.students.forEach(s => {
                   if (!this.selectedStudentIds.includes(s.student_id)) {
@@ -48,7 +40,6 @@
               });
               this.syncHiddenInputs();
           },
-
           onProgramChange() {
               const pid = parseInt(this.programId);
               this.teachers = (this.teachersByProgram && this.teachersByProgram[pid]) ? this.teachersByProgram[pid] : [];
@@ -57,9 +48,7 @@
               this.selectedStudentIds = [];
               this.syncHiddenInputs();
           },
-
           init() {
-              // Restore selected teachers/students for edit mode from window globals
               if (window.__css_session_teachers__) {
                   this.selectedTeacherIds = window.__css_session_teachers__.map(t => t.id);
               }
@@ -68,14 +57,31 @@
               }
               this.syncHiddenInputs();
           },
-
           syncHiddenInputs() {
-              const tc = document.getElementById("teacher-hidden-container");
-              if (tc) { tc.innerHTML = ""; this.selectedTeacherIds.forEach(id => { const i = document.createElement("input"); i.type = "hidden"; i.name = "teacher_ids[]"; i.value = id; tc.appendChild(i); }); }
-              const sc = document.getElementById("student-hidden-container");
-              if (sc) { sc.innerHTML = ""; this.selectedStudentIds.forEach(id => { const i = document.createElement("input"); i.type = "hidden"; i.name = "student_enrollment_map[]"; i.value = id; sc.appendChild(i); }); }
+              const tc = document.getElementById('teacher-hidden-container');
+              if (tc) {
+                  tc.innerHTML = '';
+                  this.selectedTeacherIds.forEach(id => {
+                      const i = document.createElement('input');
+                      i.type = 'hidden';
+                      i.name = 'teacher_ids[]';
+                      i.value = id;
+                      tc.appendChild(i);
+                  });
+              }
+              const sc = document.getElementById('student-hidden-container');
+              if (sc) {
+                  sc.innerHTML = '';
+                  this.selectedStudentIds.forEach(id => {
+                      const i = document.createElement('input');
+                      i.type = 'hidden';
+                      i.name = 'student_enrollment_map[]';
+                      i.value = id;
+                      sc.appendChild(i);
+                  });
+              }
           },
-      }'
+      }
       x-init="init()"
       @submit.prevent="$parent.submit()">
 
@@ -108,7 +114,7 @@
         </div>
     </div>
 
-    {{-- Guru Hadir (multi-select with search) --}}
+    {{-- Guru Hadir --}}
     <div class="mb-4">
         <label class="block text-sm font-medium text-gray-700 mb-1">Guru yang Hadir</label>
         <div class="relative">
@@ -135,7 +141,7 @@
         <div class="flex flex-wrap gap-2 mt-2">
             <template x-for="teacherId in selectedTeacherIds" :key="teacherId">
                 <span class="inline-flex items-center gap-1 pl-3 pr-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                    <span x-text="teachers.find(t => t.id === teacherId)?.name ?? teacherId"></span>
+                    <span x-text="teachers.find(t => t.id === teacherId) ? teachers.find(t => t.id === teacherId).name : teacherId"></span>
                     <button type="button" @click="toggleTeacher(teacherId)" class="hover:text-rose-600">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
