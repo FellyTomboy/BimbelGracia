@@ -103,6 +103,7 @@
             ? window.__css_session_teachers__.map(function(t) { return t.id; })
             : [];
         var selectedStudentIds = window.__css_session_student_ids__ || [];
+        var enrollmentMap = window.__css_session_enrollment_map__ || {};
 
         var teacherSearchInput = document.getElementById('teacher-search-input');
         var teacherDropdown = document.getElementById('teacher-dropdown');
@@ -145,11 +146,13 @@
 
         function syncStudentHidden() {
             studentContainer.innerHTML = '';
-            selectedStudentIds.forEach(function(id) {
+            selectedStudentIds.forEach(function(studentId) {
+                var enrollmentId = enrollmentMap[studentId];
+                if (!enrollmentId) return;
                 var i = document.createElement('input');
                 i.type = 'hidden';
                 i.name = 'student_enrollment_map[]';
-                i.value = id;
+                i.value = enrollmentId;
                 studentContainer.appendChild(i);
             });
         }
