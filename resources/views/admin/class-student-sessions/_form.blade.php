@@ -1,6 +1,5 @@
 <form id="crud-form"
       x-data="__cssClassSessionForm__()"
-      x-init="init()"
       @submit.prevent="$parent.submit()">
 
     @csrf
