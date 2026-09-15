@@ -1,12 +1,12 @@
 <form id="crud-form"
-      x-data={
-          teacherSearch: '',
+      x-data='{
+          teacherSearch: "",
           showTeacherDropdown: false,
           selectedTeacherIds: [],
           selectedStudentIds: [],
           teachersByProgram: window.__css_teachersByProgram__ || {},
           studentsByProgram: window.__css_studentsByProgram__ || {},
-          programId: '',
+          programId: "",
           teachers: [],
           students: [],
           filteredTeachers() {
@@ -16,20 +16,14 @@
           },
           toggleTeacher(teacherId) {
               const idx = this.selectedTeacherIds.indexOf(teacherId);
-              if (idx >= 0) {
-                  this.selectedTeacherIds.splice(idx, 1);
-              } else {
-                  this.selectedTeacherIds.push(teacherId);
-              }
+              if (idx >= 0) { this.selectedTeacherIds.splice(idx, 1); }
+              else { this.selectedTeacherIds.push(teacherId); }
               this.syncHiddenInputs();
           },
           toggleStudent(studentId) {
               const idx = this.selectedStudentIds.indexOf(studentId);
-              if (idx >= 0) {
-                  this.selectedStudentIds.splice(idx, 1);
-              } else {
-                  this.selectedStudentIds.push(studentId);
-              }
+              if (idx >= 0) { this.selectedStudentIds.splice(idx, 1); }
+              else { this.selectedStudentIds.push(studentId); }
               this.syncHiddenInputs();
           },
           selectAllStudents() {
@@ -58,30 +52,30 @@
               this.syncHiddenInputs();
           },
           syncHiddenInputs() {
-              const tc = document.getElementById('teacher-hidden-container');
+              const tc = document.getElementById("teacher-hidden-container");
               if (tc) {
-                  tc.innerHTML = '';
+                  tc.innerHTML = "";
                   this.selectedTeacherIds.forEach(id => {
-                      const i = document.createElement('input');
-                      i.type = 'hidden';
-                      i.name = 'teacher_ids[]';
+                      const i = document.createElement("input");
+                      i.type = "hidden";
+                      i.name = "teacher_ids[]";
                       i.value = id;
                       tc.appendChild(i);
                   });
               }
-              const sc = document.getElementById('student-hidden-container');
+              const sc = document.getElementById("student-hidden-container");
               if (sc) {
-                  sc.innerHTML = '';
+                  sc.innerHTML = "";
                   this.selectedStudentIds.forEach(id => {
-                      const i = document.createElement('input');
-                      i.type = 'hidden';
-                      i.name = 'student_enrollment_map[]';
+                      const i = document.createElement("input");
+                      i.type = "hidden";
+                      i.name = "student_enrollment_map[]";
                       i.value = id;
                       sc.appendChild(i);
                   });
               }
           },
-      }
+      }'
       x-init="init()"
       @submit.prevent="$parent.submit()">
 
