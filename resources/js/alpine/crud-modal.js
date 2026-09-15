@@ -82,39 +82,29 @@ export function crudModal(config) {
             });
         },
 
-        // Extract <script> tags from HTML, execute them, and return clean HTML.
-        // Scripts inside x-html don't auto-execute, so we do it manually.
-        _extractAndRunScripts(html) {
-            const scriptSrcRegex = /<script([^>]*)>/gi;
-            const scriptEndRegex = /<\/script>/gi;
-            const scripts = [];
-            let cleanHtml = html;
-            let match;
-            let lastIndex = 0;
+        // Returns HTML without <script> tags (pure transformation, no side effects).
+        // Use this when assigning to modalBody so x-html injects a clean DOM.
+        _stripScripts(html) {
+            return html.replace(/<script(\s[^>]*)?>[\s\S]*?<\/script>/gi, '');
+        },
 
-            // Find all <script>...</script> blocks
+        // Extracts and evaluates all <script> tags from HTML.
+        // Must be called AFTER the HTML is in the DOM (e.g. inside $nextTick),
+        // because inline scripts may query DOM elements via getElementById.
+        _runScripts(html) {
             const fullRegex = /<script(\s[^>]*)?>([\s\S]*?)<\/script>/gi;
+            let match;
             while ((match = fullRegex.exec(html)) !== null) {
                 const inner = (match[2] || '').trim();
                 if (inner) {
-                    scripts.push(inner);
+                    try {
+                        // eslint-disable-next-line no-eval
+                        (0, eval)(inner);
+                    } catch (e) {
+                        console.error('[crudModal] script eval error:', e, '\nCode:', inner);
+                    }
                 }
             }
-
-            // Strip script tags from HTML
-            cleanHtml = html.replace(/<script(\s[^>]*)?>[\s\S]*?<\/script>/gi, '');
-
-            // Execute scripts in order
-            scripts.forEach(code => {
-                try {
-                    // eslint-disable-next-line no-eval
-                    (0, eval)(code);
-                } catch (e) {
-                    console.error('[crudModal] script eval error:', e, '\nCode:', code);
-                }
-            });
-
-            return cleanHtml;
         },
 
         // ── Open create form ──────────────────────────────────────────────
@@ -140,8 +130,15 @@ export function crudModal(config) {
                 // Set lookup data globals BEFORE setting modalBody so form can read them
                 this._injectResponseData(data);
                 this.modalTitle = data.title || 'Tambah Data';
-                // Extract & execute scripts from HTML, then inject
-                this.modalBody = this._extractAndRunScripts(data.html || data);
+                // Strip scripts from HTML, inject into DOM, then run scripts and init Alpine
+                // (deferred to $nextTick so inline scripts can query the freshly-mounted DOM)
+                const rawHtml = data.html || data;
+                this.modalBody = this._stripScripts(rawHtml);
+                this.$nextTick(() => {
+                    this._runScripts(rawHtml);
+                    const form = document.getElementById('crud-form');
+                    if (form) window.Alpine.initTree(form);
+                });
             } catch (e) {
                 this.modalBody = `
                     <div class="text-center py-8">
@@ -178,8 +175,15 @@ export function crudModal(config) {
                 // Set lookup data globals BEFORE setting modalBody so form can read them
                 this._injectResponseData(data);
                 this.modalTitle = data.title || 'Edit Data';
-                // Extract & execute scripts from HTML, then inject
-                this.modalBody = this._extractAndRunScripts(data.html || data);
+                // Strip scripts from HTML, inject into DOM, then run scripts and init Alpine
+                // (deferred to $nextTick so inline scripts can query the freshly-mounted DOM)
+                const rawHtml = data.html || data;
+                this.modalBody = this._stripScripts(rawHtml);
+                this.$nextTick(() => {
+                    this._runScripts(rawHtml);
+                    const form = document.getElementById('crud-form');
+                    if (form) window.Alpine.initTree(form);
+                });
             } catch (e) {
                 this.modalBody = `
                     <div class="text-center py-8">
