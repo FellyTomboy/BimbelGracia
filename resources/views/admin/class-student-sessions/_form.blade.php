@@ -104,6 +104,8 @@
             : [];
         var selectedStudentIds = window.__css_session_student_ids__ || [];
         var enrollmentMap = window.__css_session_enrollment_map__ || {};
+        var studentToEnrollmentMap = {};
+        window.__cssStudentEnrollmentMap = studentToEnrollmentMap;
 
         var teacherSearchInput = document.getElementById('teacher-search-input');
         var teacherDropdown = document.getElementById('teacher-dropdown');
@@ -147,8 +149,11 @@
         function syncStudentHidden() {
             studentContainer.innerHTML = '';
             selectedStudentIds.forEach(function(studentId) {
-                var enrollmentId = enrollmentMap[studentId];
-                if (!enrollmentId) return;
+                var enrollmentId = studentToEnrollmentMap[studentId] || enrollmentMap[studentId];
+                if (!enrollmentId) {
+                    console.warn('[form] student', studentId, 'has no enrollment id');
+                    return;
+                }
                 var i = document.createElement('input');
                 i.type = 'hidden';
                 i.name = 'student_enrollment_map[]';
@@ -223,6 +228,7 @@
             selectAllBtn.classList.remove('hidden');
             var html = '';
             students.forEach(function(s) {
+                studentToEnrollmentMap[s.student_id] = s.enrollment_id;
                 var checked = selectedStudentIds.indexOf(s.student_id) !== -1;
                 var borderClass = checked ? 'border-indigo-400 bg-indigo-50' : 'border-gray-200 hover:border-indigo-300';
                 var checkAttr = checked ? ' checked' : '';
