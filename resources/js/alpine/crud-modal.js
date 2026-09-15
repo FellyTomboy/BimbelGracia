@@ -52,19 +52,22 @@ export function crudModal(config) {
         listSelector: config.listSelector || 'table',
 
         init() {
-            // Delegate submit: intercept form submissions from within x-html content.
-            // Uses a lightweight approach: find the Alpine component from the DOM,
-            // then call its submit() method.
+            // Intercept form submissions from x-html-injected modal content.
+            // Walks up the DOM from the form to find the nearest Alpine component
+            // with a submit() method. This works for any wrapper of crudModal
+            // (classPresensiModal, presensiModal, etc.) regardless of the x-data
+            // attribute shape — the previous [x-data^="crudModal"] prefix selector
+            // missed any component that wrapped/spread crudModal.
             document.addEventListener('submit', (e) => {
                 if (!e.target || e.target.id !== 'crud-form') return;
-                e.preventDefault();
-                // Find the closest Alpine component that has our crudModal methods
-                const el = document.querySelector('[x-data^="crudModal"]');
-                if (el && window.Alpine && window.Alpine.$data) {
-                    const data = Alpine.$data(el);
-                    if (data && typeof data.submit === 'function') {
-                        data.submit();
-                    }
+                let el = e.target.parentElement;
+                while (el && (!el.__x || !el.__x.$data || typeof el.__x.$data.submit !== 'function')) {
+                    el = el.parentElement;
+                }
+                if (el && el.__x && el.__x.$data) {
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                    el.__x.$data.submit();
                 }
             }, true);
         },
