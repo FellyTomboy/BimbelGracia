@@ -102,8 +102,13 @@ export function crudModal(config) {
             try {
                 const response = await window.Ajax.get(this.createUrl);
                 const data = response.data;
+                console.log('[crudModal] response data keys:', Object.keys(data || {}));
+                console.log('[crudModal] html length:', (data?.html || '').length);
+                console.log('[crudModal] teachersByProgram:', data?.teachersByProgram);
+                console.log('[crudModal] studentsByProgram:', data?.studentsByProgram);
                 // Set lookup data globals BEFORE setting modalBody so form can read them
                 this._injectResponseData(data);
+                console.log('[crudModal] after inject, __css_teachersByProgram__:', window.__css_teachersByProgram__);
                 this.modalTitle = data.title || 'Tambah Data';
                 this.modalBody = data.html || data;
             } catch (e) {
