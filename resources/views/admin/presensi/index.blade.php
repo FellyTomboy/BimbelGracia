@@ -1,5 +1,133 @@
 <x-app-layout>
     <x-slot name="title">Validasi Presensi</x-slot>
+
+    @if($billingMode === 'daily')
+    {{-- ═══════════════════════════════════════════════════════════════
+         DAILY MODE: AJAX modal flow
+         ═══════════════════════════════════════════════════════════════ --}}
+
+    <div x-data="presensiModal({
+        createUrl: '{{ route('admin.presensi.create-form') }}',
+        storeUrl: '{{ route('admin.presensi.store') }}',
+        editUrl: (id) => `/admin/presensi/${id}/form`,
+        updateUrl: (id) => `/admin/presensi/${id}`,
+        deleteUrl: (id) => `/admin/presensi/${id}`,
+        listSelector: 'table',
+    })"
+    @open-create-modal.window="openCreate()"
+    @open-edit-modal.window="openEdit($event.detail)"
+    @open-delete-modal.window="confirmDelete($event.detail)">
+
+        {{-- Header ─────────────────────────────────────────────────────── --}}
+        <x-slot name="header">
+            <div class="flex items-center justify-between">
+                <h2 class="font-semibold text-xl text-gray-800 leading-tight">Validasi Presensi</h2>
+                <button type="button"
+                        onclick="window.dispatchEvent(new CustomEvent('open-create-modal'))"
+                        class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    Tambah Presensi
+                </button>
+            </div>
+        </x-slot>
+
+        {{-- Create/Edit Modal ─────────────────────────────────────────── --}}
+        <div x-show="modalOpen"
+             x-transition:enter="ease-out duration-200"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="ease-in duration-150"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             class="fixed inset-0 z-50 flex items-center justify-center p-4"
+             style="background:rgba(0,0,0,.25);backdrop-filter:blur(2px)"
+             @keydown.escape.window="close()">
+
+            <div x-show="modalOpen"
+                 x-transition:enter="ease-out duration-200"
+                 x-transition:enter-start="opacity-0 scale-95"
+                 x-transition:enter-end="opacity-100 scale-100"
+                 x-transition:leave="ease-in duration-150"
+                 x-transition:leave-start="opacity-100 scale-100"
+                 x-transition:leave-end="opacity-0 scale-95"
+                 class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+
+                <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-indigo-600 rounded-t-2xl">
+                    <h3 class="text-white font-semibold text-base" x-text="modalTitle">Tambah Presensi</h3>
+                    <button @click="close()" class="text-white/70 hover:text-white transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="p-5 max-h-[70vh] overflow-y-auto">
+                    <div x-html="modalBody" class="space-y-0"></div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Delete Confirmation ─────────────────────────────────────────── --}}
+        <div x-show="deleteConfirmId !== null"
+             x-transition:enter="ease-out duration-200"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="ease-in duration-150"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             class="fixed inset-0 z-50 flex items-center justify-center p-4"
+             style="background:rgba(0,0,0,.25);backdrop-filter:blur(2px)"
+             @keydown.escape.window="deleteConfirmId = null">
+
+            <div x-show="deleteConfirmId !== null"
+                 x-transition:enter="ease-out duration-200"
+                 x-transition:enter-start="opacity-0 scale-95"
+                 x-transition:enter-end="opacity-100 scale-100"
+                 x-transition:leave="ease-in duration-150"
+                 x-transition:leave-start="opacity-100 scale-100"
+                 x-transition:leave-end="opacity-0 scale-95"
+                 class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+
+                <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-rose-600 rounded-t-2xl">
+                    <h3 class="text-white font-semibold text-base">Hapus Presensi?</h3>
+                    <button @click="deleteConfirmId = null" class="text-white/70 hover:text-white transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="p-5">
+                    <p class="text-sm text-gray-600 mb-4">Tindakan ini tidak bisa dibatalkan.</p>
+                    <div class="flex justify-end gap-3">
+                        <button @click="deleteConfirmId = null"
+                                class="px-4 py-2 rounded-xl text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors">
+                            Batal
+                        </button>
+                        <button @click="deleteRow()"
+                                :disabled="deleting"
+                                class="px-4 py-2 rounded-xl text-sm font-medium text-white bg-rose-600 hover:bg-rose-700 transition-colors disabled:opacity-50">
+                            <span x-text="deleting ? 'Menghapus...' : 'Ya, Hapus'"></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Page content ─────────────────────────────────────────────── --}}
+        <div class="py-8">
+            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-4">
+                @include('admin.presensi._table')
+            </div>
+        </div>
+
+    </div>
+
+    @else
+    {{-- ═══════════════════════════════════════════════════════════════
+         MONTHLY MODE: standalone flow (unchanged)
+         ═══════════════════════════════════════════════════════════════ --}}
+
     <x-slot name="header">
         <div class="flex items-center justify-between">
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">Validasi Presensi</h2>
@@ -13,188 +141,14 @@
 
     <div class="py-8">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-4">
-            {{-- Filter & Search Bar --}}
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-                <form method="GET" action="{{ route('admin.presensi.index') }}" class="flex flex-wrap items-end gap-3">
-                    <div>
-                        <label class="block text-xs font-medium text-gray-500 mb-1">Cari</label>
-                        <input type="text" name="search" value="{{ old('search', request('search')) }}"
-                            placeholder="Guru, program, atau murid..."
-                            class="w-52 rounded-xl border-gray-200 text-sm"
-                            {{ request('search') ? 'autofocus' : '' }} />
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-500 mb-1">Status</label>
-                        <select name="status" class="rounded-xl border-gray-200 text-sm">
-                            <option value="">Semua</option>
-                            <option value="terima" @selected(request('status') === 'terima')>Diterima</option>
-                            <option value="terlambat" @selected(request('status') === 'terlambat')>Terlambat</option>
-                            <option value="pending" @selected(request('status') === 'pending')>Pending</option>
-                            <option value="ditolak" @selected(request('status') === 'ditolak')>Ditolak</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-500 mb-1">Urutkan</label>
-                        <select name="sort" class="rounded-xl border-gray-200 text-sm">
-                            <option value="lesson_date" @selected(request('sort', 'lesson_date') === 'lesson_date')>Tanggal</option>
-                            <option value="created_at" @selected(request('sort') === 'created_at')>Tanggal Input</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-500 mb-1">Arah</label>
-                        <select name="dir" class="rounded-xl border-gray-200 text-sm">
-                            <option value="desc" @selected(request('dir', 'desc') === 'desc')>Terbaru</option>
-                            <option value="asc" @selected(request('dir') === 'asc')>Terlama</option>
-                        </select>
-                    </div>
-                    <button type="submit" class="px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm">
-                        Cari
-                    </button>
-                    @if (request()->anyFilled(['search', 'status', 'sort', 'dir']))
-                        <a href="{{ route('admin.presensi.index') }}" class="px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition-colors">Reset</a>
-                    @endif
-                </form>
-            </div>
-
-            {{-- Table --}}
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                @if (request('search'))
-                    <div class="px-4 py-2 bg-indigo-50 border-b border-indigo-100 text-xs text-indigo-700">
-                        Menampilkan {{ $attendances->count() }} dari {{ $attendances->total() }} hasil untuk "<strong>{{ request('search') }}</strong>"
-                    </div>
-                @endif
-                <div class="overflow-x-auto">
-                    <table class="min-w-full text-sm" id="attendance-table">
-                        <thead>
-                            <tr class="text-left text-gray-500 bg-gray-50/50 text-xs uppercase tracking-wide">
-                                <th class="py-3 px-4 font-medium sortable" data-sort="lesson_date">
-                                    <span class="flex items-center gap-1">
-                                        Tanggal
-                                        @if (request('sort', 'lesson_date') === 'lesson_date')
-                                            @if (request('dir', 'desc') === 'desc') ↓ @else ↑ @endif
-                                        @endif
-                                    </span>
-                                </th>
-                                <th class="py-3 px-4 font-medium sortable" data-sort="program">
-                                    <span class="flex items-center gap-1">
-                                        Program
-                                        @if (request('sort') === 'program') @if (request('dir') === 'asc') ↑ @else ↓ @endif @endif
-                                    </span>
-                                </th>
-                                <th class="py-3 px-4 font-medium sortable" data-sort="guru">
-                                    <span class="flex items-center gap-1">
-                                        Guru
-                                        @if (request('sort') === 'guru') @if (request('dir') === 'asc') ↑ @else ↓ @endif @endif
-                                    </span>
-                                </th>
-                                <th class="py-3 px-4 font-medium sortable" data-sort="murid">
-                                    <span class="flex items-center gap-1">
-                                        Murid
-                                        @if (request('sort') === 'murid') @if (request('dir') === 'asc') ↑ @else ↓ @endif @endif
-                                    </span>
-                                </th>
-                                <th class="py-3 px-4 font-medium">Enrollment</th>
-                                <th class="py-3 px-4 font-medium">Status</th>
-                                <th class="py-3 px-4 font-medium">Notifikasi</th>
-                                <th class="py-3 px-4 font-medium">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-50" id="attendance-tbody">
-                            @forelse ($attendances as $attendance)
-                                <tr class="hover:bg-gray-50/50 transition-colors" data-lesson-date="{{ $attendance->lesson_date?->format('Y-m-d') ?? '' }}" data-created-at="{{ $attendance->created_at?->timestamp ?? 0 }}" data-program="{{ strtolower($attendance->enrollment?->program?->name ?? '') }}" data-guru="{{ strtolower($attendance->enrollment?->teacher?->displayName ?? '') }}" data-murid="{{ strtolower($attendance->students->map(fn($s) => $s->display_name)->join(' ')) }}">
-                                    <td class="py-3 px-4 text-gray-900">{{ $attendance->lesson_date?->format('d M Y') ?? '-' }}</td>
-                                    <td class="py-3 px-4">
-                                        <x-hibernated-label :model="$attendance->enrollment?->program" :label="$attendance->enrollment?->program?->name ?? '-'" type="program" />
-                                    </td>
-                                    <td class="py-3 px-4">
-                                        <x-hibernated-label :model="$attendance->enrollment?->teacher" :label="$attendance->enrollment?->teacher?->displayName ?? '-'" type="guru" />
-                                    </td>
-                                    <td class="py-3 px-4">
-                                        @if ($attendance->students->count() > 0)
-                                            @foreach ($attendance->students as $student)
-                                                <x-hibernated-label :model="$student" :label="$student->display_name" type="murid privat" />{{ !$loop->last ? ', ' : '' }}
-                                            @endforeach
-                                        @else
-                                            <span class="text-gray-400">-</span>
-                                        @endif
-                                    </td>
-                                    <td class="py-3 px-4 text-gray-600">#{{ $attendance->enrollment_id }}</td>
-                                    <td class="py-3 px-4">
-                                        <span data-row-status
-                                            @if ($attendance->status_validation === 'terima')
-                                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200"
-                                            @elseif ($attendance->status_validation === 'terlambat')
-                                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200"
-                                            @elseif ($attendance->status_validation === 'ditolak')
-                                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-50 text-rose-700 border border-rose-200"
-                                            @else
-                                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-50 text-gray-600 border border-gray-200"
-                                            @endif>
-                                            @if ($attendance->status_validation === 'terima')Diterima
-                                            @elseif ($attendance->status_validation === 'terlambat')Terlambat
-                                            @elseif ($attendance->status_validation === 'ditolak')Ditolak
-                                            @else Pending
-                                            @endif
-                                        </span>
-                                    </td>
-                                    <td class="py-3 px-4">
-                                        @if ($attendance->parent_review_status === 'pending')
-                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">Menunggu</span>
-                                        @elseif ($attendance->parent_review_status === 'rejected')
-                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-rose-50 text-rose-700 border border-rose-200">Ditolak</span>
-                                        @elseif ($attendance->parent_review_status === 'dismissed')
-                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-50 text-gray-500 border border-gray-200">Batal</span>
-                                        @else
-                                            <span class="text-gray-400">-</span>
-                                        @endif
-                                    </td>
-                                    <td class="py-3 px-4">
-                                        <div class="flex items-center gap-1">
-                                            <select name="status"
-                                                class="text-xs border-gray-200 rounded-lg py-1 px-2 bg-white"
-                                                onchange="handleQuickValidate(this, {{ $attendance->id }})">
-                                                <option value="">—</option>
-                                                <option value="terima">Terima</option>
-                                                <option value="terlambat">Terlambat</option>
-                                                <option value="ditolak">Tolak</option>
-                                            </select>
-                                            @if ($attendance->status_validation !== 'ditolak')
-                                                <a href="{{ route('admin.presensi.edit', $attendance) }}"
-                                                    class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors">
-                                                    Edit
-                                                </a>
-                                                <button type="button"
-                                                    onclick="openDeleteAttendanceModal({{ $attendance->id }}, '{{ addslashes($attendance->enrollment?->program?->name ?? '-') }}', '{{ $attendance->lesson_date?->format('d/m/Y') ?? '-' }}')"
-                                                    class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">
-                                                    Hapus
-                                                </button>
-                                            @endif
-                                        </div>
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="8" class="py-12 text-center text-gray-400">
-                                        <div class="flex flex-col items-center gap-2">
-                                            <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-                                            <p>Tidak ada data presensi</p>
-                                        </div>
-                                    </td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-                @if ($attendances->hasPages())
-                    <div class="px-4 py-3 border-t border-gray-100">
-                        {{ $attendances->links('pagination::tailwind') }}
-                    </div>
-                @endif
-            </div>
+            @include('admin.presensi._table')
         </div>
     </div>
 
-    {{-- Delete Confirmation Modal ─────────────────────────────────────────── --}}
+    @endif
+
+    {{-- Delete Confirmation Modal (vanilla JS — monthly mode only) ─── --}}
+    @if($billingMode !== 'daily')
     <div id="delete-attendance-modal"
          class="fixed inset-0 z-50 hidden items-center justify-center p-4"
          style="background:rgba(0,0,0,.25);backdrop-filter:blur(2px)">
@@ -271,7 +225,11 @@
                 btn.textContent = 'Ya, Hapus';
             }
         }
+    </script>
+    @endif
 
+    {{-- handleQuickValidate: available in both modes (used by inline select in table) --}}
+    <script>
         function handleQuickValidate(selectEl, attendanceId) {
             const status = selectEl.value;
             if (!status) return;
@@ -289,9 +247,13 @@
                 })
                 .catch(() => { selectEl.value = ''; });
         }
+    </script>
+    @endif
 
+    <script>
         document.addEventListener('DOMContentLoaded', function() {
             const tbody = document.getElementById('attendance-tbody');
+            if (!tbody) return;
             const rows = Array.from(tbody.querySelectorAll('tr[data-lesson-date]'));
             const headers = document.querySelectorAll('th.sortable');
 

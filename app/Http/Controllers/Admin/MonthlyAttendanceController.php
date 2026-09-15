@@ -86,7 +86,95 @@ class MonthlyAttendanceController extends Controller
 
         $attendances = $query->paginate(20)->withQueryString();
 
-        return view('admin.presensi.index', compact('attendances'));
+        $billingMode = $this->fineService->getBillingMode();
+
+        return view('admin.presensi.index', compact('attendances', 'billingMode'));
+    }
+
+    public function createForm(Request $request): JsonResponse
+    {
+        $enrollments = Enrollment::with(['program', 'teacher', 'students'])
+            ->where('status', 'active')
+            ->whereHas('program', fn($q) => $q->where('type', 'privat'))
+            ->orderBy('id')
+            ->get()
+            ->map(function ($e) {
+                $teacher = $e->teacher;
+                $teacherFn = trim((string) ($teacher->full_name ?? ''));
+                $teacherNn = trim((string) ($teacher->nickname ?? ''));
+                return [
+                    'id' => $e->id,
+                    'type' => $e->type,
+                    'program' => $e->program ? ['id' => $e->program->id, 'name' => $e->program->name, 'type' => $e->program->type] : null,
+                    'teacher' => $teacher ? [
+                        'id' => $teacher->id,
+                        'display_name' => $teacherFn ? ($teacherNn ? "{$teacherFn} ({$teacherNn})" : $teacherFn) : ($teacherNn ?: 'Tanpa nama'),
+                    ] : null,
+                    'students' => $e->students->map(function ($s) {
+                        $fn = trim((string) ($s->full_name ?? ''));
+                        $nn = trim((string) ($s->nickname ?? ''));
+                        return [
+                            'id' => $s->id,
+                            'name' => $fn ? ($nn ? "{$fn} ({$nn})" : $fn) : ($nn ?: 'Tanpa nama'),
+                        ];
+                    })->values()->all(),
+                ];
+            })
+            ->values()
+            ->all();
+
+        $html = view('admin.presensi._form', [
+            'attendance' => null,
+            'enrollments' => $enrollments,
+        ])->render();
+
+        return response()->json([
+            'html' => $html,
+            'title' => 'Tambah Presensi',
+        ]);
+    }
+
+    public function editForm(MonthlyAttendance $attendance): JsonResponse
+    {
+        $attendance->load(['enrollment.program', 'enrollment.teacher', 'students']);
+
+        $enrollments = Enrollment::with(['program', 'teacher', 'students'])
+            ->orderBy('id')
+            ->get()
+            ->map(function ($e) {
+                $teacher = $e->teacher;
+                $teacherFn = trim((string) ($teacher->full_name ?? ''));
+                $teacherNn = trim((string) ($teacher->nickname ?? ''));
+                return [
+                    'id' => $e->id,
+                    'type' => $e->type,
+                    'program' => $e->program ? ['id' => $e->program->id, 'name' => $e->program->name, 'type' => $e->program->type] : null,
+                    'teacher' => $teacher ? [
+                        'id' => $teacher->id,
+                        'display_name' => $teacherFn ? ($teacherNn ? "{$teacherFn} ({$teacherNn})" : $teacherFn) : ($teacherNn ?: 'Tanpa nama'),
+                    ] : null,
+                    'students' => $e->students->map(function ($s) {
+                        $fn = trim((string) ($s->full_name ?? ''));
+                        $nn = trim((string) ($s->nickname ?? ''));
+                        return [
+                            'id' => $s->id,
+                            'name' => $fn ? ($nn ? "{$fn} ({$nn})" : $fn) : ($nn ?: 'Tanpa nama'),
+                        ];
+                    })->values()->all(),
+                ];
+            })
+            ->values()
+            ->all();
+
+        $html = view('admin.presensi._form', [
+            'attendance' => $attendance,
+            'enrollments' => $enrollments,
+        ])->render();
+
+        return response()->json([
+            'html' => $html,
+            'title' => 'Edit Presensi — ' . $attendance->lesson_date->format('d/m/Y'),
+        ]);
     }
 
     public function create(): View
@@ -388,6 +476,13 @@ class MonthlyAttendanceController extends Controller
             }
         }
 
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Presensi berhasil diperbarui.',
+            ]);
+        }
+
         return redirect()
             ->route('admin.presensi.index')
             ->with('status', 'Presensi berhasil diperbarui.');
@@ -555,6 +650,14 @@ class MonthlyAttendanceController extends Controller
                     collect($validated['student_ids'])->mapWithKeys(fn ($id) => [$id => ['total_present' => 1]])
                 );
             }
+        }
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Presensi berhasil ditambahkan.',
+                'attendance_id' => $attendance->id,
+            ]);
         }
 
         return redirect()

@@ -182,8 +182,10 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('presensi.index');
             Route::get('presensi/create', [AdminAttendanceController::class, 'create'])
                 ->name('presensi.create');
-            Route::post('presensi/bulk', [AdminAttendanceController::class, 'storeBulk'])
-                ->name('presensi.store-bulk');
+            Route::get('presensi/form', [AdminAttendanceController::class, 'createForm'])
+                ->name('presensi.create-form');
+            Route::get('presensi/{attendance}/form', [AdminAttendanceController::class, 'editForm'])
+                ->name('presensi.edit-form');
             Route::post('presensi', [AdminAttendanceController::class, 'store'])
                 ->name('presensi.store');
             Route::get('presensi/{attendance}', [AdminAttendanceController::class, 'show'])
@@ -322,6 +324,10 @@ Route::middleware(['auth', 'password.force'])->group(function () {
                 ->name('class-student-sessions.index');
             Route::get('class-student-sessions/table', [ClassStudentSessionController::class, 'table'])
                 ->name('class-student-sessions.table');
+            Route::get('class-student-sessions/form', [ClassStudentSessionController::class, 'createForm'])
+                ->name('class-student-sessions.create-form');
+            Route::get('class-student-sessions/{session}/form', [ClassStudentSessionController::class, 'editForm'])
+                ->name('class-student-sessions.edit-form');
             Route::get('class-student-sessions/create', [ClassStudentSessionController::class, 'create'])
                 ->name('class-student-sessions.create');
             Route::post('class-student-sessions', [ClassStudentSessionController::class, 'store'])

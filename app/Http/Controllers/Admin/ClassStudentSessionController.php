@@ -179,7 +179,74 @@ class ClassStudentSessionController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function createForm(Request $request): JsonResponse
+    {
+        $month = (int) ($request->query('month') ?? now()->month);
+        $year = (int) ($request->query('year') ?? now()->year);
+        $programId = (int) ($request->query('program_id') ?? 0);
+        $sessionDate = $request->query('session_date')
+            ? Carbon::parse($request->query('session_date'))->format('Y-m-d')
+            : Carbon::create($year, $month, 1)->format('Y-m-d');
+
+        $programs = Program::where('type', 'kelas')
+            ->where('status', 'active')
+            ->orderBy('name')
+            ->get();
+
+        // All students grouped by program_id
+        $enrollments = Enrollment::with(['students'])
+            ->whereIn('program_id', $programs->pluck('id'))
+            ->where('type', 'kelas')
+            ->where('status', 'active')
+            ->withTrashed()
+            ->get();
+
+        $studentsByProgram = [];
+        foreach ($enrollments as $enrollment) {
+            foreach ($enrollment->students as $student) {
+                $pid = (int) $enrollment->program_id;
+                if (!isset($studentsByProgram[$pid])) {
+                    $studentsByProgram[$pid] = [];
+                }
+                $studentsByProgram[$pid][] = [
+                    'student_id' => $student->id,
+                    'student_name' => $student->display_name,
+                    'enrollment_id' => $enrollment->id,
+                ];
+            }
+        }
+
+        // Teachers grouped by program_id
+        $teachersByProgram = [];
+        foreach ($programs as $p) {
+            $teachersByProgram[(int) $p->id] = $p->teachers()
+                ->orderBy('full_name')
+                ->get()
+                ->map(fn ($t) => [
+                    'id' => $t->id,
+                    'name' => $t->displayName,
+                    'rate' => $t->pivot->rate ?? 0,
+                ])
+                ->values()
+                ->toArray();
+        }
+
+        $html = view('admin.class-student-sessions._form', [
+            'session' => null,
+            'programs' => $programs,
+            'sessionDate' => $sessionDate,
+            'selectedProgramId' => $programId ?: null,
+        ])->render();
+
+        $script = "<script>window.__css_teachersByProgram__ = ".json_encode($teachersByProgram)."; window.__css_studentsByProgram__ = ".json_encode($studentsByProgram).";</script>";
+
+        return response()->json([
+            'html' => $script.$html,
+            'title' => 'Tambah Presensi Kelas',
+        ]);
+    }
+
+    public function store(Request $request): JsonResponse|RedirectResponse
     {
         $validated = $request->validate([
             'program_id' => ['required', 'exists:programs,id'],
@@ -283,12 +350,20 @@ class ClassStudentSessionController extends Controller
             }
         });
 
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Presensi kelas berhasil dicatat.',
+                'session_id' => $classSession->id,
+            ]);
+        }
+
         return redirect()
             ->route('admin.class-student-sessions.index', ['month' => $sessionDate->month, 'year' => $sessionDate->year])
             ->with('status', 'Presensi kelas berhasil dicatat.');
     }
 
-    public function edit(Request $request, ClassSession $session): View
+    public function editForm(Request $request, ClassSession $session): JsonResponse
     {
         $programs = Program::where('type', 'kelas')
             ->where('status', 'active')
@@ -297,26 +372,6 @@ class ClassStudentSessionController extends Controller
 
         $session->load(['program', 'teachers', 'attendances.enrollment', 'attendances.students']);
 
-        // Load students from ALL programs (for JS program switching), include program_id
-        $allEnrollments = Enrollment::with(['students'])
-            ->whereIn('program_id', $programs->pluck('id'))
-            ->where('type', 'kelas')
-            ->where('status', 'active')
-            ->withTrashed()
-            ->get();
-
-        $allStudents = [];
-        foreach ($allEnrollments as $enrollment) {
-            foreach ($enrollment->students as $student) {
-                $allStudents[] = [
-                    'student_id' => $student->id,
-                    'student_name' => $student->display_name,
-                    'enrollment_id' => $enrollment->id,
-                    'program_id' => $enrollment->program_id,
-                ];
-            }
-        }
-
         // Build { student_id => enrollment_id } map correctly from attendances
         $existingEnrollmentMap = [];
         foreach ($session->attendances as $attendance) {
@@ -324,20 +379,9 @@ class ClassStudentSessionController extends Controller
                 $existingEnrollmentMap[$student->id] = $attendance->enrollment_id;
             }
         }
-
         $existingStudentIds = array_keys($existingEnrollmentMap);
 
-        // Teachers assigned to the session's program (with pivot rate)
-        $programTeachers = $session->program->teachers()->orderBy('full_name')->get();
-        $teachersList = $programTeachers
-            ->map(fn ($t) => [
-                'id' => $t->id,
-                'name' => $t->displayName,
-                'rate' => $t->pivot->rate,
-            ])
-            ->values()
-            ->toArray();
-
+        // Teachers from the session
         $sessionTeachers = $session->teachers
             ->map(fn ($t) => [
                 'id' => $t->id,
@@ -347,35 +391,66 @@ class ClassStudentSessionController extends Controller
             ->values()
             ->toArray();
 
-        // All teachers grouped by program (for JS dynamic switching)
+        // All teachers grouped by program
         $teachersByProgram = [];
         foreach ($programs as $p) {
-            $pTeachers = $p->teachers()->orderBy('full_name')->get();
-            $teachersByProgram[$p->id] = $pTeachers
+            $teachersByProgram[(int) $p->id] = $p->teachers()
+                ->orderBy('full_name')
+                ->get()
                 ->map(fn ($t) => [
                     'id' => $t->id,
                     'name' => $t->displayName,
-                    'rate' => $t->pivot->rate,
+                    'rate' => $t->pivot->rate ?? 0,
                 ])
                 ->values()
                 ->toArray();
         }
 
-        return view('admin.class-student-sessions.edit', [
-            'programs' => $programs,
+        // All students grouped by program
+        $enrollments = Enrollment::with(['students'])
+            ->whereIn('program_id', $programs->pluck('id'))
+            ->where('type', 'kelas')
+            ->where('status', 'active')
+            ->withTrashed()
+            ->get();
+
+        $studentsByProgram = [];
+        foreach ($enrollments as $enrollment) {
+            foreach ($enrollment->students as $student) {
+                $pid = (int) $enrollment->program_id;
+                if (!isset($studentsByProgram[$pid])) {
+                    $studentsByProgram[$pid] = [];
+                }
+                $studentsByProgram[$pid][] = [
+                    'student_id' => $student->id,
+                    'student_name' => $student->display_name,
+                    'enrollment_id' => $enrollment->id,
+                ];
+            }
+        }
+
+        $html = view('admin.class-student-sessions._form', [
             'session' => $session,
-            'allStudents' => $allStudents,
-            'teachersList' => $teachersList,
-            'teachersByProgram' => $teachersByProgram,
-            'month' => $session->session_date->month,
-            'year' => $session->session_date->year,
-            'existingStudentIds' => $existingStudentIds,
-            'existingEnrollmentMap' => $existingEnrollmentMap,
-            'sessionTeachers' => $sessionTeachers,
+            'programs' => $programs,
+            'sessionDate' => $session->session_date->format('Y-m-d'),
+            'selectedProgramId' => $session->program_id,
+        ])->render();
+
+        $script = "<script>".
+            "window.__css_teachersByProgram__ = ".json_encode($teachersByProgram).";".
+            "window.__css_studentsByProgram__ = ".json_encode($studentsByProgram).";".
+            "window.__css_session_teachers__ = ".json_encode($sessionTeachers).";".
+            "window.__css_session_student_ids__ = ".json_encode($existingStudentIds).";".
+            "window.__css_session_enrollment_map__ = ".json_encode($existingEnrollmentMap).";".
+            "</script>";
+
+        return response()->json([
+            'html' => $script.$html,
+            'title' => 'Edit Presensi Kelas — '.$session->session_date->format('d/m/Y'),
         ]);
     }
 
-    public function update(Request $request, ClassSession $session): RedirectResponse
+    public function update(Request $request, ClassSession $session): JsonResponse|RedirectResponse
     {
         $validated = $request->validate([
             'program_id' => ['required', 'exists:programs,id'],
@@ -513,6 +588,13 @@ class ClassStudentSessionController extends Controller
                 ->whereNotIn('session_teacher_id', $teacherIds)
                 ->delete();
         });
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Presensi kelas berhasil diperbarui.',
+            ]);
+        }
 
         return redirect()
             ->route('admin.class-student-sessions.index', ['month' => $sessionDate->month, 'year' => $sessionDate->year])
