@@ -80,6 +80,14 @@
                   class="w-full rounded-xl border border-gray-200 text-sm">{{ $session?->notes ?? old('notes') }}</textarea>
     </div>
 
+    {{-- Submit --}}
+    <div class="flex justify-end pt-4 mt-2 border-t border-gray-100">
+        <button type="submit"
+                class="px-5 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm">
+            Simpan Presensi
+        </button>
+    </div>
+
     {{-- Init: wire up vanilla JS handlers after DOM is ready --}}
     <script>
     (function() {
