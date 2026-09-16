@@ -97,11 +97,21 @@ export function classPresensiModal(config) {
             const studentContainer = document.getElementById('student-hidden-container');
             if (studentContainer) {
                 studentContainer.innerHTML = '';
-                this.selectedStudentIds.forEach(id => {
+                const liveMap = window.__cssStudentEnrollmentMap || {};
+                this.selectedStudentIds.forEach(studentId => {
+                    // selectedStudentIds holds STUDENT IDs, but the controller
+                    // expects ENROLLMENT IDs in student_enrollment_map[].
+                    // Map via the live lookup (built by renderStudents) or fall
+                    // back to the controller-provided existing-enrollment map.
+                    const enrollmentId = liveMap[studentId] || this._existingEnrollmentMap[studentId];
+                    if (!enrollmentId) {
+                        console.warn('[classPresensiModal] no enrollment id for student', studentId);
+                        return;
+                    }
                     const input = document.createElement('input');
                     input.type = 'hidden';
                     input.name = 'student_enrollment_map[]';
-                    input.value = id;
+                    input.value = enrollmentId;
                     studentContainer.appendChild(input);
                 });
             }
