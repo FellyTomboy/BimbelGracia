@@ -129,4 +129,19 @@
                   rows="2"
                   class="w-full rounded-xl border border-gray-200 text-sm">{{ $attendance?->notes ?? '' }}</textarea>
     </div>
+
+    {{-- Actions --}}
+    <div class="flex justify-end gap-3 pt-2">
+        <button type="button"
+                @click="modalOpen = false"
+                class="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+            Batal
+        </button>
+        <button type="button"
+                @click="submit()"
+                :disabled="submitting"
+                class="px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50">
+            <span x-text="submitting ? 'Menyimpan...' : 'Simpan'"></span>
+        </button>
+    </div>
 </form>
