@@ -120,6 +120,14 @@ export function classPresensiModal(config) {
         // ── Post-edit-load initialization ─────────────────────────────────
         // After openEdit renders the form partial, populate from window globals
         initFormFromGlobals() {
+            // Re-read globals: the captured values at factory init are stale
+            // because editForm AJAX populates window.__css_session_*__ later
+            // (factory is created when Alpine mounts the calendar page, before
+            // the user clicks Edit).
+            this._existingTeacherIds    = window.__css_session_teachers__?.map(t => t.id) || [];
+            this._existingStudentIds    = window.__css_session_student_ids__ || [];
+            this._existingEnrollmentMap = window.__css_session_enrollment_map__ || {};
+
             // Restore selected teachers from global
             this.selectedTeacherIds = this._existingTeacherIds.filter(id =>
                 this.teachers.some(t => t.id === id)

@@ -305,6 +305,7 @@
             renderTeacherChips();
             renderTeacherDropdown('');
             renderStudents();
+            syncStudentHidden();
         };
 
         // Wire events
