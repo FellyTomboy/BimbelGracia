@@ -67,7 +67,7 @@
         </select>
         {{-- Hidden input so enrollment_id is submitted in edit mode --}}
         @if($attendance)
-            <input type="hidden" name="enrollment_id" x-model="selectedEnrollmentId" />
+            <input type="hidden" name="enrollment_id" value="{{ $attendance?->enrollment_id }}" />
         @endif
         <p class="crud-error-enrollment_id text-sm text-rose-500 mt-1" style="display:none"></p>
     </div>
