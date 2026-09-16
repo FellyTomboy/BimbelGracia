@@ -449,13 +449,6 @@ class ClassStudentSessionController extends Controller
 
     public function update(Request $request, ClassSession $session): JsonResponse|RedirectResponse
     {
-        // Workaround: multipart PUT requests may not be parsed by Laravel; fallback to raw parse
-        $all = $request->all();
-        if (empty($all)) {
-            $body = file_get_contents('php://input');
-            $all = $this->_parseMultipartForm($body);
-        }
-        $request->merge($all);
         $validated = $request->validate([
             'program_id' => ['required', 'exists:programs,id'],
             'session_date' => ['required', 'date', 'before_or_equal:today'],
@@ -603,40 +596,6 @@ class ClassStudentSessionController extends Controller
         return redirect()
             ->route('admin.class-student-sessions.index', ['month' => $sessionDate->month, 'year' => $sessionDate->year])
             ->with('status', 'Presensi kelas berhasil diperbarui.');
-    }
-
-    private function _parseMultipartForm(string $body): array
-    {
-        $boundary = null;
-        if (preg_match('/boundary=(.*)$/s', $body, $m)) {
-            $boundary = '--' . trim($m[1], '"');
-        }
-        if (!$boundary) {
-            return [];
-        }
-        $parts = array_filter(explode($boundary, $body));
-        $data = [];
-        foreach ($parts as $part) {
-            $part = trim($part);
-            if ($part === '' || $part === '--') {
-                continue;
-            }
-            [$header, $content] = explode("\r\n\r\n", $part, 2);
-            $content = rtrim($content, "\r\n");
-            if (preg_match('/name="([^"]+)"/s', $header, $m)) {
-                $name = $m[1];
-                if (isset($data[$name])) {
-                    if (is_array($data[$name])) {
-                        $data[$name][] = $content;
-                    } else {
-                        $data[$name] = [$data[$name], $content];
-                    }
-                } else {
-                    $data[$name] = $content;
-                }
-            }
-        }
-        return $data;
     }
 
     public function previewDeleteConfirm(ClassSession $session): JsonResponse

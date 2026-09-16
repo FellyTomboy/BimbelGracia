@@ -1,7 +1,7 @@
 /**
  * Alpine factory for class-student-sessions (kalender presensi kelas) AJAX modal.
  * - Extends crudModal for modal infrastructure (openCreate, openEdit, close, etc.)
- * - Overrides submit() to use FormData (no file upload here, but consistent)
+ * - Overrides submit() to send JSON (no file upload in this form)
  * - Manages program → teachers + students cascade via window globals injected by controller
  * - Teacher multi-select with search, student multi-select with "Pilih Semua"
  *
@@ -181,7 +181,35 @@ export function classPresensiModal(config) {
                 el.classList.add('border-gray-300');
             });
 
-            const fd = new FormData(form);
+            // Build plain object — sent as JSON body (Laravel decodes natively).
+            // Strip trailing "[]" so multiple hidden inputs with array names
+            // (e.g. teacher_ids[]) accumulate into one JSON array, and the
+            // resulting key matches Laravel's validation rules (which expect
+            // "teacher_ids", not "teacher_ids[]").
+            const data = {};
+            for (const el of form.querySelectorAll('input[name], select[name], textarea[name]')) {
+                let value;
+                if (el.type === 'checkbox') {
+                    if (!el.checked) continue;
+                    value = el.value || 'on';
+                } else if (el.type === 'radio') {
+                    if (!el.checked) continue;
+                    value = el.value;
+                } else if (el.tagName === 'SELECT' && el.multiple) {
+                    value = Array.from(el.selectedOptions).map(o => o.value);
+                } else if (el.type === 'hidden' || (el.value !== undefined && el.value !== '')) {
+                    value = el.value;
+                } else {
+                    continue;
+                }
+                const key = el.name.endsWith('[]') ? el.name.slice(0, -2) : el.name;
+                if (key in data) {
+                    if (!Array.isArray(data[key])) data[key] = [data[key]];
+                    data[key].push(value);
+                } else {
+                    data[key] = value;
+                }
+            }
 
             const url = this.isEdit
                 ? (typeof this.updateUrl === 'function' ? this.updateUrl(this.currentId) : `${this.updateUrl}/${this.currentId}`)
@@ -189,7 +217,7 @@ export function classPresensiModal(config) {
             const method = this.isEdit ? 'put' : 'post';
 
             try {
-                await window.Ajax[method](url, fd);
+                await window.Ajax[method](url, data);
                 window.Toast?.success(this.isEdit ? 'Presensi kelas berhasil diperbarui.' : 'Presensi kelas berhasil dicatat.');
             } catch (e) {
                 if (e.response?.status === 422) {
