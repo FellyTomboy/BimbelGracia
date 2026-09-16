@@ -248,7 +248,6 @@
                 .catch(() => { selectEl.value = ''; });
         }
     </script>
-    @endif
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
