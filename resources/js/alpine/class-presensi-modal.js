@@ -185,7 +185,9 @@ export function classPresensiModal(config) {
             // Strip trailing "[]" so multiple hidden inputs with array names
             // (e.g. teacher_ids[]) accumulate into one JSON array, and the
             // resulting key matches Laravel's validation rules (which expect
-            // "teacher_ids", not "teacher_ids[]").
+            // "teacher_ids", not "teacher_ids[]"). When the name has "[]", the
+            // value is ALWAYS an array — even for a single input — because
+            // Laravel's `array` validation rule rejects a bare string.
             const data = {};
             for (const el of form.querySelectorAll('input[name], select[name], textarea[name]')) {
                 let value;
@@ -202,10 +204,13 @@ export function classPresensiModal(config) {
                 } else {
                     continue;
                 }
-                const key = el.name.endsWith('[]') ? el.name.slice(0, -2) : el.name;
+                const isArray = el.name.endsWith('[]');
+                const key = isArray ? el.name.slice(0, -2) : el.name;
                 if (key in data) {
                     if (!Array.isArray(data[key])) data[key] = [data[key]];
                     data[key].push(value);
+                } else if (isArray) {
+                    data[key] = [value];
                 } else {
                     data[key] = value;
                 }
