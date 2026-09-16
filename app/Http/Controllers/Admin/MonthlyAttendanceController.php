@@ -378,15 +378,36 @@ class MonthlyAttendanceController extends Controller
         return view('admin.presensi.edit', compact('attendance', 'enrollments'));
     }
 
-    public function update(Request $request, MonthlyAttendance $attendance): RedirectResponse
+    public function update(Request $request, MonthlyAttendance $attendance): JsonResponse|RedirectResponse
     {
         $validated = $request->validate([
-            'enrollment_id' => ['required', 'integer', 'exists:enrollments,id'],
+            'enrollment_id' => [
+                'required',
+                'integer',
+                function ($attribute, $value, $fail) {
+                    // Allow soft-deleted enrollments — attendance may have been created
+                    // when the enrollment was still active.
+                    $enrollment = Enrollment::withTrashed()->find($value);
+                    if (!$enrollment) {
+                        $fail('Enrollment tidak ditemukan.');
+                    }
+                },
+            ],
             'lesson_date' => ['required', 'date', 'before_or_equal:today'],
             'notes' => ['nullable', 'string'],
             'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:5120'],
             'student_ids' => ['nullable', 'array'],
-            'student_ids.*' => ['integer', 'exists:students,id'],
+            'student_ids.*' => [
+                'integer',
+                function ($attribute, $value, $fail) {
+                    // Allow soft-deleted students — attendance may have been created
+                    // when the student was still active.
+                    $student = Student::withTrashed()->find($value);
+                    if (!$student) {
+                        $fail('Murid tidak ditemukan.');
+                    }
+                },
+            ],
         ]);
 
         $newEnrollment = Enrollment::with(['students', 'program'])
@@ -580,13 +601,29 @@ class MonthlyAttendanceController extends Controller
             ->with('status', 'Presensi divalidasi.');
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): JsonResponse|RedirectResponse
     {
         $validated = $request->validate([
-            'enrollment_id' => ['required', 'exists:enrollments,id'],
+            'enrollment_id' => [
+                'required',
+                function ($attribute, $value, $fail) {
+                    $enrollment = Enrollment::withTrashed()->find($value);
+                    if (!$enrollment) {
+                        $fail('Enrollment tidak ditemukan.');
+                    }
+                },
+            ],
             'lesson_date' => ['required', 'date', 'before_or_equal:today'],
             'student_ids' => ['nullable', 'array'],
-            'student_ids.*' => ['integer', 'exists:students,id'],
+            'student_ids.*' => [
+                'integer',
+                function ($attribute, $value, $fail) {
+                    $student = Student::withTrashed()->find($value);
+                    if (!$student) {
+                        $fail('Murid tidak ditemukan.');
+                    }
+                },
+            ],
             'notes' => ['nullable', 'string'],
             'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:5120'],
         ]);
