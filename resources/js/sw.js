@@ -1,10 +1,11 @@
+import { skipWaiting, clientsClaim } from 'workbox-core';
 import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
 import { registerRoute, NavigationRoute } from 'workbox-routing';
 import { CacheFirst, StaleWhileRevalidate, NetworkOnly } from 'workbox-strategies';
 import { ExpirationPlugin } from 'workbox-expiration';
 import { CacheableResponsePlugin } from 'workbox-cacheable-response';
 
-self.skipWaiting();
+skipWaiting();
 clientsClaim();
 
 precacheAndRoute(self.__WB_MANIFEST);
