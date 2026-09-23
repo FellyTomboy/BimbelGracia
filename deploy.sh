@@ -12,7 +12,11 @@ npm run build
 
 echo "==> Syncing public_html..."
 for f in sw.js manifest.webmanifest; do
-    TARGET="$APP_DIR/public/$f"
+    if [ -e "$APP_DIR/public/build/$f" ]; then
+        TARGET="$APP_DIR/public/build/$f"
+    else
+        TARGET="$APP_DIR/public/$f"
+    fi
     DEST="$PUBLIC_HTML/$f"
 
     if [ ! -L "$DEST" ] || [ ! -e "$DEST" ]; then

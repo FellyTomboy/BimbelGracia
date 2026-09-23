@@ -1,7 +1,6 @@
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
 import { VitePWA } from 'vite-plugin-pwa';
-import crypto from 'crypto';
 
 export default defineConfig({
     define: {
@@ -47,10 +46,40 @@ export default defineConfig({
                     },
                 ],
             },
-            build: {
-                // Content-hash sw.js filename — regenerates every build,
-                // forcing all clients to update their SW when a new deploy lands.
-                filename: `sw.${crypto.randomUUID().split('-')[0]}.js`,
+            workbox: {
+                navigateFallback: '/offline.html',
+                navigateFallbackDenylist: [
+                    /^\/api\//,
+                    /^\/admin\/_debugbar\//,
+                    /^\/build\/assets\//,
+                    /^\/sw\.js$/,
+                    /^\/workbox-.*\.js$/,
+                    /^\/manifest\.webmanifest$/,
+                ],
+                runtimeCaching: [
+                    {
+                        urlPattern: /^https:\/\/fonts\.bunny\.net\/.*/i,
+                        handler: 'CacheFirst',
+                        options: {
+                            cacheName: 'bunny-fonts',
+                            expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 },
+                            cacheableResponse: { statuses: [0, 200] },
+                        },
+                    },
+                    {
+                        urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+                        handler: 'StaleWhileRevalidate',
+                        options: { cacheName: 'google-fonts-stylesheets' },
+                    },
+                    {
+                        urlPattern: /^\/icons\/.*\.(png|jpg|svg)$/i,
+                        handler: 'CacheFirst',
+                        options: {
+                            cacheName: 'app-icons',
+                            expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 30 },
+                        },
+                    },
+                ],
             },
             devOptions: {
                 enabled: true,

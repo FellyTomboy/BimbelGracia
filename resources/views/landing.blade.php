@@ -2,7 +2,14 @@
 <html lang="id">
     <head>
         <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+        <meta name="theme-color" content="#4F46E5">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="default">
+        <meta name="apple-mobile-web-app-title" content="BimbelGracia">
+        <link rel="apple-touch-icon" href="/icons/icon-192.png">
+        <link rel="manifest" href="/build/manifest.webmanifest">
         <title>Bimbel Gracia - Bimbingan Belajar Privat & Kelas</title>
         <link rel="icon" type="image/jpeg" href="{{ asset('storage/website/logo_bimbel.jpg') }}" />
         @vite(['resources/css/app.css', 'resources/js/app.js'])
