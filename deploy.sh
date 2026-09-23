@@ -11,7 +11,9 @@ echo "==> Building assets..."
 npm run build
 
 echo "==> Syncing public_html..."
-for f in sw.js manifest.webmanifest; do
+# sw.js lives at public/sw.js (root, not inside build/)
+# manifest.json is written manually to public/manifest.json
+for f in sw.js manifest.json; do
     if [ -e "$APP_DIR/public/build/$f" ]; then
         TARGET="$APP_DIR/public/build/$f"
     else

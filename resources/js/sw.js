@@ -1,6 +1,6 @@
 import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
-import { registerRoute } from 'workbox-routing';
-import { CacheFirst, StaleWhileRevalidate } from 'workbox-strategies';
+import { registerRoute, NavigationRoute } from 'workbox-routing';
+import { CacheFirst, StaleWhileRevalidate, NetworkOnly } from 'workbox-strategies';
 import { ExpirationPlugin } from 'workbox-expiration';
 import { CacheableResponsePlugin } from 'workbox-cacheable-response';
 
@@ -10,10 +10,15 @@ clientsClaim();
 precacheAndRoute(self.__WB_MANIFEST);
 cleanupOutdatedCaches();
 
-// Navigation requests are NOT intercepted — Laravel handles all routes via index.php.
-// Letting the network handle navigations means the browser shows its own offline UI
-// when truly offline, and online requests pass through normally (login, redirects, etc.).
+// Serve offline.html for any navigation that fails (PWA opened while offline).
+registerRoute(
+    new NavigationRoute(
+        new NetworkOnly(),
+        { denylist: [] }
+    )
+);
 
+// External font CDN routes
 registerRoute(
     ({ url }) => url.origin === 'https://fonts.bunny.net',
     new CacheFirst({
@@ -30,6 +35,7 @@ registerRoute(
     new StaleWhileRevalidate({ cacheName: 'google-fonts-stylesheets' })
 );
 
+// Icon image cache
 registerRoute(
     ({ request, url }) =>
         request.destination === 'image' && url.pathname.startsWith('/icons/'),

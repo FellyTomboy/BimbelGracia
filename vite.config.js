@@ -16,44 +16,18 @@ export default defineConfig({
             strategies: 'injectManifest',
             srcDir: 'resources/js',
             filename: 'sw.js',
-            injectRegister: 'auto',
             outDir: 'public',
-            manifest: {
-                name: 'BimbelGracia',
-                short_name: 'BimbelGracia',
-                description: 'Aplikasi Manajemen Bimbingan Belajar Gracia',
-                lang: 'id',
-                theme_color: '#4F46E5',
-                background_color: '#ffffff',
-                display: 'standalone',
-                orientation: 'portrait',
-                start_url: '/',
-                scope: '/',
-                icons: [
-                    {
-                        src: '/icons/icon-192.png',
-                        sizes: '192x192',
-                        type: 'image/png',
-                    },
-                    {
-                        src: '/icons/icon-512.png',
-                        sizes: '512x512',
-                        type: 'image/png',
-                    },
-                    {
-                        src: '/icons/icon-512.png',
-                        sizes: '512x512',
-                        type: 'image/png',
-                        purpose: 'maskable',
-                    },
-                ],
-            },
+            // Set manifest: false to prevent VitePWA from auto-generating
+            // manifest.webmanifest and adding it to precache (which caused the
+            // duplicate that broke SW install). We write public/manifest.json
+            // manually and reference it via <link> in Blade.
+            manifest: false,
             injectManifest: {
                 globPatterns: [
                     'build/assets/**/*.{js,css}',
-                    'build/manifest.webmanifest',
-                    'icons/**/*.{png,jpg,svg}',
+                    'icons/*.png',
                     'offline.html',
+                    'manifest.json',
                 ],
             },
             devOptions: {
