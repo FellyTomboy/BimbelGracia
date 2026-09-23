@@ -14,13 +14,12 @@ echo "==> Syncing public_html..."
 # sw.js lives at public/sw.js (root, not inside build/)
 # manifest.json is written manually to public/manifest.json (NOT inside build/)
 
-# Clean up any Vite-generated manifest files in public/build/ that might confuse
-# the logic below (Vite/Laravel also generate manifest.json inside build/).
-rm -f "$APP_DIR/public/build/manifest.json" "$APP_DIR/public/build/manifest.webmanifest"
+# Clean up Vite-generated PWA manifest (NOT build/manifest.json — that is the
+# Laravel Vite manifest needed by @vite() directive in Blade templates).
+rm -f "$APP_DIR/public/build/manifest.webmanifest"
 
 for f in sw.js manifest.json; do
-    # Always use public/ root (not build/) for these files.
-    # We just deleted build/manifest.json above to avoid ambiguity.
+    # Always use public/ root for sw.js and manifest.json.
     DEST="$PUBLIC_HTML/$f"
 
     if [ ! -L "$DEST" ] || [ ! -e "$DEST" ]; then
