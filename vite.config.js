@@ -13,7 +13,9 @@ export default defineConfig({
         }),
         VitePWA({
             registerType: 'autoUpdate',
-            strategies: 'generateSW',
+            strategies: 'injectManifest',
+            srcDir: 'resources/js',
+            filename: 'sw.js',
             injectRegister: 'auto',
             outDir: 'public',
             manifest: {
@@ -46,43 +48,17 @@ export default defineConfig({
                     },
                 ],
             },
-            workbox: {
-                navigateFallback: '/offline.html',
-                navigateFallbackDenylist: [
-                    /^\/api\//,
-                    /^\/admin\/_debugbar\//,
-                    /^\/build\/assets\//,
-                    /^\/sw\.js$/,
-                    /^\/workbox-.*\.js$/,
-                    /^\/manifest\.webmanifest$/,
-                ],
-                runtimeCaching: [
-                    {
-                        urlPattern: /^https:\/\/fonts\.bunny\.net\/.*/i,
-                        handler: 'CacheFirst',
-                        options: {
-                            cacheName: 'bunny-fonts',
-                            expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 },
-                            cacheableResponse: { statuses: [0, 200] },
-                        },
-                    },
-                    {
-                        urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-                        handler: 'StaleWhileRevalidate',
-                        options: { cacheName: 'google-fonts-stylesheets' },
-                    },
-                    {
-                        urlPattern: /^\/icons\/.*\.(png|jpg|svg)$/i,
-                        handler: 'CacheFirst',
-                        options: {
-                            cacheName: 'app-icons',
-                            expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 30 },
-                        },
-                    },
+            injectManifest: {
+                globPatterns: [
+                    'build/assets/**/*.{js,css}',
+                    'build/manifest.webmanifest',
+                    'icons/**/*.{png,jpg,svg}',
+                    'offline.html',
                 ],
             },
             devOptions: {
                 enabled: true,
+                type: 'module',
             },
         }),
     ],
