@@ -4,7 +4,7 @@
      @touchmove.window="onDrag"
      @touchend.window="endDrag"
      style="position:fixed!important;z-index:9999!important;cursor:grab!important;user-select:none!important;-webkit-user-select:none!important;"
-     :style="'top:'+y+'px!important;left:'+x+'px!important;'">
+     :style="style">
 
     <a href="https://wa.me/6285706512155?text={{ urlencode("Masalah:\nDeskripsi:") }}"
        target="_blank"

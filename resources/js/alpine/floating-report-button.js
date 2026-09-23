@@ -1,28 +1,19 @@
-/**
- * Draggable floating WhatsApp report button.
- * Position persists via localStorage so the user can move it
- * out of the way of other UI elements.
- */
 export function floatingReportButton() {
+    const storedX = localStorage.getItem('waBtnX');
+    const storedY = localStorage.getItem('waBtnY');
+
+    const defaultX = window.innerWidth - 72;
+    const defaultY = window.innerHeight - 96;
+
     return {
-        x: null,
-        y: null,
+        x: storedX !== null ? parseInt(storedX, 10) : defaultX,
+        y: storedY !== null ? parseInt(storedY, 10) : defaultY,
         dragging: false,
         offsetX: 0,
         offsetY: 0,
 
-        init() {
-            const storedX = localStorage.getItem('waBtnX');
-            const storedY = localStorage.getItem('waBtnY');
-
-            if (storedX !== null && storedY !== null) {
-                this.x = parseInt(storedX, 10);
-                this.y = parseInt(storedY, 10);
-            } else {
-                // Default: bottom-right corner
-                this.x = window.innerWidth - 72;
-                this.y = window.innerHeight - 96;
-            }
+        get style() {
+            return `top:${this.y}px!important;left:${this.x}px!important;`;
         },
 
         startDrag(e) {
