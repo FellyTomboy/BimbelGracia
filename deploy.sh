@@ -12,19 +12,21 @@ npm run build
 
 echo "==> Syncing public_html..."
 # sw.js lives at public/sw.js (root, not inside build/)
-# manifest.json is written manually to public/manifest.json
+# manifest.json is written manually to public/manifest.json (NOT inside build/)
+
+# Clean up any Vite-generated manifest files in public/build/ that might confuse
+# the logic below (Vite/Laravel also generate manifest.json inside build/).
+rm -f "$APP_DIR/public/build/manifest.json" "$APP_DIR/public/build/manifest.webmanifest"
+
 for f in sw.js manifest.json; do
-    if [ -e "$APP_DIR/public/build/$f" ]; then
-        TARGET="$APP_DIR/public/build/$f"
-    else
-        TARGET="$APP_DIR/public/$f"
-    fi
+    # Always use public/ root (not build/) for these files.
+    # We just deleted build/manifest.json above to avoid ambiguity.
     DEST="$PUBLIC_HTML/$f"
 
     if [ ! -L "$DEST" ] || [ ! -e "$DEST" ]; then
         echo "    Fixing $DEST (was $([ -L "$DEST" ] && echo "broken symlink" || echo "regular file"))"
         rm -f "$DEST"
-        ln -s "$TARGET" "$DEST"
+        ln -s "$APP_DIR/public/$f" "$DEST"
     else
         echo "    $DEST already OK"
     fi
