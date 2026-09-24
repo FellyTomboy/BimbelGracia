@@ -226,8 +226,7 @@ class PdfController extends Controller
             ->where('year', $year)
             ->where(function ($query) use ($teacher) {
                 $query->whereHas('enrollment', fn ($q) => $q
-                    ->where('teacher_id', $teacher->id)
-                    ->where('type', 'privat'));
+                    ->where('teacher_id', $teacher->id));
                 $query->orWhere(fn ($q) => $q
                     ->whereNotNull('class_session_id')
                     ->where('session_teacher_id', $teacher->id));

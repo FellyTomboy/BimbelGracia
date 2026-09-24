@@ -907,8 +907,7 @@ class AnalysisController extends Controller
             ->where(function ($query) use ($teacher) {
                 // Privat: teacher owns the enrollment
                 $query->whereHas('enrollment', fn ($q) => $q
-                    ->where('teacher_id', $teacher->id)
-                    ->where('type', 'privat'));
+                    ->where('teacher_id', $teacher->id));
 
                 // Kelas: this specific attendance's session_teacher_id matches
                 $query->orWhere(fn ($q) => $q
