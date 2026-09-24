@@ -62,6 +62,9 @@
             </div>
         </div>
 
+        <input type="hidden" name="class_rate" value="{{ $teacher->class_rate ?? 0 }}">
+        <input type="hidden" name="status" value="{{ $teacher->status?->value ?? 'active' }}">
+
         <div class="flex justify-end gap-3 pt-2">
             <button type="submit" class="px-4 py-2 rounded-md bg-slate-900 text-white">Simpan & Lanjutkan</button>
         </div>
