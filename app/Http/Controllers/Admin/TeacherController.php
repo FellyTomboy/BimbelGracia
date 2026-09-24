@@ -149,7 +149,7 @@ class TeacherController extends Controller
 
         $validated = $request->validate([
             'nickname' => ['required', 'string', 'max:255'],
-            'full_name' => ['nullable', 'string', 'max:255'],
+            'full_name' => ['required', 'string', 'max:255'],
             'major' => ['required', 'string', 'max:255'],
             'subjects' => ['required', 'string', 'max:255'],
             'address' => ['required', 'string', 'max:1000'],

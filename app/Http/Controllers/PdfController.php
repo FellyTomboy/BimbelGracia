@@ -353,8 +353,9 @@ class PdfController extends Controller
 
         $hasMissingIdentity = blank($teacher->nickname) && blank($teacher->full_name);
         $hasMissingProfile = blank($teacher->major) || blank($teacher->subjects) || blank($teacher->address);
+        $hasMissingBank = blank($teacher->bank_name) || blank($teacher->bank_account) || blank($teacher->bank_owner);
 
-        return $hasMissingIdentity || $hasMissingProfile;
+        return $hasMissingIdentity || $hasMissingProfile || $hasMissingBank;
     }
 
     private function isParentAdmin(Request $request, int $parentId): bool
