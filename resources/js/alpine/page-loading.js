@@ -82,6 +82,8 @@ export function pageLoading() {
                 }
             }
             if (a.hasAttribute('onclick')) return false;
+            // Exclude AJAX sidebar links — they handle their own navigation via fetch()
+            if (a.classList.contains('ajax-sidebar-link')) return false;
             return true;
         },
 
