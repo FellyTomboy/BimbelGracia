@@ -32,8 +32,13 @@ class PdfController extends Controller
 
         $storagePath = sprintf('pdf/invoice/parent_%s/%s', $parent, $filename);
 
-        // Admin: langsung serve, skip semuanya (cek kelengkapan + regenerasi)
+        // Admin: regenerate on-demand dengan data terkini agar selalu fresh
         if ($this->isParentAdmin($request, $parent)) {
+            if (preg_match('/Tagihan_(\d{2})-(\d{4})_/', $filename, $matches)) {
+                $month = (int) $matches[1];
+                $year = (int) $matches[2];
+                $this->overwriteParentInvoice($parent, $month, $year, $storagePath);
+            }
             if (! $this->isWithinAllowedDirectory($storagePath) || ! Storage::disk(self::PDF_DISK)->exists($storagePath)) {
                 abort(404);
             }
