@@ -75,10 +75,9 @@ window.attendanceDetailModal = attendanceDetailModal;
 window.classAttendanceModal = classAttendanceModal;
 window.classSessionModal = classSessionModal;
 window.classPresensiModal = classPresensiModal;
+window.pageLoading = pageLoading;
 
 Alpine.start();
-
-window.pageLoading = pageLoading;
 
 // ── PWA Service Worker Registration ──────────────────────────────────────────
 if ('serviceWorker' in navigator) {
