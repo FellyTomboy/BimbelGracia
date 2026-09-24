@@ -28,10 +28,10 @@ import { attendanceDetailModal } from './alpine/attendance-detail-modal';
 import { classAttendanceModal } from './alpine/class-attendance-modal';
 import { classSessionModal } from './alpine/class-session-modal';
 import { classPresensiModal } from './alpine/class-presensi-modal';
-import { floatingReportButton } from './alpine/floating-report-button';
 
 import './utils/toast';
 import './utils/ajax';
+import { pageLoading } from './alpine/page-loading';
 
 window.Alpine = Alpine;
 Alpine.plugin(collapse);
@@ -48,7 +48,6 @@ Alpine.data('attendanceDetailModal', attendanceDetailModal);
 Alpine.data('classAttendanceModal', classAttendanceModal);
 Alpine.data('classSessionModal', classSessionModal);
 Alpine.data('classPresensiModal', classPresensiModal);
-Alpine.data('floatingReportButton', floatingReportButton);
 Alpine.data('bulkHibernateActions', bulkHibernateActions);
 // Expose to window so per-page Alpine.data factories (e.g. enrollmentModal)
 // can spread it via `...crudModal({...})` from their inline <script> scope.
@@ -76,9 +75,10 @@ window.attendanceDetailModal = attendanceDetailModal;
 window.classAttendanceModal = classAttendanceModal;
 window.classSessionModal = classSessionModal;
 window.classPresensiModal = classPresensiModal;
-window.floatingReportButton = floatingReportButton;
 
 Alpine.start();
+
+window.pageLoading = pageLoading;
 
 // ── PWA Service Worker Registration ──────────────────────────────────────────
 if ('serviceWorker' in navigator) {

@@ -50,7 +50,7 @@
 
         <!-- Page Overlay (loading state) -->
         <div id="page-overlay"
-             x-data="{ show: false }"
+             x-data="pageLoading()"
              x-show="show"
              x-cloak
              class="fixed inset-0 bg-black/30 z-[200] flex items-center justify-center transition-opacity">
