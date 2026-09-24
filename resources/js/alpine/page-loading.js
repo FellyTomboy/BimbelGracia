@@ -27,9 +27,16 @@ export function pageLoading() {
             }
         },
 
+        show() {
+            this.requestStart();
+        },
+
         init() {
             this._wrapAjax();
-            this._setupNavigationInterceptor();
+            // Navigation interceptors REMOVED — browser native nav handles page transitions.
+            // The overlay is shown for AJAX requests (via _wrapAjax) and can be
+            // triggered manually via document.dispatchEvent('page-loading', {detail:{show:true}})
+            // or by calling Alpine's component method: $data in the page-overlay scope.
             this._setupCustomEventListener();
         },
 
@@ -45,58 +52,6 @@ export function pageLoading() {
                         .finally(() => this.requestEnd());
                 };
             });
-        },
-
-        // ── Navigation Interceptor ─────────────────────────────────────────────
-
-        _setupNavigationInterceptor() {
-            // Intercept link clicks for full-page navigation
-            document.addEventListener('click', (e) => {
-                const a = e.target.closest('a[href]');
-                if (!a) return;
-                if (!this._shouldInterceptLink(a)) return;
-                if (a.target === '_blank') return;
-                e.preventDefault();
-                this.requestStart();
-                window.location.href = a.href;
-            });
-
-            // Intercept form submits (non-AJAX forms, e.g. logout)
-            document.addEventListener('submit', (e) => {
-                const form = e.target;
-                if (!this._shouldInterceptForm(form)) return;
-                e.preventDefault();
-                this.requestStart();
-                form.submit();
-            });
-        },
-
-        _shouldInterceptLink(a) {
-            const href = a.getAttribute('href') || '';
-            // Skip: anchors, javascript:, external URLs, existing onclick/remote handlers
-            if (!href || href.startsWith('#')) return false;
-            if (href.startsWith('javascript:')) return false;
-            if (href.startsWith('http://') || href.startsWith('https://')) {
-                try {
-                    const url = new URL(href);
-                    if (url.origin !== window.location.origin) return false;
-                } catch {
-                    return false;
-                }
-            }
-            if (a.hasAttribute('onclick')) return false;
-            if (a.dataset.remote !== undefined) return false; // Rails UJS
-            if (a.dataset.method !== undefined) return false;  // Laravel method spoofing
-            return true;
-        },
-
-        _shouldInterceptForm(form) {
-            // Only POST/PUT/PATCH/DELETE forms
-            const method = (form.method || 'get').toLowerCase();
-            if (method === 'get') return false;
-            // Skip if already wired for AJAX (e.g. Alpine remote submit)
-            if (form.dataset.ajax !== undefined) return false;
-            return true;
         },
 
         // ── Custom Event ───────────────────────────────────────────────────────
