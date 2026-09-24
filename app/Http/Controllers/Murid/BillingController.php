@@ -113,7 +113,7 @@ class BillingController extends Controller
         }
 
         $validated = $request->validate([
-            'payment_proof' => ['required', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
+            'payment_proof' => ['required', 'image', 'mimes:jpg,jpeg,png', 'max:1024'],
         ]);
 
         $parentId = $parent?->id ?? 'unknown';
@@ -121,7 +121,9 @@ class BillingController extends Controller
         $extension = $file->getClientOriginalExtension();
         $period = sprintf('%02d-%04d', $attendance->month, $attendance->year);
         $path = sprintf('photo/transfer-proof/parent_%s/%s.%s', $parentId, $period, $extension);
+        $fullPath = storage_path('app/public/' . $path);
         $file->storeAs(dirname($path), basename($path), 'public');
+        app(\App\Services\ImageCompressionService::class)->compressFile($fullPath);
 
         $attendance->update([
             'payment_proof' => $path,

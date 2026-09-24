@@ -9,6 +9,7 @@ use App\Models\Enrollment;
 use App\Models\MonthlyAttendance;
 use App\Models\Teacher;
 use App\Services\AttendanceFineService;
+use App\Services\ImageCompressionService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,7 +18,10 @@ use Illuminate\View\View;
 
 class MonthlyAttendanceController extends Controller
 {
-    public function __construct(private AttendanceFineService $fineService) {}
+    public function __construct(
+        private AttendanceFineService $fineService,
+        private ImageCompressionService $imageCompression,
+    ) {}
     public function index(Request $request): View
     {
         $teacher = $this->resolveTeacher($request);
@@ -78,7 +82,7 @@ class MonthlyAttendanceController extends Controller
             'student_ids' => ['nullable', 'array'],
             'student_ids.*' => ['integer', 'exists:students,id'],
             'notes' => ['nullable', 'string'],
-            'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:5120'],
+            'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:2048'],
         ]);
 
         $enrollment = Enrollment::with(['students', 'program'])
@@ -98,7 +102,9 @@ class MonthlyAttendanceController extends Controller
             $lessonDateStr = $lessonDate->format('Y-m-d');
             $extension = $file->getClientOriginalExtension();
             $imagePath = sprintf('photo/attendance/%s/%d_%s.%s', $teacherSlug, $enrollment->id, $lessonDateStr, $extension);
+            $fullPath = storage_path('app/public/' . $imagePath);
             $file->storeAs(dirname($imagePath), basename($imagePath), 'public');
+            $this->imageCompression->compressFile($fullPath);
         }
 
         // Monthly billing: always accept. Daily billing: >3 days = late.
@@ -218,7 +224,7 @@ class MonthlyAttendanceController extends Controller
                 'before_or_equal:today',
             ],
             'notes' => ['nullable', 'string'],
-            'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:5120'],
+            'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:2048'],
             'student_ids' => ['nullable', 'array'],
             'student_ids.*' => ['integer', 'exists:students,id'],
         ]);
@@ -278,7 +284,9 @@ class MonthlyAttendanceController extends Controller
             $lessonDateStr = $lessonDate->format('Y-m-d');
             $extension = $file->getClientOriginalExtension();
             $imagePath = sprintf('photo/attendance/%s/%d_%s.%s', $teacherSlug, $newEnrollment->id, $lessonDateStr, $extension);
+            $fullPath = storage_path('app/public/' . $imagePath);
             $file->storeAs(dirname($imagePath), basename($imagePath), 'public');
+            $this->imageCompression->compressFile($fullPath);
             $updateData['image'] = $imagePath;
         }
 
@@ -330,7 +338,7 @@ class MonthlyAttendanceController extends Controller
             'sessions.*.student_ids' => ['nullable', 'array'],
             'sessions.*.student_ids.*' => ['integer', 'exists:students,id'],
             'sessions.*.notes' => ['nullable', 'string', 'max:1000'],
-            'sessions.*.image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:5120'],
+            'sessions.*.image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:2048'],
         ]);
 
         $enrollment = Enrollment::with(['students', 'program'])
@@ -376,7 +384,9 @@ class MonthlyAttendanceController extends Controller
                         $idx,
                         $extension
                     );
+                    $fullPath = storage_path('app/public/' . $imagePath);
                     $file->storeAs(dirname($imagePath), basename($imagePath), 'public');
+                    $this->imageCompression->compressFile($fullPath);
                 }
 
                 if ($isClassProgram) {
