@@ -65,8 +65,8 @@ return [
             ],
             'servers' => [
                 [
-                    'host' => env('MEMCACHED_HOST', '127.0.0.1'),
-                    'port' => env('MEMCACHED_PORT', 11211),
+                    'host' => env('MEMCACHED_SOCKET', '/home/bimbelgr/.local/apps/run/memcached.sock'),
+                    'port' => 0,
                     'weight' => 100,
                 ],
             ],
